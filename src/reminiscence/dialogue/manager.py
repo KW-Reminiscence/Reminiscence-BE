@@ -1,25 +1,37 @@
 """대화 흐름 오케스트레이터.
 
-한 턴의 흐름::
+턴은 두 종류다.
+
+사용자 주도 턴 (:meth:`DialogueManager.stream_turn`)::
 
     발화 -> 라우터(S1~S6 선택) -> 상황 지시문 조립 -> LLM 스트리밍
          -> 문장 단위로 TTS 방출 -> 출력 가드레일 -> 이력/플래그 기록
 
-가드레일이 스트리밍 뒤에 오는 것이 의도적이다. 검사를 먼저 하려면 응답
+기기 주도 턴 (:meth:`DialogueManager.stream_initiate`)::
+
+    트리거(루틴 알림·인사) -> 상황 지시문 조립 -> 이하 동일
+
+설계서 S4 예시처럼 복약 알림은 어르신이 말을 걸기 전에 액자가 먼저 말한다.
+그래서 사용자 발화 없이 시작하는 경로가 따로 필요하다.
+
+가드레일이 스트리밍 뒤에 오는 것은 의도적이다. 검사를 먼저 하려면 응답
 전체를 기다려야 하고, 그러면 스트리밍의 지연 이득이 사라진다. 다만 금지
 표현만은 예외로 각 문장이 나가기 전에 검사한다.
 """
 
+import logging
 from collections.abc import Generator
 from dataclasses import dataclass, field
 
 from anthropic.types import MessageParam
 
-from reminiscence.dialogue import guardrails, prompts
+from reminiscence.dialogue import fallbacks, guardrails, prompts
 from reminiscence.dialogue.context import SessionContext, Turn
 from reminiscence.dialogue.llm_client import DialogueLLM, ReplyStreamer
 from reminiscence.dialogue.router import route
 from reminiscence.dialogue.scenarios import Scenario
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -31,6 +43,9 @@ class TurnResult:
     violations: list[str] = field(default_factory=list)
     guardian_flagged: bool = False
 
+    degraded: bool = False
+    """LLM 응답을 받지 못해 대체 문구를 내보냈는가."""
+
 
 class DialogueManager:
     """세션 하나의 대화 흐름을 관리한다."""
@@ -39,18 +54,14 @@ class DialogueManager:
         self.ctx = ctx
         self.llm: ReplyStreamer = llm if llm is not None else DialogueLLM()
 
+    # -- 사용자 주도 턴 --------------------------------------------------
+
     def respond(self, utterance: str) -> TurnResult:
         """한 턴을 처리하고 결과만 돌려준다(테스트·배치용)."""
-        stream = self.stream_turn(utterance)
-        while True:
-            try:
-                next(stream)
-            except StopIteration as stop:
-                result: TurnResult = stop.value
-                return result
+        return _drain(self.stream_turn(utterance))
 
     def stream_turn(self, utterance: str) -> Generator[str, None, TurnResult]:
-        """한 턴을 처리하며 문장을 흘려보내고, 마지막에 결과를 반환한다.
+        """사용자 발화에 응답하며 문장을 흘려보낸다.
 
         yield되는 문장은 그대로 TTS 큐에 넣으면 된다.
         """
@@ -66,17 +77,67 @@ class DialogueManager:
 
         ctx.add(Turn(role="user", text=utterance))
 
-        messages = self._build_messages(utterance, scenario)
+        directive = prompts.build_turn_directive(scenario, ctx)
+        messages = ctx.recent_messages()
+        # 지시문을 마지막 user 메시지에 덧붙이므로 시스템 프롬프트는 매 턴
+        # 동일하게 유지되고, 프롬프트 캐시 접두사가 깨지지 않는다.
+        messages[-1] = MessageParam(
+            role="user",
+            content=f"{directive}\n\n[사용자 발화]\n{utterance}",
+        )
+
+        return (yield from self._run(scenario, messages, guardian_flagged))
+
+    # -- 기기 주도 턴 ----------------------------------------------------
+
+    def initiate(self, scenario: Scenario) -> TurnResult:
+        """기기가 먼저 말을 걸고 결과만 돌려준다."""
+        return _drain(self.stream_initiate(scenario))
+
+    def stream_initiate(self, scenario: Scenario) -> Generator[str, None, TurnResult]:
+        """사용자 발화 없이 액자가 먼저 말을 건다.
+
+        루틴 모니터가 알림 시각을 알려왔을 때(S4)나, 사진이 바뀌어 말을
+        걸고 싶을 때(S1~S3) 쓴다. 라우터를 거치지 않고 호출 측이 시나리오를
+        직접 지정한다. 트리거를 아는 쪽은 하드웨어이기 때문이다.
+        """
+        directive = prompts.build_turn_directive(scenario, self.ctx)
+        messages = self.ctx.recent_messages()
+        messages.append(MessageParam(role="user", content=directive))
+
+        return (yield from self._run(scenario, messages, guardian_flagged=False))
+
+    # -- 공통 처리 -------------------------------------------------------
+
+    def _run(
+        self,
+        scenario: Scenario,
+        messages: list[MessageParam],
+        guardian_flagged: bool,
+    ) -> Generator[str, None, TurnResult]:
+        """스트리밍, 가드레일, 이력 기록을 한다."""
+        ctx = self.ctx
         system = prompts.build_system_prompt(ctx.device_name)
 
         raw = ""
         muted = False
+        degraded = False
         stream = self.llm.stream_reply(system, messages)
+
         while True:
             try:
                 sentence = next(stream)
             except StopIteration as stop:
                 raw = stop.value
+                break
+            except Exception:  # noqa: BLE001 - 액자는 어떤 경우에도 침묵하면 안 된다
+                # 네트워크 단절, 타임아웃, 과부하, 설정 누락(API 키 없음) 등.
+                # 원인이 무엇이든 어르신 앞의 액자가 아무 말도 하지 않으면
+                # 고장으로 받아들이므로, 대체 문구를 내보내고 원인은 로그로 남긴다.
+                logger.exception("대화 응답 생성 실패 (scenario=%s)", scenario.value)
+                stream.close()
+                degraded = True
+                raw = fallbacks.utterance_for(scenario, ctx)
                 break
 
             # TTS로 내보내기 전에 금지 표현만 즉시 검사한다. 한 번 발화된
@@ -90,8 +151,9 @@ class DialogueManager:
 
         verdict = guardrails.check_output(raw)
 
-        if muted:
-            # 막힌 문장 대신 안전한 대체 문구를 내보내 흐름을 복구한다.
+        # 이미 내보낸 문장 뒤에 이어 붙인다. 정상 스트림은 문장을 그때그때
+        # 내보냈으므로 여기서 다시 말할 필요가 없다.
+        if muted or degraded:
             yield verdict.text
 
         if verdict.violations:
@@ -115,18 +177,15 @@ class DialogueManager:
             reply=verdict.text,
             violations=verdict.violations,
             guardian_flagged=guardian_flagged,
+            degraded=degraded,
         )
 
-    def _build_messages(self, utterance: str, scenario: Scenario) -> list[MessageParam]:
-        """최근 이력에 이번 턴의 상황 지시문을 얹는다.
 
-        지시문을 마지막 user 메시지에 덧붙이므로 시스템 프롬프트는 매 턴
-        동일하게 유지되고, 프롬프트 캐시 접두사가 깨지지 않는다.
-        """
-        messages = self.ctx.recent_messages()
-        directive = prompts.build_turn_directive(scenario, self.ctx)
-        messages[-1] = MessageParam(
-            role="user",
-            content=f"{directive}\n\n[사용자 발화]\n{utterance}",
-        )
-        return messages
+def _drain(stream: Generator[str, None, TurnResult]) -> TurnResult:
+    """문장을 모두 소비하고 결과만 꺼낸다."""
+    while True:
+        try:
+            next(stream)
+        except StopIteration as stop:
+            result: TurnResult = stop.value
+            return result

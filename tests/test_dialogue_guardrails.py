@@ -83,6 +83,17 @@ def test_check_output_passes_a_compliant_reply_through() -> None:
     assert verdict.text == good
 
 
+def test_check_output_does_not_split_inside_a_word() -> None:
+    # "바다 앞에서"의 "바다"를 문장 끝으로 오인하던 회귀 케이스.
+    # 종결어미로 문장을 끊으면 한 문장이 세 조각으로 갈라진다.
+    two_sentences = "바다 앞에서 활짝 웃고 계시네요. 그때 기분이 어떠셨어요?"
+
+    verdict = guardrails.check_output(two_sentences)
+
+    assert verdict.clean
+    assert verdict.text == two_sentences
+
+
 def test_check_output_records_length_without_truncating() -> None:
     # 문장 중간을 자르면 TTS가 어색해져 오히려 혼란을 준다
     verdict = guardrails.check_output("정말 " * 40 + "좋네요.")

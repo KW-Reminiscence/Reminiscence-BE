@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>회상 액자 데모</title>
+<style>
+  :root { --ink:#2f2a26; --muted:#8a8078; --frame:#c9a227; }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; min-height:100vh; display:grid; place-items:center;
+    background:#efe9e1; color:var(--ink);
+    font-family:"Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+  }
+  .frame {
+    width:min(92vw,720px); background:#fffdf9; padding:22px;
+    border:14px solid var(--frame); border-radius:6px;
+    box-shadow:0 18px 40px rgba(0,0,0,.22);
+  }
+  .photo {
+    aspect-ratio:4/3; background:#e6ded3; border-radius:4px; overflow:hidden;
+    display:grid; place-items:center; color:var(--muted); font-size:15px;
+  }
+  .photo img { width:100%; height:100%; object-fit:cover; }
+  .caption { margin:12px 2px 0; font-size:14px; color:var(--muted); }
+  .speech {
+    margin-top:16px; min-height:82px; padding:16px 18px; border-radius:12px;
+    background:#f6f1e8; font-size:21px; line-height:1.6;
+  }
+  .speech.idle { color:var(--muted); font-size:16px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+  button {
+    font:inherit; font-size:16px; padding:12px 18px; border-radius:10px;
+    border:1px solid #d8cfc2; background:#fff; cursor:pointer;
+  }
+  button.primary { background:var(--frame); border-color:var(--frame); color:#fff; font-weight:700; }
+  button:disabled { opacity:.5; cursor:default; }
+  input {
+    font:inherit; padding:11px 12px; border-radius:10px;
+    border:1px solid #d8cfc2; background:#fff; flex:1; min-width:180px;
+  }
+  .trace {
+    margin-top:14px; font-size:13px; color:var(--muted);
+    font-family:Consolas,monospace; white-space:pre-wrap;
+  }
+  .warn { color:#b4442e; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="photo" id="photo">사진을 불러오면 여기에 표시됩니다</div>
+  <div class="caption" id="caption">—</div>
+
+  <div class="speech idle" id="speech">시작을 누르면 액자가 깨어납니다.</div>
+
+  <div class="row">
+    <button class="primary" id="start">시작</button>
+    <button id="mic" disabled>🎤 말하기</button>
+    <button id="alarm" disabled>복약 알림</button>
+    <button id="summary" disabled>요약</button>
+  </div>
+
+  <div class="row">
+    <input id="typed" placeholder="음성 대신 입력해서 시험해도 됩니다" disabled>
+    <button id="send" disabled>보내기</button>
+  </div>
+
+  <div class="row">
+    <input id="photoMeta" value="1998년 제주도, 본인과 딸, 여름">
+    <button id="applyPhoto">사진 설명 적용</button>
+  </div>
+
+  <div class="trace" id="trace"></div>
+</div>
+
+<script>
+// 백엔드 주소. 배포 시 여기만 바꾸면 된다.
+const API = localStorage.getItem("reminiscenceApi") || "http://127.0.0.1:8000";
+
+const el = (id) => document.getElementById(id);
+let sessionId = null;
+
+function say(text) {
+  // 문장이 도착하는 대로 큐에 넣는다. speechSynthesis가 순서대로 읽어주므로
+  // 응답 전체를 기다릴 필요가 없다 — 서버가 문장 단위로 흘려보내는 이유다.
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "ko-KR";
+  u.rate = 0.92;   // 어르신 대상이라 조금 느리게
+  speechSynthesis.speak(u);
+}
+
+function trace(msg) {
+  const bits = [`${msg.scenario} ${msg.scenario_label}`];
+  if (msg.guardian_flagged) bits.push("보호자 플래그");
+  if (msg.degraded) bits.push("대체 문구(LLM 응답 실패)");
+  if (msg.violations?.length) bits.push(`가드레일 위반: ${msg.violations.join(", ")}`);
+  el("trace").textContent = bits.join("  |  ");
+  el("trace").className = "trace" + (msg.guardian_flagged || msg.degraded ? " warn" : "");
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(API + path, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  return res;
+}
+
+async function startSession() {
+  const res = await api("/dialogue/sessions", {
+    method: "POST",
+    body: JSON.stringify({ photo_meta: el("photoMeta").value, routine_type: "점심 복약" }),
+  });
+  sessionId = (await res.json()).session_id;
+  for (const id of ["mic", "alarm", "summary", "typed", "send"]) el(id).disabled = false;
+  el("start").textContent = "다시 시작";
+  el("speech").className = "speech idle";
+  el("speech").textContent = "말을 걸어보세요.";
+}
+
+// 서버는 NDJSON을 흘려보낸다. 한 줄이 완성될 때마다 바로 읽어 TTS로 넘긴다.
+async function runTurn(body) {
+  el("speech").className = "speech";
+  el("speech").textContent = "";
+  speechSynthesis.cancel();
+
+  const res = await api(`/dialogue/sessions/${sessionId}/turns`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n");
+    buffer = lines.pop();          // 마지막 조각은 아직 안 끝났을 수 있다
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const msg = JSON.parse(line);
+      if (msg.type === "sentence") {
+        el("speech").textContent += msg.text + " ";
+        say(msg.text);
+      } else if (msg.type === "result") {
+        trace(msg);
+      } else if (msg.type === "error") {
+        el("trace").textContent = `오류: ${msg.detail}`;
+        el("trace").className = "trace warn";
+      }
+    }
+  }
+}
+
+function listen() {
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recognition) {
+    alert("이 브라우저는 음성 인식을 지원하지 않습니다. Chrome이나 Edge에서 열어주세요.");
+    return;
+  }
+  const recognition = new Recognition();
+  recognition.lang = "ko-KR";
+  recognition.interimResults = false;
+
+  el("mic").textContent = "🎤 듣는 중…";
+  recognition.onresult = (event) => {
+    const said = event.results[0][0].transcript;
+    el("caption").textContent = `어르신: ${said}`;
+    runTurn({ utterance: said });
+  };
+  recognition.onerror = () => { el("trace").textContent = "음성 인식 실패"; };
+  recognition.onend = () => { el("mic").textContent = "🎤 말하기"; };
+  recognition.start();
+}
+
+el("start").onclick = () => startSession().catch((e) => alert(e.message));
+el("mic").onclick = listen;
+el("alarm").onclick = () => runTurn({ scenario: "S4" });
+el("send").onclick = () => {
+  const text = el("typed").value.trim();
+  if (!text) return;
+  el("caption").textContent = `어르신: ${text}`;
+  el("typed").value = "";
+  runTurn({ utterance: text });
+};
+el("typed").onkeydown = (e) => { if (e.key === "Enter") el("send").click(); };
+
+el("applyPhoto").onclick = async () => {
+  if (!sessionId) return;
+  await api(`/dialogue/sessions/${sessionId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ photo_meta: el("photoMeta").value, music_meta: null }),
+  });
+  el("trace").textContent = "사진 설명을 반영했습니다.";
+  el("trace").className = "trace";
+};
+
+el("summary").onclick = async () => {
+  const data = await (await api(`/dialogue/sessions/${sessionId}/summary`)).json();
+  el("trace").className = "trace";
+  el("trace").textContent =
+    `턴 ${data.turn_count}  |  가드레일 위반 ${data.violation_count}건(목표 0)  |  ` +
+    `보호자 알림 ${data.guardian_flags.length}건\n시나리오 ${JSON.stringify(data.scenario_breakdown)}`;
+};
+</script>
+</body>
+</html>

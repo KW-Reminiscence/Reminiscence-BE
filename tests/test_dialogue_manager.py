@@ -5,6 +5,8 @@ LLM을 스텁으로 갈아 끼워 API 키 없이 전체 턴 흐름을 돌린다.
 
 from collections.abc import Generator
 
+import anthropic
+import httpx
 from anthropic.types import MessageParam
 
 from reminiscence.dialogue import DialogueManager, SessionContext
@@ -27,6 +29,26 @@ class StubLLM:
         for sentence in self.reply.split("|"):
             yield sentence.strip()
         return self.reply.replace("|", " ").strip()
+
+
+class FailingLLM:
+    """연결이 끊긴 상황을 흉내내는 가짜 LLM."""
+
+    def stream_reply(
+        self, system: str, messages: list[MessageParam]
+    ) -> Generator[str, None, str]:
+        raise anthropic.APIConnectionError(request=httpx.Request("POST", "https://x"))
+        yield ""  # pragma: no cover - 제너레이터로 만들기 위한 구문
+
+
+class MisconfiguredLLM:
+    """API 키가 없을 때처럼 SDK가 아닌 예외가 나는 상황."""
+
+    def stream_reply(
+        self, system: str, messages: list[MessageParam]
+    ) -> Generator[str, None, str]:
+        raise TypeError("api_key must be set")
+        yield ""  # pragma: no cover - 제너레이터로 만들기 위한 구문
 
 
 def test_a_turn_flows_end_to_end() -> None:
@@ -88,6 +110,67 @@ def test_a_routine_reminder_clears_after_delivery() -> None:
     # 다음 턴은 더 이상 루틴으로 가지 않는다
     ctx.photo_meta = "가족사진"
     assert manager.respond("그래").scenario is not Scenario.S4_ROUTINE
+
+
+def test_the_frame_can_speak_first_for_a_routine_reminder() -> None:
+    # 설계서 S4는 어르신이 말을 걸기 전에 액자가 먼저 말한다
+    ctx = SessionContext(routine_type="점심 복약", routine_pending=True)
+    llm = StubLLM("점심 드실 시간이에요.|이따 그 사진 얘기 더 해주실래요?")
+    manager = DialogueManager(ctx, llm)
+
+    result = manager.initiate(Scenario.S4_ROUTINE)
+
+    assert result.scenario is Scenario.S4_ROUTINE
+    assert not result.degraded
+    assert not ctx.routine_pending
+    # 사용자 발화가 없으므로 이력에는 어시스턴트 턴만 남는다
+    assert [t.role for t in ctx.history] == ["assistant"]
+
+
+def test_an_initiated_turn_sends_the_directive_without_a_user_utterance() -> None:
+    ctx = SessionContext(routine_type="점심 복약", routine_pending=True)
+    llm = StubLLM("점심 드실 시간이에요.")
+
+    DialogueManager(ctx, llm).initiate(Scenario.S4_ROUTINE)
+
+    assert llm.last_messages is not None
+    sent = llm.last_messages[-1]["content"]
+    assert "점심 복약" in sent
+    assert "[사용자 발화]" not in sent
+
+
+def test_a_routine_reminder_still_fires_when_the_api_fails() -> None:
+    # 복약 알림은 안전과 직결되므로 LLM이 죽어도 나가야 한다
+    ctx = SessionContext(routine_type="점심 복약", routine_pending=True)
+    manager = DialogueManager(ctx, FailingLLM())
+
+    spoken = list(manager.stream_initiate(Scenario.S4_ROUTINE))
+
+    assert spoken
+    assert "점심 복약" in " ".join(spoken)
+
+
+def test_an_api_failure_degrades_instead_of_raising() -> None:
+    ctx = SessionContext(photo_meta="가족사진")
+    manager = DialogueManager(ctx, FailingLLM())
+
+    result = manager.respond("이거 뭐야")
+
+    assert result.degraded
+    assert result.reply
+    assert ctx.history[-1].role == "assistant"
+
+
+def test_a_missing_api_key_still_produces_speech() -> None:
+    # 키를 빠뜨렸을 때 SDK는 APIError가 아니라 TypeError를 낸다.
+    # 원인이 무엇이든 액자는 침묵하면 안 된다.
+    ctx = SessionContext(photo_meta="가족사진")
+    manager = DialogueManager(ctx, MisconfiguredLLM())
+
+    result = manager.respond("이거 뭐야")
+
+    assert result.degraded
+    assert result.reply
 
 
 def test_guardrail_violations_are_recorded_in_history() -> None:

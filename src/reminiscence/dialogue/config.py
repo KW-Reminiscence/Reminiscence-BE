@@ -39,6 +39,15 @@ EFFORT: Final[EffortLevel] = _read_effort()
 #: 대화 이력 유지 턴 수. 이력이 길수록 지연이 늘어나므로 짧게 자른다.
 HISTORY_TURNS: Final[int] = int(os.getenv("DIALOGUE_HISTORY_TURNS", "8"))
 
+#: 요청 제한 시간(초). SDK 기본값 10분은 음성 대화에 쓸 수 없다.
+#: 응답이 1~2문장이므로 이보다 오래 걸리면 이미 실패로 보는 편이 낫다.
+REQUEST_TIMEOUT_SECONDS: Final[float] = float(
+    os.getenv("DIALOGUE_TIMEOUT_SECONDS", "15")
+)
+
+#: 재시도 횟수. 어르신을 기다리게 하느니 대체 문구를 빨리 내보낸다.
+MAX_RETRIES: Final[int] = int(os.getenv("DIALOGUE_MAX_RETRIES", "1"))
+
 #: 가드레일 임계값. 설계서 1장의 설계 원칙에서 가져왔다.
 MAX_SENTENCES: Final[int] = 2
 MAX_QUESTIONS: Final[int] = 1

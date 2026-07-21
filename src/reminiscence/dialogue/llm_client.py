@@ -9,26 +9,38 @@
 3. effort=low - 같은 이유.
 """
 
+import logging
+import os
 import re
 from collections.abc import Generator
 from typing import Final, Protocol
 
 import anthropic
-from anthropic.lib.streaming import MessageStream, MessageStreamManager
-from anthropic.lib.streaming._beta_messages import BetaMessageStream, BetaMessageStreamManager
+from anthropic.lib.streaming import MessageStreamManager
+from anthropic.lib.streaming._beta_messages import BetaMessageStreamManager
 from anthropic.types import MessageParam
 from anthropic.types.beta import BetaMessageParam
 
 from reminiscence.dialogue import config
 
+logger = logging.getLogger(__name__)
+
 #: 표준·beta 스트림 모두 text_stream만 쓰므로 한 경로로 처리한다.
 StreamManager = MessageStreamManager | BetaMessageStreamManager
-Stream = MessageStream | BetaMessageStream
 
 #: 한국어 문장 끝. TTS로 넘길 단위를 자르는 기준이다.
-_SENTENCE_END: Final[re.Pattern[str]] = re.compile(
-    r".*?(?:[.!?…]|[다요죠])(?=\s|$)", re.DOTALL
-)
+#:
+#: 구두점으로만 판별한다. 종결어미(다/요/죠)까지 경계로 삼으면 "바다 앞에서"의
+#: "바다"에서 끊겨 TTS가 한 문장을 두 번에 나눠 읽는다. 구두점 없이 끝나는
+#: 마지막 조각은 스트림이 끝날 때 남은 버퍼로 함께 내보낸다.
+_SENTENCE_END: Final[re.Pattern[str]] = re.compile(r".*?[.!?…。](?=\s|$)", re.DOTALL)
+
+
+def _has_credentials() -> bool:
+    """SDK가 찾아 쓸 자격 증명이 환경에 있는지 본다."""
+    return any(
+        os.getenv(name) for name in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
+    )
 
 
 class ReplyStreamer(Protocol):
@@ -50,7 +62,25 @@ class DialogueLLM:
     def __init__(self, client: anthropic.Anthropic | None = None) -> None:
         # 인자 없는 생성자는 ANTHROPIC_API_KEY 또는 `ant auth login` 프로필을
         # 자동으로 찾는다. 키를 코드에 박지 않는다.
-        self._client = client if client is not None else anthropic.Anthropic()
+        #
+        # 기본 타임아웃(10분)과 재시도(2회)는 음성 대화에 맞지 않는다.
+        # 어르신을 무한정 기다리게 하느니 빨리 실패하고 대체 문구를 내보낸다.
+        if client is None and not _has_credentials():
+            # 키가 없어도 앱은 떠야 한다(/health가 죽으면 배포가 실패한다).
+            # 다만 첫 대화에서야 알아채면 원인을 찾기 어려우므로 여기서 알린다.
+            logger.warning(
+                "ANTHROPIC_API_KEY가 설정되지 않았습니다. "
+                "대화 요청은 모두 대체 문구로 응답합니다."
+            )
+
+        self._client = (
+            client
+            if client is not None
+            else anthropic.Anthropic(
+                timeout=config.REQUEST_TIMEOUT_SECONDS,
+                max_retries=config.MAX_RETRIES,
+            )
+        )
 
     def stream_reply(
         self, system: str, messages: list[MessageParam]
@@ -70,7 +100,7 @@ class DialogueLLM:
         full = ""
 
         with manager as stream:
-            for delta in self._deltas(stream):
+            for delta in stream.text_stream:
                 buffer += delta
                 full += delta
 
@@ -87,10 +117,6 @@ class DialogueLLM:
         if tail:
             yield tail
         return full.strip()
-
-    @staticmethod
-    def _deltas(stream: Stream) -> Generator[str, None, None]:
-        yield from stream.text_stream
 
     def _standard(self, system: str, messages: list[MessageParam]) -> StreamManager:
         return self._client.messages.stream(

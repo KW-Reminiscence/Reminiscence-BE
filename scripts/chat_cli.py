@@ -14,15 +14,17 @@
     /photo <설명>    표시 중인 사진 바꾸기
     /music <곡명>    음악 재생 상태로 바꾸기
     /routine <종류>  루틴 알림 걸기
+    /alarm           액자가 먼저 말을 거는 루틴 알림 실행(기기 주도 턴)
     /state           현재 컨텍스트와 보호자 플래그 보기
     /quit            종료(세션 요약 출력)
 """
 
 import argparse
+from collections.abc import Generator
 
 from reminiscence.dialogue import DialogueManager, SessionContext
 from reminiscence.dialogue.manager import TurnResult
-from reminiscence.dialogue.scenarios import LABELS
+from reminiscence.dialogue.scenarios import LABELS, Scenario
 
 DIM = "\033[2m"
 CYAN = "\033[36m"
@@ -61,25 +63,40 @@ def main() -> None:
             continue
         if utterance in {"/quit", "/exit"}:
             break
+        if utterance == "/alarm":
+            if not ctx.routine_pending:
+                print(f"{DIM}걸린 루틴이 없습니다. /routine 점심 복약{RESET}\n")
+                continue
+            print(f"{YELLOW}{args.name} >{RESET} ", end="", flush=True)
+            _print_trace(_speak_first(manager))
+            continue
+
         if utterance.startswith("/"):
             _handle_command(utterance, ctx)
             continue
 
         print(f"{YELLOW}{args.name} >{RESET} ", end="", flush=True)
-        result = _speak(manager, utterance)
-        print()
-        _print_trace(result)
+        _print_trace(_speak(manager, utterance))
 
     _print_summary(ctx)
 
 
 def _speak(manager: DialogueManager, utterance: str) -> TurnResult:
     """문장을 받는 즉시 출력한다. 실제 기기에서는 이 자리가 TTS 큐다."""
-    stream = manager.stream_turn(utterance)
+    return _pump(manager.stream_turn(utterance))
+
+
+def _speak_first(manager: DialogueManager) -> TurnResult:
+    """액자가 먼저 말을 거는 턴(루틴 알림)."""
+    return _pump(manager.stream_initiate(Scenario.S4_ROUTINE))
+
+
+def _pump(stream: Generator[str, None, TurnResult]) -> TurnResult:
     while True:
         try:
             print(next(stream), end=" ", flush=True)
         except StopIteration as stop:
+            print()
             result: TurnResult = stop.value
             return result
 
