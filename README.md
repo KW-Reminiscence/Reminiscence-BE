@@ -19,8 +19,20 @@ FastAPI의 타입 기반 검증과 자동 OpenAPI 문서를 활용해 API 구현
 | Application interface | ASGI |
 | Interactive API docs | Swagger UI(`/docs`), ReDoc(`/redoc`) |
 
-Python 버전, 패키지 관리 도구, 데이터베이스, ORM, 인증 및 배포 구성은 관련
-이슈에서 결정한 뒤 이 문서에 반영합니다.
+| Python | 3.12 |
+| Package manager | [uv](https://docs.astral.sh/uv/) |
+
+데이터베이스, ORM, 인증 및 배포 구성은 관련 이슈에서 결정한 뒤 이 문서에
+반영합니다.
+
+## 로컬 실행
+
+```bash
+uv sync --all-groups
+uv run uvicorn reminiscence.main:app --reload
+```
+
+API 문서는 `http://127.0.0.1:8000/docs`에서 확인할 수 있습니다.
 
 ## 문서
 
