@@ -13,15 +13,18 @@ import statistics
 from datetime import date
 from pathlib import Path
 
-from routine_monitor import RoutineMonitor, RoutineState
-from routine import RoutineCategory
-from conversation_metrics import ConversationLog
+from .conversation_metrics import ConversationLog, ConversationTurn
+from .routine import RoutineCategory
+from .routine_monitor import RoutineMonitor, RoutineState, _RoutineTracker
 
 HISTORY_PATH = Path("history.jsonl")
 
-CATEGORIES = [RoutineCategory.MEAL, RoutineCategory.MEDICATION]
+CATEGORIES: list[RoutineCategory] = [RoutineCategory.MEAL, RoutineCategory.MEDICATION]
 
 DELAY_BUCKET_MIN = 10
+
+MetricValue = int | float
+MetricVector = dict[str, MetricValue]
 
 
 def _bucket_delay(delay_minutes: float) -> int:
@@ -29,14 +32,16 @@ def _bucket_delay(delay_minutes: float) -> int:
     return int(delay_minutes // DELAY_BUCKET_MIN) * DELAY_BUCKET_MIN
 
 
-def _category_stats(trackers, category: RoutineCategory) -> dict:
+def _category_stats(
+    trackers: list[_RoutineTracker], category: RoutineCategory
+) -> MetricVector:
     relevant = [t for t in trackers if t.routine.category == category]
     prefix = category.value
 
     if not relevant:
         return {f"{prefix}_평균지연": 0, f"{prefix}_미이행률": 0.0, f"{prefix}_반복미응답": 0}
 
-    delay_buckets = []
+    delay_buckets: list[int] = []
     not_done_count = 0
     reminder_total = 0
 
@@ -61,7 +66,7 @@ def _category_stats(trackers, category: RoutineCategory) -> dict:
     }
 
 
-def _conversation_stats(turns) -> dict:
+def _conversation_stats(turns: list[ConversationTurn]) -> MetricVector:
     if not turns:
         return {"대화_평균말속도": 0.0, "대화_무응답횟수": 0, "대화_평균발화길이": 0.0}
 
@@ -76,24 +81,26 @@ def _conversation_stats(turns) -> dict:
     }
 
 
-def compute_daily_vector(monitor: RoutineMonitor, conversation_log: ConversationLog) -> dict:
+def compute_daily_vector(
+    monitor: RoutineMonitor, conversation_log: ConversationLog
+) -> MetricVector:
     trackers = monitor.daily_trackers()
-    vector = {}
+    vector: MetricVector = {}
     for category in CATEGORIES:
         vector.update(_category_stats(trackers, category))
     vector.update(_conversation_stats(conversation_log.daily_turns()))
     return vector
 
 
-def append_history(today: date, vector: dict, path: Path = HISTORY_PATH) -> None:
+def append_history(today: date, vector: MetricVector, path: Path = HISTORY_PATH) -> None:
     record = {"date": today.isoformat(), **vector}
     with open(path, "a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
-def load_history(days: int = 7, path: Path = HISTORY_PATH) -> list[dict]:
+def load_history(days: int = 7, path: Path = HISTORY_PATH) -> list[dict[str, object]]:
     if not path.exists():
         return []
-    with open(path, "r", encoding="utf-8") as f:
-        records = [json.loads(line) for line in f if line.strip()]
+    with open(path, encoding="utf-8") as f:
+        records: list[dict[str, object]] = [json.loads(line) for line in f if line.strip()]
     return records[-days:]

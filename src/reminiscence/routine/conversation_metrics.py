@@ -10,14 +10,13 @@ conversation_metrics.py
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
 class ConversationTurn:
     timestamp: datetime
     utterance_text: str                      # STT로 변환된 발화 텍스트
-    utterance_duration_sec: Optional[float]  # 발화 자체의 길이 (초)
+    utterance_duration_sec: float | None  # 발화 자체의 길이 (초)
     no_response: bool = False                # 무응답이면 True (호출 측에서 직접 판정)
 
     @property
@@ -28,7 +27,7 @@ class ConversationTurn:
         return len(self.utterance_text.replace(" ", ""))
 
     @property
-    def speaking_rate_per_min(self) -> Optional[float]:
+    def speaking_rate_per_min(self) -> float | None:
         """말하기 속도 (분당 글자 수)"""
         if self.no_response or not self.utterance_duration_sec or self.utterance_duration_sec <= 0:
             return None
@@ -36,14 +35,14 @@ class ConversationTurn:
 
 
 class ConversationLog:
-    def __init__(self):
+    def __init__(self) -> None:
         self._turns: list[ConversationTurn] = []
 
     def log_turn(
         self,
         timestamp: datetime,
         utterance_text: str,
-        utterance_duration_sec: Optional[float],
+        utterance_duration_sec: float | None,
         no_response: bool = False,
     ) -> None:
         """
@@ -51,7 +50,9 @@ class ConversationLog:
         무응답이었으면 no_response=True로 호출 (이때 text/duration은 무시됨)
         예: log_turn(datetime.now(), "네 그때 설악산 갔었지", 1.8, no_response=False)
         """
-        self._turns.append(ConversationTurn(timestamp, utterance_text, utterance_duration_sec, no_response))
+        self._turns.append(
+            ConversationTurn(timestamp, utterance_text, utterance_duration_sec, no_response)
+        )
 
     def daily_turns(self) -> list[ConversationTurn]:
         return list(self._turns)

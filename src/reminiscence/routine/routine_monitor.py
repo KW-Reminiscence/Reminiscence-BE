@@ -11,12 +11,12 @@ routine_monitor.py
     (재알림이 발생했다는 것 자체가 "그 시점까지 응답이 없었다"는 뜻이므로)
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from enum import Enum, auto
-from typing import Callable, Optional
 
-from routine import Routine
+from .routine import Routine
 
 
 class RoutineState(Enum):
@@ -31,18 +31,18 @@ class _RoutineTracker:
     routine: Routine
     state: RoutineState = RoutineState.PENDING
     reminder_count: int = 0
-    last_reminder_at: Optional[datetime] = None
-    scheduled_datetime: Optional[datetime] = None
-    confirmed_at: Optional[datetime] = None
-    response_answer: Optional[bool] = None  # 응답 내용: 했다(True) / 안 했다(False)
+    last_reminder_at: datetime | None = None
+    scheduled_datetime: datetime | None = None
+    confirmed_at: datetime | None = None
+    response_answer: bool | None = None  # 응답 내용: 했다(True) / 안 했다(False)
 
 
 class RoutineMonitor:
     def __init__(
         self,
-        on_reminder: Optional[Callable[[Routine, datetime, int], None]] = None,
-        on_deviation: Optional[Callable[[dict], None]] = None,
-    ):
+        on_reminder: Callable[[Routine, datetime, int], None] | None = None,
+        on_deviation: Callable[[dict[str, object]], None] | None = None,
+    ) -> None:
         self._trackers: dict[str, _RoutineTracker] = {}
         self.on_reminder = on_reminder
         self.on_deviation = on_deviation
@@ -54,7 +54,8 @@ class RoutineMonitor:
         """
         루틴 응답 처리.
         answer=True  → "했어요" (식사함/약 먹음/기상함)
-        answer=False → "아직요" (안 함) — 그래도 "응답은 했다"는 사실 자체는 중요하므로 CONFIRMED로 처리
+        answer=False → "아직요" (안 함) — 그래도 "응답은 했다"는 사실 자체는 중요하므로
+        CONFIRMED로 처리
 
         실제로는 LLM이 사용자 발화("네 먹었어요" 등)를 해석한 뒤 이 메서드를 호출.
         """
@@ -75,9 +76,13 @@ class RoutineMonitor:
                 continue
 
             if tracker.scheduled_datetime is None:
-                tracker.scheduled_datetime = self._today_datetime(tracker.routine.scheduled_time, now)
+                tracker.scheduled_datetime = self._today_datetime(
+                    tracker.routine.scheduled_time, now
+                )
 
-            grace_deadline = tracker.scheduled_datetime + timedelta(minutes=tracker.routine.grace_minutes)
+            grace_deadline = tracker.scheduled_datetime + timedelta(
+                minutes=tracker.routine.grace_minutes
+            )
             if now < grace_deadline:
                 continue
 
@@ -86,7 +91,9 @@ class RoutineMonitor:
 
             should_remind = (
                 tracker.last_reminder_at is None
-                or now >= tracker.last_reminder_at + timedelta(minutes=tracker.routine.reminder_interval_minutes)
+                or now
+                >= tracker.last_reminder_at
+                + timedelta(minutes=tracker.routine.reminder_interval_minutes)
             )
 
             if should_remind and tracker.reminder_count < tracker.routine.max_reminders:
@@ -101,20 +108,20 @@ class RoutineMonitor:
                 if self.on_deviation:
                     self.on_deviation(self._build_deviation_payload(tracker, now))
 
-    def status_of(self, routine_name: str) -> Optional[RoutineState]:
+    def status_of(self, routine_name: str) -> RoutineState | None:
         tracker = self._trackers.get(routine_name)
         return tracker.state if tracker else None
 
-    def daily_trackers(self):
+    def daily_trackers(self) -> list[_RoutineTracker]:
         """지표 계산 모듈이 오늘 하루치 트래커 전체를 읽어가기 위한 접근자"""
         return list(self._trackers.values())
 
     @staticmethod
-    def _today_datetime(t, now: datetime) -> datetime:
+    def _today_datetime(t: time, now: datetime) -> datetime:
         return datetime.combine(now.date(), t)
 
     @staticmethod
-    def _build_deviation_payload(tracker: _RoutineTracker, now: datetime) -> dict:
+    def _build_deviation_payload(tracker: _RoutineTracker, now: datetime) -> dict[str, object]:
         return {
             "type": "deviation",
             "routine": tracker.routine.name,
