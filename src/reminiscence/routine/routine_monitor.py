@@ -1,22 +1,21 @@
 """
 routine_monitor.py
 -------------------
-루틴 이탈 감지의 핵심 로직 (상태머신은 기존과 동일).
+루틴 이탈 감지의 핵심 로직 (상태머신).
 
-이번 버전에서 바뀐 점:
-    confirm()이 이제 "응답했는지"뿐 아니라 "응답 내용(했다/안 했다)"까지 받습니다.
-    예: 식사 여부를 물었을 때 "네 먹었어요"면 answer=True, "아직요"면 answer=False.
-
-    반복 미응답 횟수는 reminder_count를 그대로 씁니다.
-    (재알림이 발생했다는 것 자체가 "그 시점까지 응답이 없었다"는 뜻이므로)
+이번 리뷰 반영 사항:
+    - scheduled_datetime을 만들 때 now의 timezone을 그대로 유지 (naive/aware 비교 TypeError 방지)
+    - check() 호출 시 날짜가 바뀐 걸 감지하면 자동으로 하루치 상태를 리셋
+      (자정을 넘겨서까지 프로세스가 계속 돌아도 어제 데이터가 오늘 지표에 안 섞이도록)
+    - confirm()이 check()보다 먼저 호출돼도 scheduled_datetime을 그 자리에서 채워 넣음
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from enum import Enum, auto
 from typing import Callable, Optional
 
-from routine import Routine
+from .routine import Routine
 
 
 class RoutineState(Enum):
@@ -34,7 +33,7 @@ class _RoutineTracker:
     last_reminder_at: Optional[datetime] = None
     scheduled_datetime: Optional[datetime] = None
     confirmed_at: Optional[datetime] = None
-    response_answer: Optional[bool] = None  # 응답 내용: 했다(True) / 안 했다(False)
+    response_answer: Optional[bool] = None
 
 
 class RoutineMonitor:
@@ -46,23 +45,47 @@ class RoutineMonitor:
         self._trackers: dict[str, _RoutineTracker] = {}
         self.on_reminder = on_reminder
         self.on_deviation = on_deviation
+        self._current_date: Optional[date] = None
 
     def register(self, routine: Routine) -> None:
         self._trackers[routine.name] = _RoutineTracker(routine=routine)
 
-    def confirm(self, routine_name: str, now: datetime, answer: bool = True) -> bool:
+    def reset_for_new_day(self, today: date) -> None:
         """
-        루틴 응답 처리.
-        answer=True  → "했어요" (식사함/약 먹음/기상함)
-        answer=False → "아직요" (안 함) — 그래도 "응답은 했다"는 사실 자체는 중요하므로 CONFIRMED로 처리
+        하루가 바뀔 때 모든 루틴 상태를 새로 시작.
+        check()/confirm()가 날짜 변경을 감지하면 자동으로 호출하므로, 보통 직접 부를 필요는 없음.
+        """
+        for tracker in self._trackers.values():
+            tracker.state = RoutineState.PENDING
+            tracker.reminder_count = 0
+            tracker.last_reminder_at = None
+            tracker.scheduled_datetime = None
+            tracker.confirmed_at = None
+            tracker.response_answer = None
+        self._current_date = today
 
-        실제로는 LLM이 사용자 발화("네 먹었어요" 등)를 해석한 뒤 이 메서드를 호출.
+    def _sync_current_date(self, today: date) -> None:
         """
+        check()와 confirm() 양쪽 진입점에서 공통으로 호출해, 어느 쪽이 먼저 불려도
+        날짜 변경을 놓치지 않도록 함.
+        """
+        if self._current_date is None:
+            self._current_date = today
+        elif today != self._current_date:
+            self.reset_for_new_day(today)
+
+    def confirm(self, routine_name: str, now: datetime, answer: bool = True) -> bool:
+        self._sync_current_date(now.date())
+
         tracker = self._trackers.get(routine_name)
         if tracker is None:
             return False
         if tracker.state in (RoutineState.CONFIRMED, RoutineState.DEVIATED):
             return False
+
+        # check()보다 confirm()이 먼저 호출된 경우를 대비해 예정 시각을 여기서도 채워줌
+        if tracker.scheduled_datetime is None:
+            tracker.scheduled_datetime = self._today_datetime(tracker.routine.scheduled_time, now)
 
         tracker.state = RoutineState.CONFIRMED
         tracker.confirmed_at = now
@@ -70,6 +93,8 @@ class RoutineMonitor:
         return True
 
     def check(self, now: datetime) -> None:
+        self._sync_current_date(now.date())
+
         for tracker in self._trackers.values():
             if tracker.state in (RoutineState.CONFIRMED, RoutineState.DEVIATED):
                 continue
@@ -96,6 +121,8 @@ class RoutineMonitor:
                     self.on_reminder(tracker.routine, now, tracker.reminder_count)
                 continue
 
+            # 마지막(max_reminders번째) 재알림을 보낸 뒤에도 한 번의 재알림 주기를 더 기다렸다가
+            # 그래도 응답이 없으면 이탈로 확정한다 (마지막 재알림에 응답할 기회를 보장하기 위함).
             if tracker.reminder_count >= tracker.routine.max_reminders and should_remind:
                 tracker.state = RoutineState.DEVIATED
                 if self.on_deviation:
@@ -106,12 +133,13 @@ class RoutineMonitor:
         return tracker.state if tracker else None
 
     def daily_trackers(self):
-        """지표 계산 모듈이 오늘 하루치 트래커 전체를 읽어가기 위한 접근자"""
+        """오늘(자동 리셋된 이후) 하루치 트래커 전체를 반환"""
         return list(self._trackers.values())
 
     @staticmethod
     def _today_datetime(t, now: datetime) -> datetime:
-        return datetime.combine(now.date(), t)
+        # now가 timezone-aware면 그대로 이어받아야, 이후 비교에서 TypeError가 안 남
+        return datetime.combine(now.date(), t, tzinfo=now.tzinfo)
 
     @staticmethod
     def _build_deviation_payload(tracker: _RoutineTracker, now: datetime) -> dict:

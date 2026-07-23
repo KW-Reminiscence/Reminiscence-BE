@@ -3,9 +3,11 @@ daily_metrics.py
 ----------------
 식사/약 루틴과 대화 로그를 합쳐서 하루치 지표 벡터를 계산합니다.
 
-지연은 10분 단위로 버킷화합니다 (재질문 자체가 10분 간격이므로,
-"몇 번째 10분 구간에서 확인됐는지"로 표현하는 게 실제 알림 동작과 맞아떨어짐).
-예: confirm이 예정 시각+23분에 일어났다면 → 20분 구간으로 기록.
+이번 리뷰 반영 사항:
+    - compute_daily_vector()가 target_date를 받아서 대화 로그를 그 날짜로 한정
+      (루틴 쪽은 RoutineMonitor가 날짜 변경 시 자동 리셋하므로 별도 필터링 불필요)
+    - load_history(days=0) 같은 호출이 전체 이력을 반환해버리던 버그 수정
+      (파이썬에서 -0 == 0 이라 records[-0:]이 빈 리스트가 아니라 전체가 되는 문제)
 """
 
 import json
@@ -13,9 +15,9 @@ import statistics
 from datetime import date
 from pathlib import Path
 
-from routine_monitor import RoutineMonitor, RoutineState
-from routine import RoutineCategory
-from conversation_metrics import ConversationLog
+from .routine_monitor import RoutineMonitor, RoutineState
+from .routine import RoutineCategory
+from .conversation_metrics import ConversationLog
 
 HISTORY_PATH = Path("history.jsonl")
 
@@ -25,7 +27,6 @@ DELAY_BUCKET_MIN = 10
 
 
 def _bucket_delay(delay_minutes: float) -> int:
-    """지연 시간을 10분 단위로 내림 처리 (예: 23분 → 20분)"""
     return int(delay_minutes // DELAY_BUCKET_MIN) * DELAY_BUCKET_MIN
 
 
@@ -52,7 +53,7 @@ def _category_stats(trackers, category: RoutineCategory) -> dict:
                 delay_min = max((t.confirmed_at - t.scheduled_datetime).total_seconds() / 60, 0)
                 delay_buckets.append(_bucket_delay(delay_min))
             if t.response_answer is False:
-                not_done_count += 1  # 응답은 했지만 "깜빡했다/안 먹었다"도 미이행으로 집계
+                not_done_count += 1
 
     return {
         f"{prefix}_평균지연": round(statistics.mean(delay_buckets)) if delay_buckets else 0,
@@ -76,12 +77,17 @@ def _conversation_stats(turns) -> dict:
     }
 
 
-def compute_daily_vector(monitor: RoutineMonitor, conversation_log: ConversationLog) -> dict:
+def compute_daily_vector(monitor: RoutineMonitor, conversation_log: ConversationLog, target_date: date) -> dict:
+    """
+    target_date: 이 날짜 기준으로 지표를 계산.
+                 루틴 쪽은 RoutineMonitor가 날짜 변경 시 자동으로 리셋되므로 현재 상태를 그대로 씀.
+                 대화 쪽은 이 함수에서 명시적으로 target_date로 필터링.
+    """
     trackers = monitor.daily_trackers()
     vector = {}
     for category in CATEGORIES:
         vector.update(_category_stats(trackers, category))
-    vector.update(_conversation_stats(conversation_log.daily_turns()))
+    vector.update(_conversation_stats(conversation_log.daily_turns(target_date)))
     return vector
 
 
@@ -92,6 +98,9 @@ def append_history(today: date, vector: dict, path: Path = HISTORY_PATH) -> None
 
 
 def load_history(days: int = 7, path: Path = HISTORY_PATH) -> list[dict]:
+    if days <= 0:
+        raise ValueError(f"days는 1 이상이어야 합니다 (받은 값: {days})")
+
     if not path.exists():
         return []
     with open(path, "r", encoding="utf-8") as f:

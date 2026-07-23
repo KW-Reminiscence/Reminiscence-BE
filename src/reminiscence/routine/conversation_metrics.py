@@ -3,33 +3,31 @@ conversation_metrics.py
 ------------------------
 대화 세션 지표를 기록하는 모듈.
 
-다른 팀원(STT/대화 파이프라인 담당)이 매 대화 턴마다 log_turn()을 한 번 호출해주면 됩니다.
-무응답 여부는 이 모듈이 추측하지 않고, 호출하는 쪽에서 직접 True/False로 알려줍니다
-(파이프라인 쪽이 타임아웃 등 자기만의 무응답 판정 로직을 갖고 있을 수 있으므로).
+이번 리뷰 반영 사항:
+    daily_turns()가 이제 target_date를 받아서 그 날짜에 해당하는 턴만 반환.
+    (프로세스가 자정을 넘겨 계속 실행돼도 어제 대화가 오늘 지표에 안 섞이도록)
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 
 @dataclass
 class ConversationTurn:
     timestamp: datetime
-    utterance_text: str                      # STT로 변환된 발화 텍스트
-    utterance_duration_sec: Optional[float]  # 발화 자체의 길이 (초)
-    no_response: bool = False                # 무응답이면 True (호출 측에서 직접 판정)
+    utterance_text: str
+    utterance_duration_sec: Optional[float]
+    no_response: bool = False
 
     @property
     def utterance_length(self) -> int:
-        """발화 길이 (글자 수, 공백 제외)"""
         if self.no_response:
             return 0
         return len(self.utterance_text.replace(" ", ""))
 
     @property
     def speaking_rate_per_min(self) -> Optional[float]:
-        """말하기 속도 (분당 글자 수)"""
         if self.no_response or not self.utterance_duration_sec or self.utterance_duration_sec <= 0:
             return None
         return round(self.utterance_length / (self.utterance_duration_sec / 60), 1)
@@ -46,12 +44,8 @@ class ConversationLog:
         utterance_duration_sec: Optional[float],
         no_response: bool = False,
     ) -> None:
-        """
-        대화 파이프라인 쪽에서 매 턴마다 호출.
-        무응답이었으면 no_response=True로 호출 (이때 text/duration은 무시됨)
-        예: log_turn(datetime.now(), "네 그때 설악산 갔었지", 1.8, no_response=False)
-        """
         self._turns.append(ConversationTurn(timestamp, utterance_text, utterance_duration_sec, no_response))
 
-    def daily_turns(self) -> list[ConversationTurn]:
-        return list(self._turns)
+    def daily_turns(self, target_date: date) -> list[ConversationTurn]:
+        """target_date에 해당하는 턴만 필터링해서 반환"""
+        return [t for t in self._turns if t.timestamp.date() == target_date]
