@@ -99,6 +99,7 @@ def test_rejects_missing_configuration_file(tmp_path: Path) -> None:
     [
         (("api_password",), "", "설정.api_password"),
         (("api_password",), "한글-비밀번호", "ASCII 문자"),
+        (("api_password",), "line\nbreak", "ASCII 문자"),
         (("care_recipient", "name"), "   ", "care_recipient.name"),
         (("guardian", "email"), "invalid-email", "guardian.email 형식"),
         (("smtp", "host"), None, "smtp.host"),
