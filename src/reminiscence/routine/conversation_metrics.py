@@ -10,14 +10,13 @@ conversation_metrics.py
 
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Optional
 
 
 @dataclass
 class ConversationTurn:
     timestamp: datetime
     utterance_text: str
-    utterance_duration_sec: Optional[float]
+    utterance_duration_sec: float | None
     no_response: bool = False
 
     @property
@@ -27,24 +26,26 @@ class ConversationTurn:
         return len(self.utterance_text.replace(" ", ""))
 
     @property
-    def speaking_rate_per_min(self) -> Optional[float]:
+    def speaking_rate_per_min(self) -> float | None:
         if self.no_response or not self.utterance_duration_sec or self.utterance_duration_sec <= 0:
             return None
         return round(self.utterance_length / (self.utterance_duration_sec / 60), 1)
 
 
 class ConversationLog:
-    def __init__(self):
+    def __init__(self) -> None:
         self._turns: list[ConversationTurn] = []
 
     def log_turn(
         self,
         timestamp: datetime,
         utterance_text: str,
-        utterance_duration_sec: Optional[float],
+        utterance_duration_sec: float | None,
         no_response: bool = False,
     ) -> None:
-        self._turns.append(ConversationTurn(timestamp, utterance_text, utterance_duration_sec, no_response))
+        self._turns.append(
+            ConversationTurn(timestamp, utterance_text, utterance_duration_sec, no_response)
+        )
 
     def daily_turns(self, target_date: date) -> list[ConversationTurn]:
         """target_date에 해당하는 턴만 필터링해서 반환"""

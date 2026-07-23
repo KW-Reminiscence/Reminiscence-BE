@@ -23,10 +23,13 @@ class Routine:
     reminder_interval_minutes: int = 10
     max_reminders: int = 3
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.grace_minutes < 0:
             raise ValueError("grace_minutes는 0 이상이어야 합니다")
         if self.reminder_interval_minutes <= 0:
-            raise ValueError("reminder_interval_minutes는 0보다 커야 합니다 (0이면 재알림이 무한히 발생함)")
+            raise ValueError(
+                "reminder_interval_minutes는 0보다 커야 합니다 "
+                "(0이면 재알림이 무한히 발생함)"
+            )
         if self.max_reminders < 0:
             raise ValueError("max_reminders는 0 이상이어야 합니다")

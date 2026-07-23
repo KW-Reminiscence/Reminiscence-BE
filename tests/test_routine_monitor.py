@@ -4,21 +4,28 @@ tests/test_routine_monitor.py
 실행: PYTHONPATH=src pytest tests/test_routine_monitor.py -v
 """
 
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
+from pathlib import Path
 
 import pytest
 
-from reminiscence.routine.routine import Routine, RoutineCategory
-from reminiscence.routine.routine_monitor import RoutineMonitor, RoutineState
 from reminiscence.routine.conversation_metrics import ConversationLog
 from reminiscence.routine.daily_metrics import compute_daily_vector, load_history
+from reminiscence.routine.routine import Routine, RoutineCategory
+from reminiscence.routine.routine_monitor import RoutineMonitor, RoutineState
 
 
-def _routine(name="테스트약", scheduled=time(8, 0), grace=10, interval=10, max_reminders=3):
+def _routine(
+    name: str = "테스트약",
+    scheduled: time = time(8, 0),
+    grace: int = 10,
+    interval: int = 10,
+    max_reminders: int = 3,
+) -> Routine:
     return Routine(name, RoutineCategory.MEDICATION, scheduled, grace, interval, max_reminders)
 
 
-def test_no_reminder_before_grace_period_ends():
+def test_no_reminder_before_grace_period_ends() -> None:
     monitor = RoutineMonitor()
     monitor.register(_routine())
     base = datetime(2026, 7, 22, 8, 5)  # 예정 8:00, 유예 10분 이내
@@ -26,8 +33,8 @@ def test_no_reminder_before_grace_period_ends():
     assert monitor.status_of("테스트약") == RoutineState.PENDING
 
 
-def test_deviates_after_max_reminders():
-    reminders = []
+def test_deviates_after_max_reminders() -> None:
+    reminders: list[int] = []
     monitor = RoutineMonitor(on_reminder=lambda r, now, count: reminders.append(count))
     monitor.register(_routine(max_reminders=3, interval=10, grace=10))
 
@@ -43,8 +50,8 @@ def test_deviates_after_max_reminders():
     assert monitor.status_of("테스트약") == RoutineState.DEVIATED
 
 
-def test_confirm_stops_further_reminders():
-    reminders = []
+def test_confirm_stops_further_reminders() -> None:
+    reminders: list[int] = []
     monitor = RoutineMonitor(on_reminder=lambda r, now, count: reminders.append(count))
     monitor.register(_routine())
 
@@ -61,7 +68,7 @@ def test_confirm_stops_further_reminders():
     assert reminders == [1]
 
 
-def test_confirm_before_any_check_still_records_delay():
+def test_confirm_before_any_check_still_records_delay() -> None:
     """confirm()이 check()보다 먼저 호출돼도 지연이 계산돼야 함"""
     monitor = RoutineMonitor()
     monitor.register(_routine(scheduled=time(8, 0)))
@@ -72,46 +79,47 @@ def test_confirm_before_any_check_still_records_delay():
     trackers = {t.routine.name: t for t in monitor.daily_trackers()}
     tracker = trackers["테스트약"]
     assert tracker.scheduled_datetime is not None
+    assert tracker.confirmed_at is not None
     delay = (tracker.confirmed_at - tracker.scheduled_datetime).total_seconds() / 60
     assert delay == pytest.approx(7, abs=0.01)
 
 
-def test_delay_bucketed_to_10_minutes():
+def test_delay_bucketed_to_10_minutes() -> None:
     monitor = RoutineMonitor()
     monitor.register(_routine(scheduled=time(8, 0)))
     monitor.check(datetime(2026, 7, 22, 8, 0))
     monitor.confirm("테스트약", datetime(2026, 7, 22, 8, 23))  # 23분 지연 -> 20분 버킷
 
     conv = ConversationLog()
-    vector = compute_daily_vector(monitor, conv, target_date=date_(2026, 7, 22))
+    vector = compute_daily_vector(monitor, conv, target_date=date(2026, 7, 22))
     assert vector["약_평균지연"] == 20
 
 
-def test_no_response_counted_and_excluded_from_length_average():
+def test_no_response_counted_and_excluded_from_length_average() -> None:
     conv = ConversationLog()
     ts = datetime(2026, 7, 22, 14, 0)
     conv.log_turn(ts, "안녕하세요 반가워요", utterance_duration_sec=2.0)
     conv.log_turn(ts + timedelta(minutes=1), "", utterance_duration_sec=None, no_response=True)
 
     monitor = RoutineMonitor()
-    vector = compute_daily_vector(monitor, conv, target_date=date_(2026, 7, 22))
+    vector = compute_daily_vector(monitor, conv, target_date=date(2026, 7, 22))
 
     assert vector["대화_무응답횟수"] == 1
     assert vector["대화_평균발화길이"] > 0  # 무응답 턴은 평균에서 제외됨
 
 
-def test_conversation_turns_filtered_by_target_date():
+def test_conversation_turns_filtered_by_target_date() -> None:
     """자정을 넘긴 어제 대화가 오늘 지표에 섞이면 안 됨"""
     conv = ConversationLog()
     conv.log_turn(datetime(2026, 7, 21, 23, 50), "어제 대화", utterance_duration_sec=1.0)
     conv.log_turn(datetime(2026, 7, 22, 0, 10), "오늘 대화", utterance_duration_sec=1.0)
 
-    today_turns = conv.daily_turns(date_(2026, 7, 22))
+    today_turns = conv.daily_turns(date(2026, 7, 22))
     assert len(today_turns) == 1
     assert today_turns[0].utterance_text == "오늘 대화"
 
 
-def test_routine_state_resets_on_new_day():
+def test_routine_state_resets_on_new_day() -> None:
     """자정을 넘겨서도 계속 실행되면, 날짜가 바뀐 순간 어제 상태가 리셋돼야 함"""
     monitor = RoutineMonitor()
     monitor.register(_routine(scheduled=time(8, 0)))
@@ -126,7 +134,7 @@ def test_routine_state_resets_on_new_day():
     assert monitor.status_of("테스트약") == RoutineState.PENDING
 
 
-def test_reset_still_happens_when_confirm_is_called_before_first_check():
+def test_reset_still_happens_when_confirm_is_called_before_first_check() -> None:
     """check()가 한 번도 안 불린 상태에서 confirm()이 먼저 불려도,
     이후 다음 날 check()가 처음 호출될 때 정상적으로 리셋돼야 함"""
     monitor = RoutineMonitor()
@@ -141,12 +149,12 @@ def test_reset_still_happens_when_confirm_is_called_before_first_check():
     assert monitor.status_of("테스트약") == RoutineState.PENDING
 
 
-def test_routine_rejects_zero_reminder_interval():
+def test_routine_rejects_zero_reminder_interval() -> None:
     with pytest.raises(ValueError):
         _routine(interval=0)
 
 
-def test_load_history_rejects_non_positive_days(tmp_path):
+def test_load_history_rejects_non_positive_days(tmp_path: Path) -> None:
     path = tmp_path / "history.jsonl"
     path.write_text('{"date": "2026-07-01"}\n{"date": "2026-07-02"}\n', encoding="utf-8")
 
@@ -158,8 +166,3 @@ def test_load_history_rejects_non_positive_days(tmp_path):
 
     # 정상 값은 여전히 잘 동작해야 함
     assert len(load_history(days=1, path=path)) == 1
-
-
-# datetime.date를 짧게 쓰기 위한 헬퍼 (파일 상단에서 date를 직접 import하면
-# datetime.date와 이름이 겹치는 걸 피하려고 별칭을 아래에 둠)
-from datetime import date as date_

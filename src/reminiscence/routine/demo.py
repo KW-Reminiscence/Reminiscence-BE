@@ -11,13 +11,13 @@ demo.py
 
 from datetime import datetime, time, timedelta
 
+from .conversation_metrics import ConversationLog
+from .daily_metrics import append_history, compute_daily_vector, load_history
 from .routine import Routine, RoutineCategory
 from .routine_monitor import RoutineMonitor
-from .conversation_metrics import ConversationLog
-from .daily_metrics import compute_daily_vector, append_history, load_history
 
 
-def main():
+def main() -> None:
     monitor = RoutineMonitor()
     conv_log = ConversationLog()
 
@@ -40,9 +40,22 @@ def main():
 
         now += timedelta(minutes=1)
 
-    conv_log.log_turn(base + timedelta(hours=14), "응 그때 설악산 갔었지", utterance_duration_sec=1.8)
-    conv_log.log_turn(base + timedelta(hours=14, minutes=5), "어 그게 누구였더라", utterance_duration_sec=2.4)
-    conv_log.log_turn(base + timedelta(hours=14, minutes=10), "", utterance_duration_sec=None, no_response=True)
+    conv_log.log_turn(
+        base + timedelta(hours=14),
+        "응 그때 설악산 갔었지",
+        utterance_duration_sec=1.8,
+    )
+    conv_log.log_turn(
+        base + timedelta(hours=14, minutes=5),
+        "어 그게 누구였더라",
+        utterance_duration_sec=2.4,
+    )
+    conv_log.log_turn(
+        base + timedelta(hours=14, minutes=10),
+        "",
+        utterance_duration_sec=None,
+        no_response=True,
+    )
 
     vector = compute_daily_vector(monitor, conv_log, target_date=base.date())
 

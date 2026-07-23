@@ -10,10 +10,10 @@ routine_monitor.py
     - confirm()이 check()보다 먼저 호출돼도 scheduled_datetime을 그 자리에서 채워 넣음
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from enum import Enum, auto
-from typing import Callable, Optional
 
 from .routine import Routine
 
@@ -30,22 +30,22 @@ class _RoutineTracker:
     routine: Routine
     state: RoutineState = RoutineState.PENDING
     reminder_count: int = 0
-    last_reminder_at: Optional[datetime] = None
-    scheduled_datetime: Optional[datetime] = None
-    confirmed_at: Optional[datetime] = None
-    response_answer: Optional[bool] = None
+    last_reminder_at: datetime | None = None
+    scheduled_datetime: datetime | None = None
+    confirmed_at: datetime | None = None
+    response_answer: bool | None = None
 
 
 class RoutineMonitor:
     def __init__(
         self,
-        on_reminder: Optional[Callable[[Routine, datetime, int], None]] = None,
-        on_deviation: Optional[Callable[[dict], None]] = None,
-    ):
+        on_reminder: Callable[[Routine, datetime, int], None] | None = None,
+        on_deviation: Callable[[dict[str, str | int]], None] | None = None,
+    ) -> None:
         self._trackers: dict[str, _RoutineTracker] = {}
         self.on_reminder = on_reminder
         self.on_deviation = on_deviation
-        self._current_date: Optional[date] = None
+        self._current_date: date | None = None
 
     def register(self, routine: Routine) -> None:
         self._trackers[routine.name] = _RoutineTracker(routine=routine)
@@ -100,9 +100,14 @@ class RoutineMonitor:
                 continue
 
             if tracker.scheduled_datetime is None:
-                tracker.scheduled_datetime = self._today_datetime(tracker.routine.scheduled_time, now)
+                tracker.scheduled_datetime = self._today_datetime(
+                    tracker.routine.scheduled_time,
+                    now,
+                )
 
-            grace_deadline = tracker.scheduled_datetime + timedelta(minutes=tracker.routine.grace_minutes)
+            grace_deadline = tracker.scheduled_datetime + timedelta(
+                minutes=tracker.routine.grace_minutes
+            )
             if now < grace_deadline:
                 continue
 
@@ -111,7 +116,9 @@ class RoutineMonitor:
 
             should_remind = (
                 tracker.last_reminder_at is None
-                or now >= tracker.last_reminder_at + timedelta(minutes=tracker.routine.reminder_interval_minutes)
+                or now
+                >= tracker.last_reminder_at
+                + timedelta(minutes=tracker.routine.reminder_interval_minutes)
             )
 
             if should_remind and tracker.reminder_count < tracker.routine.max_reminders:
@@ -128,21 +135,24 @@ class RoutineMonitor:
                 if self.on_deviation:
                     self.on_deviation(self._build_deviation_payload(tracker, now))
 
-    def status_of(self, routine_name: str) -> Optional[RoutineState]:
+    def status_of(self, routine_name: str) -> RoutineState | None:
         tracker = self._trackers.get(routine_name)
         return tracker.state if tracker else None
 
-    def daily_trackers(self):
+    def daily_trackers(self) -> list[_RoutineTracker]:
         """오늘(자동 리셋된 이후) 하루치 트래커 전체를 반환"""
         return list(self._trackers.values())
 
     @staticmethod
-    def _today_datetime(t, now: datetime) -> datetime:
+    def _today_datetime(scheduled_time: time, now: datetime) -> datetime:
         # now가 timezone-aware면 그대로 이어받아야, 이후 비교에서 TypeError가 안 남
-        return datetime.combine(now.date(), t, tzinfo=now.tzinfo)
+        return datetime.combine(now.date(), scheduled_time, tzinfo=now.tzinfo)
 
     @staticmethod
-    def _build_deviation_payload(tracker: _RoutineTracker, now: datetime) -> dict:
+    def _build_deviation_payload(
+        tracker: _RoutineTracker,
+        now: datetime,
+    ) -> dict[str, str | int]:
         return {
             "type": "deviation",
             "routine": tracker.routine.name,
