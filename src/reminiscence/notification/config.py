@@ -74,8 +74,12 @@ def load_notification_config(path: Path | None = None) -> NotificationConfig:
     if type(smtp_port) is not int or not 1 <= smtp_port <= 65535:
         raise NotificationConfigError("smtp.port는 1부터 65535 사이의 정수여야 합니다")
 
+    api_password = _require_text(root, "api_password", "설정")
+    if not api_password.isascii():
+        raise NotificationConfigError("설정.api_password 항목은 ASCII 문자만 사용할 수 있습니다")
+
     return NotificationConfig(
-        api_password=_require_text(root, "api_password", "설정"),
+        api_password=api_password,
         care_recipient=CareRecipientConfig(
             name=_require_text(care_recipient, "name", "care_recipient"),
         ),
