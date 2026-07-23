@@ -17,6 +17,13 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+    volumes:
+      - type: bind
+        source: ${NOTIFICATION_CONFIG_FILE:?NOTIFICATION_CONFIG_FILE is required}
+        target: /run/secrets/notification-config.json
+        read_only: true
+        bind:
+          create_host_path: false
     healthcheck:
       test:
         - CMD

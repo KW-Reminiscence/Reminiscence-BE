@@ -31,6 +31,7 @@ esac
 
 readonly compose_source_file="${project_root}/deploy/docker-compose.yml"
 readonly compose_file="${deployment_directory}/docker-compose.yml"
+readonly notification_config_file="${deployment_directory}/notification-config.json"
 readonly active_env_file="${deployment_directory}/.env"
 readonly next_env_file="${deployment_directory}/.env.next"
 readonly previous_env_file="${deployment_directory}/.env.previous"
@@ -57,6 +58,7 @@ write_environment() {
         printf 'IMAGE_TAG=%s\n' "${image_tag}"
         printf 'CONTAINER_NAME=%s\n' "${container_name}"
         printf 'HOST_PORT=%s\n' "${host_port}"
+        printf 'NOTIFICATION_CONFIG_FILE=%s\n' "${notification_config_file}"
     } >"${env_file}"
 }
 
@@ -83,6 +85,11 @@ rollback() {
 trap rollback ERR
 
 mkdir -p "${deployment_directory}"
+if [[ ! -f "${notification_config_file}" ]]; then
+    echo "Missing notification configuration: ${notification_config_file}" >&2
+    echo "Create it from deploy/notification-config.example.json with mode 0600." >&2
+    exit 78
+fi
 install -m 0644 "${compose_source_file}" "${compose_file}"
 write_environment "${next_env_file}"
 
