@@ -15,29 +15,33 @@ import statistics
 from datetime import date
 from pathlib import Path
 
-from .routine_monitor import RoutineMonitor, RoutineState
+from .conversation_metrics import ConversationLog, ConversationTurn
 from .routine import RoutineCategory
-from .conversation_metrics import ConversationLog
+from .routine_monitor import RoutineMonitor, RoutineState, _RoutineTracker
 
 HISTORY_PATH = Path("history.jsonl")
 
-CATEGORIES = [RoutineCategory.MEAL, RoutineCategory.MEDICATION]
+CATEGORIES: list[RoutineCategory] = [RoutineCategory.MEAL, RoutineCategory.MEDICATION]
 
 DELAY_BUCKET_MIN = 10
 
+MetricValue = int | float
+MetricVector = dict[str, MetricValue]
+
 
 def _bucket_delay(delay_minutes: float) -> int:
+    """지연 시간을 10분 단위로 내림 처리 (예: 23분 → 20분)"""
     return int(delay_minutes // DELAY_BUCKET_MIN) * DELAY_BUCKET_MIN
 
 
-def _category_stats(trackers, category: RoutineCategory) -> dict:
+def _category_stats(trackers: list[_RoutineTracker], category: RoutineCategory) -> MetricVector:
     relevant = [t for t in trackers if t.routine.category == category]
     prefix = category.value
 
     if not relevant:
         return {f"{prefix}_평균지연": 0, f"{prefix}_미이행률": 0.0, f"{prefix}_반복미응답": 0}
 
-    delay_buckets = []
+    delay_buckets: list[int] = []
     not_done_count = 0
     reminder_total = 0
 
@@ -53,7 +57,7 @@ def _category_stats(trackers, category: RoutineCategory) -> dict:
                 delay_min = max((t.confirmed_at - t.scheduled_datetime).total_seconds() / 60, 0)
                 delay_buckets.append(_bucket_delay(delay_min))
             if t.response_answer is False:
-                not_done_count += 1
+                not_done_count += 1  # 응답은 했지만 "깜빡했다/안 먹었다"도 미이행으로 집계
 
     return {
         f"{prefix}_평균지연": round(statistics.mean(delay_buckets)) if delay_buckets else 0,
@@ -62,7 +66,7 @@ def _category_stats(trackers, category: RoutineCategory) -> dict:
     }
 
 
-def _conversation_stats(turns) -> dict:
+def _conversation_stats(turns: list[ConversationTurn]) -> MetricVector:
     if not turns:
         return {"대화_평균말속도": 0.0, "대화_무응답횟수": 0, "대화_평균발화길이": 0.0}
 
@@ -77,32 +81,34 @@ def _conversation_stats(turns) -> dict:
     }
 
 
-def compute_daily_vector(monitor: RoutineMonitor, conversation_log: ConversationLog, target_date: date) -> dict:
+def compute_daily_vector(
+    monitor: RoutineMonitor, conversation_log: ConversationLog, target_date: date
+) -> MetricVector:
     """
     target_date: 이 날짜 기준으로 지표를 계산.
                  루틴 쪽은 RoutineMonitor가 날짜 변경 시 자동으로 리셋되므로 현재 상태를 그대로 씀.
                  대화 쪽은 이 함수에서 명시적으로 target_date로 필터링.
     """
     trackers = monitor.daily_trackers()
-    vector = {}
+    vector: MetricVector = {}
     for category in CATEGORIES:
         vector.update(_category_stats(trackers, category))
     vector.update(_conversation_stats(conversation_log.daily_turns(target_date)))
     return vector
 
 
-def append_history(today: date, vector: dict, path: Path = HISTORY_PATH) -> None:
+def append_history(today: date, vector: MetricVector, path: Path = HISTORY_PATH) -> None:
     record = {"date": today.isoformat(), **vector}
     with open(path, "a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
-def load_history(days: int = 7, path: Path = HISTORY_PATH) -> list[dict]:
+def load_history(days: int = 7, path: Path = HISTORY_PATH) -> list[dict[str, object]]:
     if days <= 0:
         raise ValueError(f"days는 1 이상이어야 합니다 (받은 값: {days})")
 
     if not path.exists():
         return []
-    with open(path, "r", encoding="utf-8") as f:
-        records = [json.loads(line) for line in f if line.strip()]
+    with open(path, encoding="utf-8") as f:
+        records: list[dict[str, object]] = [json.loads(line) for line in f if line.strip()]
     return records[-days:]
