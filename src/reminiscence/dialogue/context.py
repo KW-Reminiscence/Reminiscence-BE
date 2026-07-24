@@ -4,9 +4,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal
 
-from anthropic.types import MessageParam
-
 from reminiscence.dialogue import config
+from reminiscence.dialogue.messages import ChatMessage
 
 Role = Literal["user", "assistant"]
 AffectState = Literal["긍정", "중립", "부정", "혼란"]
@@ -69,10 +68,10 @@ class SessionContext:
     def add(self, turn: Turn) -> None:
         self.history.append(turn)
 
-    def recent_messages(self) -> list[MessageParam]:
-        """Messages API 형식으로 최근 이력을 반환한다."""
+    def recent_messages(self) -> list[ChatMessage]:
+        """최근 이력을 대화 메시지 형식으로 반환한다."""
         window = self.history[-config.HISTORY_TURNS :]
-        return [MessageParam(role=t.role, content=t.text) for t in window]
+        return [ChatMessage(role=t.role, content=t.text) for t in window]
 
     def flag_guardian(self, kind: Literal["SENSITIVE", "GUARDRAIL"], detail: str) -> None:
         """보호자 알림 큐에 기록한다.

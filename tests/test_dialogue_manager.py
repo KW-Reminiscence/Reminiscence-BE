@@ -5,11 +5,11 @@ LLM을 스텁으로 갈아 끼워 API 키 없이 전체 턴 흐름을 돌린다.
 
 from collections.abc import Generator
 
-import anthropic
 import httpx
-from anthropic.types import MessageParam
+from openai import APIConnectionError
 
 from reminiscence.dialogue import DialogueManager, SessionContext
+from reminiscence.dialogue.messages import ChatMessage
 from reminiscence.dialogue.scenarios import Scenario
 
 
@@ -19,10 +19,10 @@ class StubLLM:
     def __init__(self, reply: str) -> None:
         self.reply = reply
         self.last_system: str | None = None
-        self.last_messages: list[MessageParam] | None = None
+        self.last_messages: list[ChatMessage] | None = None
 
     def stream_reply(
-        self, system: str, messages: list[MessageParam]
+        self, system: str, messages: list[ChatMessage]
     ) -> Generator[str, None, str]:
         self.last_system = system
         self.last_messages = messages
@@ -35,9 +35,9 @@ class FailingLLM:
     """연결이 끊긴 상황을 흉내내는 가짜 LLM."""
 
     def stream_reply(
-        self, system: str, messages: list[MessageParam]
+        self, system: str, messages: list[ChatMessage]
     ) -> Generator[str, None, str]:
-        raise anthropic.APIConnectionError(request=httpx.Request("POST", "https://x"))
+        raise APIConnectionError(request=httpx.Request("POST", "https://x"))
         yield ""  # pragma: no cover - 제너레이터로 만들기 위한 구문
 
 
@@ -45,7 +45,7 @@ class MisconfiguredLLM:
     """API 키가 없을 때처럼 SDK가 아닌 예외가 나는 상황."""
 
     def stream_reply(
-        self, system: str, messages: list[MessageParam]
+        self, system: str, messages: list[ChatMessage]
     ) -> Generator[str, None, str]:
         raise TypeError("api_key must be set")
         yield ""  # pragma: no cover - 제너레이터로 만들기 위한 구문

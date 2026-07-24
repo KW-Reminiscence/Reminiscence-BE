@@ -8,10 +8,10 @@ from collections.abc import Generator, Iterator
 
 import httpx
 import pytest
-from anthropic.types import MessageParam
 from fastapi.testclient import TestClient
 
 from reminiscence.dialogue.api import get_store
+from reminiscence.dialogue.messages import ChatMessage
 from reminiscence.dialogue.store import SessionStore
 from reminiscence.main import app
 
@@ -23,7 +23,7 @@ class StubLLM:
         self.reply = reply
 
     def stream_reply(
-        self, system: str, messages: list[MessageParam]
+        self, system: str, messages: list[ChatMessage]
     ) -> Generator[str, None, str]:
         for sentence in self.reply.split("|"):
             yield sentence.strip()

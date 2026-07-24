@@ -44,7 +44,7 @@ class SessionStore:
     """세션을 만들고 찾아준다. 스레드 안전하다.
 
     LLM 클라이언트는 세션마다 만들지 않고 하나를 공유한다. 커넥션 풀을
-    재사용하는 편이 빠르고, anthropic 클라이언트는 스레드 안전하다.
+    재사용하는 편이 빠르고, OpenAI 클라이언트는 스레드 안전하다.
     """
 
     def __init__(self, llm: ReplyStreamer | None = None) -> None:

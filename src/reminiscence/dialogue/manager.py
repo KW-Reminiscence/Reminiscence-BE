@@ -23,11 +23,10 @@ import logging
 from collections.abc import Generator
 from dataclasses import dataclass, field
 
-from anthropic.types import MessageParam
-
 from reminiscence.dialogue import fallbacks, guardrails, prompts
 from reminiscence.dialogue.context import SessionContext, Turn
 from reminiscence.dialogue.llm_client import DialogueLLM, ReplyStreamer
+from reminiscence.dialogue.messages import ChatMessage
 from reminiscence.dialogue.router import route
 from reminiscence.dialogue.scenarios import Scenario
 
@@ -81,7 +80,7 @@ class DialogueManager:
         messages = ctx.recent_messages()
         # 지시문을 마지막 user 메시지에 덧붙이므로 시스템 프롬프트는 매 턴
         # 동일하게 유지되고, 프롬프트 캐시 접두사가 깨지지 않는다.
-        messages[-1] = MessageParam(
+        messages[-1] = ChatMessage(
             role="user",
             content=f"{directive}\n\n[사용자 발화]\n{utterance}",
         )
@@ -103,7 +102,7 @@ class DialogueManager:
         """
         directive = prompts.build_turn_directive(scenario, self.ctx)
         messages = self.ctx.recent_messages()
-        messages.append(MessageParam(role="user", content=directive))
+        messages.append(ChatMessage(role="user", content=directive))
 
         return (yield from self._run(scenario, messages, guardian_flagged=False))
 
@@ -112,7 +111,7 @@ class DialogueManager:
     def _run(
         self,
         scenario: Scenario,
-        messages: list[MessageParam],
+        messages: list[ChatMessage],
         guardian_flagged: bool,
     ) -> Generator[str, None, TurnResult]:
         """스트리밍, 가드레일, 이력 기록을 한다."""

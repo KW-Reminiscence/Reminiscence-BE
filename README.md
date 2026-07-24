@@ -50,7 +50,8 @@ Web Speech API로 처리하고, 이 서버는 그 사이의 대화 흐름만 담
         브라우저 speechSynthesis ─> 스피커
 ```
 
-Anthropic API 키는 서버에만 두고 브라우저로 내보내지 않습니다.
+LLM은 OpenAI(ChatGPT) Chat Completions API를 사용합니다. API 키는 서버에만
+두고 브라우저로 내보내지 않습니다.
 
 | 모듈 | 역할 |
 | --- | --- |
@@ -61,8 +62,12 @@ Anthropic API 키는 서버에만 두고 브라우저로 내보내지 않습니�
 | `fallbacks.py` | LLM 응답이 없을 때 대신 내보낼 문구 |
 | `context.py` | 세션 상태, 대화 이력, 보호자 알림 큐 |
 | `store.py` | 세션 저장소(메모리) |
-| `llm_client.py` | Anthropic Messages API 스트리밍 래퍼 |
+| `messages.py` | 제공자에 묶이지 않는 대화 메시지 타입 |
+| `llm_client.py` | OpenAI Chat Completions 스트리밍 래퍼 |
 | `manager.py` | 위를 엮는 오케스트레이터 |
+
+대화 엔진은 `ReplyStreamer` 프로토콜에만 의존하므로, 다른 LLM으로 바꾸려면
+`llm_client.py`만 교체하면 됩니다.
 
 ### API
 
@@ -115,15 +120,16 @@ uv run python scripts/chat_cli.py --photo "1998년 제주도, 본인과 딸, 여
 
 ### 환경 변수
 
-`ANTHROPIC_API_KEY`만 필수이고 나머지는 기본값으로 동작합니다.
+`OPENAI_API_KEY`만 필수이고 나머지는 기본값으로 동작합니다. 값은 `.env`에
+두면 됩니다(`.env.example` 참고). `.env`는 커밋되지 않습니다.
 
 | 변수 | 기본값 | 설명 |
 | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | (없음) | 필수. Anthropic API 키 |
+| `OPENAI_API_KEY` | (없음) | 필수. OpenAI API 키 |
+| `OPENAI_BASE_URL` | OpenAI 기본 | OpenAI 호환 프록시·게이트웨이를 쓸 때 엔드포인트 |
 | `DIALOGUE_CORS_ORIGINS` | `*` | 허용할 프론트엔드 오리진. 쉼표로 구분 |
-| `DIALOGUE_MODEL` | `claude-opus-4-8` | 사용할 모델 |
-| `DIALOGUE_EFFORT` | `low` | `low`/`medium`/`high`/`xhigh`/`max` |
-| `DIALOGUE_FAST_MODE` | `0` | `1`이면 fast mode(응답 속도 향상, 프리미엄 과금) |
+| `DIALOGUE_MODEL` | `gpt-4o-mini` | 사용할 모델 |
+| `DIALOGUE_TEMPERATURE` | `0.7` | 표현 다양성(0에 가까울수록 딱딱함) |
 | `DIALOGUE_MAX_TOKENS` | `300` | 응답 최대 토큰 |
 | `DIALOGUE_HISTORY_TURNS` | `8` | LLM에 넘길 최근 대화 턴 수 |
 | `DIALOGUE_TIMEOUT_SECONDS` | `15` | 요청 제한 시간 |
