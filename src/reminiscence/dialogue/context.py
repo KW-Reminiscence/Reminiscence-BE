@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal
 
-from reminiscence.dialogue import config, flow
+from reminiscence.dialogue import config, flow, themes
 from reminiscence.dialogue.messages import ChatMessage
 from reminiscence.dialogue.scenarios import REMINISCENCE_SCENARIOS, Scenario
 
@@ -39,18 +39,15 @@ class GuardianFlag:
 class SessionContext:
     """액자가 현재 알고 있는 모든 것.
 
-    photo_meta / music_meta / routine_type은 다른 팀원이 담당하는 모듈
-    (디스플레이, 플레이어, 루틴 모니터)이 세팅해 준다. 대화 엔진은 읽기만 한다.
+    photo_meta / routine_type은 다른 팀원이 담당하는 모듈(디스플레이,
+    루틴 모니터)이 세팅해 준다. 대화 엔진은 읽기만 한다.
     """
 
     device_name: str = "하늘이"
 
-    # 하드웨어·스케줄러가 채워주는 값
+    # 프론트엔드·스케줄러가 채워주는 값
     photo_meta: str | None = None
     """예: "1998년 제주도, 본인과 딸, 여름"."""
-
-    music_meta: str | None = None
-    """예: "동백아가씨 (1964)"."""
 
     routine_type: str | None = None
     """예: "점심 복약"."""
@@ -66,12 +63,15 @@ class SessionContext:
     guardian_flags: list[GuardianFlag] = field(default_factory=list)
     stall_count: int = 0
 
-    # 회상 대화 아크 상태(flow.py 참고). 회상 시나리오(S1~S3)에서만 의미가 있다.
+    # 회상 대화 아크 상태(flow.py 참고). 회상 시나리오(S1~S2)에서만 의미가 있다.
     phase: flow.Phase = flow.Phase.OPENING
     phase_turns: int = 0
     minimal_streak: int = 0
     active_scenario: str | None = None
     """지금 진행 중인 회상 시나리오. 바뀌면 대화 아크를 진입부터 다시 시작한다."""
+
+    active_theme_key: str | None = None
+    """지금 이야기 중인 생애 주제(themes.py). 어르신 발화에서 감지해 따라간다."""
 
     def add(self, turn: Turn) -> None:
         self.history.append(turn)
@@ -90,7 +90,11 @@ class SessionContext:
         if self.active_scenario != scenario.value:
             self.active_scenario = scenario.value
             self._reset_phase()
+            self._follow_theme(utterance)
             return
+
+        # 사람 중심(SolCos): 어르신이 먼저 꺼낸 화제를 따라간다.
+        self._follow_theme(utterance)
 
         engagement = flow.classify_engagement(utterance, distress=distress)
         if engagement is flow.Engagement.MINIMAL:
@@ -123,6 +127,11 @@ class SessionContext:
         self.phase = flow.Phase.OPENING
         self.phase_turns = 0
         self.minimal_streak = 0
+
+    def _follow_theme(self, utterance: str) -> None:
+        detected = themes.detect_theme(utterance)
+        if detected is not None:
+            self.active_theme_key = detected.key
 
     def recent_messages(self) -> list[ChatMessage]:
         """최근 이력을 대화 메시지 형식으로 반환한다."""

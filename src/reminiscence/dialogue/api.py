@@ -57,9 +57,6 @@ class ContextFields(BaseModel):
         description="표시 중인 사진 설명. 예: 1998년 제주도, 본인과 딸, 여름",
         max_length=500,
     )
-    music_meta: str | None = Field(
-        default=None, description="재생 중인 음악. 예: 동백아가씨 (1964)", max_length=200
-    )
     routine_type: str | None = Field(
         default=None, description="루틴 종류. 예: 점심 복약", max_length=100
     )
@@ -81,7 +78,6 @@ class SessionState(BaseModel):
     session_id: str
     device_name: str
     photo_meta: str | None
-    music_meta: str | None
     routine_type: str | None
     routine_pending: bool
     affect_state: str
@@ -133,7 +129,6 @@ def create_session(request: CreateSessionRequest, store: StoreDep) -> SessionSta
     ctx = SessionContext(
         device_name=request.device_name,
         photo_meta=request.photo_meta,
-        music_meta=request.music_meta,
         routine_type=request.routine_type,
         routine_pending=request.routine_type is not None,
     )
@@ -160,7 +155,7 @@ def update_session(
     session = _lookup(store, session_id)
     changed = request.model_dump(exclude_unset=True)
 
-    for name in ("photo_meta", "music_meta", "routine_type"):
+    for name in ("photo_meta", "routine_type"):
         if name in changed:
             setattr(session.ctx, name, changed[name])
 
@@ -315,7 +310,6 @@ def _state(session: Session) -> SessionState:
         session_id=session.id,
         device_name=ctx.device_name,
         photo_meta=ctx.photo_meta,
-        music_meta=ctx.music_meta,
         routine_type=ctx.routine_type,
         routine_pending=ctx.routine_pending,
         affect_state=ctx.affect_state,

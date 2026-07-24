@@ -2,7 +2,7 @@
 
 규칙 기반이다. LLM에게 "어떤 시나리오인지 고르라"고 한 번 더 물으면 왕복이
 하나 늘어 음성 대화 지연이 두 배가 된다. 트리거는 대부분 하드웨어 상태
-(사진 표시 중/음악 재생 중/알림 시각)라서 규칙으로 충분하다.
+(사진 표시 중/알림 시각)라서 규칙으로 충분하다.
 
 우선순위는 안전 순이다. 민감 상황이 어떤 트리거보다 앞선다.
 """
@@ -34,10 +34,6 @@ def route(utterance: str, ctx: SessionContext) -> tuple[Scenario, InputSignal]:
     # S4 - 미이행 루틴이 걸려 있으면 회상 대화에 얹는다
     if ctx.routine_pending:
         return Scenario.S4_ROUTINE, signal
-
-    # S3 - 음악 재생 중
-    if ctx.music_meta is not None:
-        return Scenario.S3_MUSIC, signal
 
     # S1 / S2 - 사진 표시 중. 개인 사진인지 시대 사진인지로 갈린다.
     if ctx.photo_meta is not None:

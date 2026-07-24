@@ -21,12 +21,12 @@ def test_route_distinguishes_an_era_photo() -> None:
     assert scenario is Scenario.S2_ERA_PHOTO
 
 
-def test_route_prefers_music_over_photo() -> None:
-    ctx = SessionContext(photo_meta="가족사진", music_meta="동백아가씨 (1964)")
+def test_route_defaults_to_affect_care_without_a_photo() -> None:
+    ctx = SessionContext()
 
-    scenario, _ = route("좋네", ctx)
+    scenario, _ = route("심심하네", ctx)
 
-    assert scenario is Scenario.S3_MUSIC
+    assert scenario is Scenario.S5_AFFECT
 
 
 def test_route_prefers_a_pending_routine_over_reminiscence() -> None:

@@ -89,11 +89,11 @@ def test_switching_topic_resets_the_arc() -> None:
     ctx.advance_flow(Scenario.S1_PHOTO, "딸이랑 갔던 바다야", distress=False)
     assert ctx.phase is Phase.DEEPENING
 
-    # 음악으로 주제가 바뀌면 진입부터 다시 시작한다
-    ctx.music_meta = "동백아가씨 (1964)"
-    ctx.advance_flow(Scenario.S3_MUSIC, "이 노래 좋네", distress=False)
+    # 시대 사진으로 시나리오가 바뀌면 진입부터 다시 시작한다
+    ctx.photo_meta = "1970년대 시대자료사진, 남대문 시장"
+    ctx.advance_flow(Scenario.S2_ERA_PHOTO, "저런 데 자주 갔지", distress=False)
     assert ctx.phase is Phase.OPENING
-    assert ctx.active_scenario == Scenario.S3_MUSIC.value
+    assert ctx.active_scenario == Scenario.S2_ERA_PHOTO.value
 
 
 def test_non_reminiscence_scenarios_do_not_touch_the_phase() -> None:

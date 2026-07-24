@@ -12,7 +12,6 @@
 대화 중 명령어::
 
     /photo <설명>    표시 중인 사진 바꾸기
-    /music <곡명>    음악 재생 상태로 바꾸기
     /routine <종류>  루틴 알림 걸기
     /alarm           액자가 먼저 말을 거는 루틴 알림 실행(기기 주도 턴)
     /state           현재 컨텍스트와 보호자 플래그 보기
@@ -36,7 +35,6 @@ RESET = "\033[0m"
 def main() -> None:
     parser = argparse.ArgumentParser(description="회상 대화 흐름 테스트")
     parser.add_argument("--photo", help="표시 중인 사진 메타데이터")
-    parser.add_argument("--music", help="재생 중인 음악")
     parser.add_argument("--routine", help="미이행 루틴 (예: 점심 복약)")
     parser.add_argument("--name", default="하늘이", help="기기 호칭")
     args = parser.parse_args()
@@ -44,7 +42,6 @@ def main() -> None:
     ctx = SessionContext(
         device_name=args.name,
         photo_meta=args.photo,
-        music_meta=args.music,
         routine_type=args.routine,
         routine_pending=bool(args.routine),
     )
@@ -107,9 +104,6 @@ def _handle_command(cmd: str, ctx: SessionContext) -> None:
 
     if head == "/photo":
         ctx.photo_meta = rest or None
-        ctx.music_meta = None
-    elif head == "/music":
-        ctx.music_meta = rest or None
     elif head == "/routine":
         ctx.routine_type = rest or None
         ctx.routine_pending = bool(rest)
@@ -126,7 +120,7 @@ def _handle_command(cmd: str, ctx: SessionContext) -> None:
 def _print_state(ctx: SessionContext) -> None:
     routine = ctx.routine_type if ctx.routine_pending else "-"
     print(
-        f"{DIM}[컨텍스트] 사진={ctx.photo_meta or '-'} | 음악={ctx.music_meta or '-'} | "
+        f"{DIM}[컨텍스트] 사진={ctx.photo_meta or '-'} | "
         f"루틴={routine} | 정서={ctx.affect_state} | "
         f"보호자플래그={len(ctx.guardian_flags)}건{RESET}\n"
     )

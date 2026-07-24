@@ -73,7 +73,7 @@ def test_a_turn_streams_sentences_then_a_result(client: TestClient) -> None:
     result = lines[-1]
     assert result["type"] == "result"
     assert result["scenario"] == "S1"
-    assert result["scenario_label"] == "사진 기반 회상 대화"
+    assert result["scenario_label"] == "개인 사진 회상"
     assert result["degraded"] is False
 
 
@@ -104,16 +104,17 @@ def test_updating_context_switches_the_scenario(client: TestClient) -> None:
     ).json()["session_id"]
 
     patched = client.patch(
-        f"/dialogue/sessions/{session_id}", json={"music_meta": "동백아가씨 (1964)"}
+        f"/dialogue/sessions/{session_id}",
+        json={"photo_meta": "1970년대 시대자료사진, 남대문 시장"},
     )
 
     assert patched.status_code == 200
-    assert patched.json()["music_meta"] == "동백아가씨 (1964)"
+    assert patched.json()["photo_meta"] == "1970년대 시대자료사진, 남대문 시장"
 
     response = client.post(
-        f"/dialogue/sessions/{session_id}/turns", json={"utterance": "좋네"}
+        f"/dialogue/sessions/{session_id}/turns", json={"utterance": "저런 데 자주 갔지"}
     )
-    assert _lines(response)[-1]["scenario"] == "S3"
+    assert _lines(response)[-1]["scenario"] == "S2"
 
 
 def test_a_sensitive_utterance_is_reported_to_the_caller(client: TestClient) -> None:

@@ -194,7 +194,7 @@ el("applyPhoto").onclick = async () => {
   if (!sessionId) return;
   await api(`/dialogue/sessions/${sessionId}`, {
     method: "PATCH",
-    body: JSON.stringify({ photo_meta: el("photoMeta").value, music_meta: null }),
+    body: JSON.stringify({ photo_meta: el("photoMeta").value }),
   });
   el("trace").textContent = "사진 설명을 반영했습니다.";
   el("trace").className = "trace";
