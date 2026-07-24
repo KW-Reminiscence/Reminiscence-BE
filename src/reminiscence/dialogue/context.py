@@ -4,8 +4,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal
 
-from reminiscence.dialogue import config
+from reminiscence.dialogue import config, flow
 from reminiscence.dialogue.messages import ChatMessage
+from reminiscence.dialogue.scenarios import REMINISCENCE_SCENARIOS, Scenario
 
 Role = Literal["user", "assistant"]
 AffectState = Literal["긍정", "중립", "부정", "혼란"]
@@ -65,8 +66,63 @@ class SessionContext:
     guardian_flags: list[GuardianFlag] = field(default_factory=list)
     stall_count: int = 0
 
+    # 회상 대화 아크 상태(flow.py 참고). 회상 시나리오(S1~S3)에서만 의미가 있다.
+    phase: flow.Phase = flow.Phase.OPENING
+    phase_turns: int = 0
+    minimal_streak: int = 0
+    active_scenario: str | None = None
+    """지금 진행 중인 회상 시나리오. 바뀌면 대화 아크를 진입부터 다시 시작한다."""
+
     def add(self, turn: Turn) -> None:
         self.history.append(turn)
+
+    def advance_flow(self, scenario: Scenario, utterance: str, *, distress: bool) -> None:
+        """사용자 발화에 따라 대화 아크 단계를 갱신한다.
+
+        회상 시나리오가 아니면 단계 개념이 없으므로 건드리지 않는다. 회상
+        시나리오라도 방금 다른 주제(다른 사진·음악)로 바뀐 첫 턴이면 진입
+        단계로 시작하고, 같은 주제를 이어가는 중이면 적극성에 따라 전이한다.
+        """
+        if scenario not in REMINISCENCE_SCENARIOS:
+            self.active_scenario = scenario.value
+            return
+
+        if self.active_scenario != scenario.value:
+            self.active_scenario = scenario.value
+            self._reset_phase()
+            return
+
+        engagement = flow.classify_engagement(utterance, distress=distress)
+        if engagement is flow.Engagement.MINIMAL:
+            self.minimal_streak += 1
+        else:
+            self.minimal_streak = 0
+
+        new_phase = flow.next_phase(
+            self.phase,
+            engagement,
+            phase_turns=self.phase_turns,
+            minimal_streak=self.minimal_streak,
+        )
+        if new_phase is self.phase:
+            self.phase_turns += 1
+        else:
+            self.phase = new_phase
+            self.phase_turns = 0
+
+    def begin_initiation(self, scenario: Scenario) -> None:
+        """액자가 먼저 말을 거는 턴의 단계를 맞춘다.
+
+        회상 주제로 먼저 말을 걸면 진입 단계에서 시작한다.
+        """
+        self.active_scenario = scenario.value
+        if scenario in REMINISCENCE_SCENARIOS:
+            self._reset_phase()
+
+    def _reset_phase(self) -> None:
+        self.phase = flow.Phase.OPENING
+        self.phase_turns = 0
+        self.minimal_streak = 0
 
     def recent_messages(self) -> list[ChatMessage]:
         """최근 이력을 대화 메시지 형식으로 반환한다."""

@@ -7,7 +7,8 @@
 from typing import Final
 
 from reminiscence.dialogue.context import SessionContext
-from reminiscence.dialogue.scenarios import Scenario
+from reminiscence.dialogue.flow import Phase
+from reminiscence.dialogue.scenarios import REMINISCENCE_SCENARIOS, Scenario
 
 # ---------------------------------------------------------------------------
 # 4-1. 마스터 시스템 프롬프트
@@ -49,16 +50,13 @@ def build_system_prompt(device_name: str = "하늘이") -> str:
 # 않으므로 프롬프트 캐시 접두사가 유지된다.
 # ---------------------------------------------------------------------------
 
-_PHOTO: Final[str] = """[상황 지시] 아래 사진 정보를 바탕으로 대화하세요.
-사진 정보: {photo_meta}
+_PHOTO: Final[str] = """[상황 지시] 표시 중인 사진: {photo_meta}
 대화 목표: 사진 속 상황에 대한 긍정적 감정 회상 유도
-금지: 인물 관계/사실 정오 확인을 직접 묻지 않기
-형식: "이 사진 [상황 묘사]이시네요. [열린 감상 유도]\""""
+금지: 인물 관계·사실을 맞히게 하는 질문"""
 
 _MUSIC: Final[str] = """[상황 지시] 지금 흘러나오는 음악: {music_meta}
 대화 목표: 음악이 불러오는 시절의 감정을 함께 나누기
-금지: 제목/가수를 맞히게 하는 질문
-형식: "[곡에 대한 따뜻한 감상 1문장] + [그 시절 감정을 여는 질문 1개]\""""
+금지: 제목·가수를 맞히게 하는 질문"""
 
 _ROUTINE: Final[str] = """[상황 지시] 알림 목적: {routine_type}
 어조: 지시가 아닌 권유 + 보상 예고
@@ -90,12 +88,63 @@ _TEMPLATES: Final[dict[Scenario, str]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# 대화 이어가기 지침 (flow.py의 단계에 대응)
+#
+# 회상 시나리오(S1~S3)에서 시나리오 지시문 뒤에 덧붙는다. "무엇에 대해
+# 말하는가"(시나리오)에 "지금 어떻게 이어가는가"(단계)를 더해, 매 턴 같은
+# 질문을 반복하지 않고 대화가 자연스럽게 깊어지고 넓어지게 한다.
+# ---------------------------------------------------------------------------
+
+_CONTINUATION_PRINCIPLE: Final[str] = (
+    "[이어가기 원칙] 어르신이 방금 하신 말에서 한 가지를 골라 받아준 뒤 이어간다. "
+    "진입 단계가 아니면 사진·음악을 처음부터 다시 묘사하지 말고 방금 하신 말에 바로 "
+    "반응한다. 이전 턴과 같은 질문을 반복하지 않는다."
+)
+
+_PHASE_GUIDANCE: Final[dict[Phase, str]] = {
+    Phase.OPENING: (
+        "[대화 단계: 진입] 지금 보이는 사진(또는 들리는 음악)을 한 문장으로 따뜻하게 "
+        "짚어주고, 편히 답할 수 있는 열린 질문 하나만 건넨다. 아직 깊이 파고들지 않는다."
+    ),
+    Phase.DEEPENING: (
+        "[대화 단계: 심화] 방금 하신 말에서 감각(소리·냄새·날씨·맛), 함께한 사람, "
+        "그때의 기분 중 하나를 골라 한 걸음 더 들어가는 질문을 한다."
+    ),
+    Phase.BROADENING: (
+        "[대화 단계: 확장] 지금 이야기와 이어지는 다른 기억으로 자연스럽게 넓힌다. "
+        "관련된 새로운 실마리를 하나 제안한다."
+    ),
+    Phase.WRAPPING: (
+        "[대화 단계: 마무리] 새 질문으로 몰아붙이지 않는다. 지금까지의 이야기를 "
+        "따뜻하게 정리하고, 더 이어가고 싶으시면 그러실 수 있게 여지를 둔다."
+    ),
+}
+
+_REENGAGE: Final[str] = (
+    "[반응이 짧으심] 다그치지 말고, 더 쉽게 답할 수 있는 다른 각도를 하나만 "
+    "부드럽게 제시한다."
+)
+
+
 def build_turn_directive(scenario: Scenario, ctx: SessionContext) -> str:
-    """시나리오와 현재 컨텍스트로 이번 턴의 상황 지시문을 만든다."""
-    return _TEMPLATES[scenario].format(
+    """시나리오와 현재 컨텍스트로 이번 턴의 상황 지시문을 만든다.
+
+    회상 시나리오면 대화 단계(진입/심화/확장/마무리)에 맞는 이어가기 지침을
+    덧붙인다. 나머지 시나리오는 단발성이라 상황 지시문만으로 충분하다.
+    """
+    base = _TEMPLATES[scenario].format(
         photo_meta=ctx.photo_meta or "정보 없음",
         music_meta=ctx.music_meta or "정보 없음",
         routine_type=ctx.routine_type or "일상",
         affect_state=ctx.affect_state,
         sensitive_keyword=ctx.last_sensitive_keyword or "그분",
     )
+
+    if scenario not in REMINISCENCE_SCENARIOS:
+        return base
+
+    lines = [base, "", _CONTINUATION_PRINCIPLE, _PHASE_GUIDANCE[ctx.phase]]
+    if ctx.minimal_streak >= 1 and ctx.phase is not Phase.WRAPPING:
+        lines.append(_REENGAGE)
+    return "\n".join(lines)

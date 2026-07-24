@@ -37,3 +37,9 @@ LABELS: dict[Scenario, str] = {
     Scenario.S6_SENSITIVE: "민감 상황 대응",
     Scenario.CLOSING: "마무리",
 }
+
+#: 대화 아크(진입→심화→확장→마무리)를 갖는 시나리오.
+#: 나머지(루틴·정서·민감·마무리)는 단발성/반응성이라 단계 개념이 없다.
+REMINISCENCE_SCENARIOS: frozenset[Scenario] = frozenset(
+    {Scenario.S1_PHOTO, Scenario.S2_ERA_PHOTO, Scenario.S3_MUSIC}
+)

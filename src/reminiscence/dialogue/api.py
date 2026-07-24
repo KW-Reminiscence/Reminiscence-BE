@@ -287,6 +287,7 @@ def _result_payload(result: TurnResult) -> dict[str, object]:
         "type": "result",
         "scenario": result.scenario.value,
         "scenario_label": LABELS[result.scenario],
+        "phase": result.phase,
         "reply": result.reply,
         "violations": result.violations,
         "guardian_flagged": result.guardian_flagged,

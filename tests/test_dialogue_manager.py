@@ -161,6 +161,31 @@ def test_an_api_failure_degrades_instead_of_raising() -> None:
     assert ctx.history[-1].role == "assistant"
 
 
+def test_the_directive_carries_phase_guidance_as_the_arc_advances() -> None:
+    ctx = SessionContext(photo_meta="1998년 제주도, 본인과 딸")
+    llm = StubLLM("좋으시겠어요.")
+    manager = DialogueManager(ctx, llm)
+
+    first = manager.respond("이거 뭐야")
+    assert first.phase == "opening"
+    assert llm.last_messages is not None
+    assert "대화 단계: 진입" in llm.last_messages[-1]["content"]
+
+    second = manager.respond("딸이랑 제주도 바다 갔던 사진이야")
+    assert second.phase == "deepening"
+    assert "대화 단계: 심화" in llm.last_messages[-1]["content"]
+    # 이어가기 원칙이 항상 붙는다
+    assert "이어가기 원칙" in llm.last_messages[-1]["content"]
+
+
+def test_non_reminiscence_turns_report_no_phase() -> None:
+    ctx = SessionContext(routine_type="점심 복약", routine_pending=True)
+    result = DialogueManager(ctx, StubLLM("점심 드실 시간이에요.")).respond("응")
+
+    assert result.scenario is Scenario.S4_ROUTINE
+    assert result.phase is None
+
+
 def test_a_missing_api_key_still_produces_speech() -> None:
     # 키를 빠뜨렸을 때 SDK는 APIError가 아니라 TypeError를 낸다.
     # 원인이 무엇이든 액자는 침묵하면 안 된다.

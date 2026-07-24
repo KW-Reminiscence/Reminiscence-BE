@@ -135,6 +135,8 @@ def _print_state(ctx: SessionContext) -> None:
 def _print_trace(result: TurnResult) -> None:
     label = LABELS[result.scenario]
     line = f"{DIM}  └ {result.scenario.value} {label}"
+    if result.phase is not None:
+        line += f" · {result.phase}"
     if result.guardian_flagged:
         line += f"{RESET}{RED} [보호자 플래그]{RESET}{DIM}"
     if result.violations:

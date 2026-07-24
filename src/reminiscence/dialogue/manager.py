@@ -28,7 +28,7 @@ from reminiscence.dialogue.context import SessionContext, Turn
 from reminiscence.dialogue.llm_client import DialogueLLM, ReplyStreamer
 from reminiscence.dialogue.messages import ChatMessage
 from reminiscence.dialogue.router import route
-from reminiscence.dialogue.scenarios import Scenario
+from reminiscence.dialogue.scenarios import REMINISCENCE_SCENARIOS, Scenario
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,9 @@ class TurnResult:
 
     degraded: bool = False
     """LLM 응답을 받지 못해 대체 문구를 내보냈는가."""
+
+    phase: str | None = None
+    """회상 대화 아크의 현재 단계. 회상 시나리오(S1~S3)에서만 채워진다."""
 
 
 class DialogueManager:
@@ -76,6 +79,9 @@ class DialogueManager:
 
         ctx.add(Turn(role="user", text=utterance))
 
+        # 방금 발화의 적극성으로 대화 아크 단계를 갱신한 뒤 지시문을 만든다.
+        ctx.advance_flow(scenario, utterance, distress=signal.distress)
+
         directive = prompts.build_turn_directive(scenario, ctx)
         messages = ctx.recent_messages()
         # 지시문을 마지막 user 메시지에 덧붙이므로 시스템 프롬프트는 매 턴
@@ -100,6 +106,9 @@ class DialogueManager:
         걸고 싶을 때(S1~S3) 쓴다. 라우터를 거치지 않고 호출 측이 시나리오를
         직접 지정한다. 트리거를 아는 쪽은 하드웨어이기 때문이다.
         """
+        # 액자가 먼저 말을 거는 턴. 회상 주제면 진입 단계에서 시작한다.
+        self.ctx.begin_initiation(scenario)
+
         directive = prompts.build_turn_directive(scenario, self.ctx)
         messages = self.ctx.recent_messages()
         messages.append(ChatMessage(role="user", content=directive))
@@ -171,12 +180,15 @@ class DialogueManager:
         if scenario is Scenario.S4_ROUTINE:
             ctx.routine_pending = False
 
+        phase = ctx.phase.value if scenario in REMINISCENCE_SCENARIOS else None
+
         return TurnResult(
             scenario=scenario,
             reply=verdict.text,
             violations=verdict.violations,
             guardian_flagged=guardian_flagged,
             degraded=degraded,
+            phase=phase,
         )
 
 
