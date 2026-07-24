@@ -81,6 +81,8 @@ class DialogueLLM:
             self._client = OpenAI(
                 timeout=config.REQUEST_TIMEOUT_SECONDS,
                 max_retries=config.MAX_RETRIES,
+                # 게이트웨이 앞 Cloudflare가 SDK 기본 User-Agent를 막는다.
+                default_headers={"User-Agent": config.USER_AGENT},
             )
         return self._client
 

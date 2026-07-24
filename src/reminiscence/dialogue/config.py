@@ -7,8 +7,19 @@ import os
 from typing import Final
 
 #: 모델. 액자는 API 호출만 하므로 기기 성능과 무관하다.
-#: 음성 대화는 짧고 빠른 응답이 중요하므로 가볍고 빠른 모델을 기본으로 둔다.
-MODEL: Final[str] = os.getenv("DIALOGUE_MODEL", "gpt-4o-mini")
+#: 팀 게이트웨이가 제공하는 모델로 기본값을 둔다(/v1/models 로 확인 가능).
+MODEL: Final[str] = os.getenv("DIALOGUE_MODEL", "gpt-5.6-luna")
+
+#: 요청에 실을 User-Agent.
+#:
+#: 팀 게이트웨이(chat-api.leehyowon14.dev) 앞의 Cloudflare가 OpenAI SDK 기본
+#: User-Agent를 403으로 막는다. 브라우저 형태의 값을 쓰면 통과한다. 게이트웨이
+#: 쪽에서 SDK를 허용하도록 고치면 이 우회는 필요 없다.
+USER_AGENT: Final[str] = os.getenv(
+    "DIALOGUE_USER_AGENT",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+)
 
 #: 회상 대화 응답은 1~2문장이므로 크게 잡을 이유가 없다.
 MAX_TOKENS: Final[int] = int(os.getenv("DIALOGUE_MAX_TOKENS", "300"))

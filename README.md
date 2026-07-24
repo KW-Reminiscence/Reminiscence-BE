@@ -50,8 +50,13 @@ Web Speech API로 처리하고, 이 서버는 그 사이의 대화 흐름만 담
         브라우저 speechSynthesis ─> 스피커
 ```
 
-LLM은 OpenAI(ChatGPT) Chat Completions API를 사용합니다. API 키는 서버에만
-두고 브라우저로 내보내지 않습니다.
+LLM은 OpenAI 호환 Chat Completions API를 사용합니다. 팀 게이트웨이
+(`chat-api.leehyowon14.dev`)를 `OPENAI_BASE_URL`로 지정하며, 제공 모델은
+`gpt-5.6-luna`입니다. API 키는 서버에만 두고 브라우저로 내보내지 않습니다.
+
+> 게이트웨이 앞의 Cloudflare가 OpenAI SDK 기본 User-Agent를 403으로 막아,
+> 클라이언트가 브라우저 형태의 User-Agent를 보냅니다(`DIALOGUE_USER_AGENT`).
+> 게이트웨이에서 SDK를 정상 허용하도록 고치면 이 우회는 필요 없습니다.
 
 | 모듈 | 역할 |
 | --- | --- |
@@ -125,10 +130,11 @@ uv run python scripts/chat_cli.py --photo "1998년 제주도, 본인과 딸, 여
 
 | 변수 | 기본값 | 설명 |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | (없음) | 필수. OpenAI API 키 |
-| `OPENAI_BASE_URL` | OpenAI 기본 | OpenAI 호환 프록시·게이트웨이를 쓸 때 엔드포인트 |
+| `OPENAI_API_KEY` | (없음) | 필수. API 키 |
+| `OPENAI_BASE_URL` | OpenAI 기본 | OpenAI 호환 프록시·게이트웨이 엔드포인트 |
 | `DIALOGUE_CORS_ORIGINS` | `*` | 허용할 프론트엔드 오리진. 쉼표로 구분 |
-| `DIALOGUE_MODEL` | `gpt-4o-mini` | 사용할 모델 |
+| `DIALOGUE_MODEL` | `gpt-5.6-luna` | 사용할 모델(`/v1/models`로 확인) |
+| `DIALOGUE_USER_AGENT` | 브라우저 형태 | 요청 User-Agent(게이트웨이 WAF 우회용) |
 | `DIALOGUE_TEMPERATURE` | `0.7` | 표현 다양성(0에 가까울수록 딱딱함) |
 | `DIALOGUE_MAX_TOKENS` | `300` | 응답 최대 토큰 |
 | `DIALOGUE_HISTORY_TURNS` | `8` | LLM에 넘길 최근 대화 턴 수 |
