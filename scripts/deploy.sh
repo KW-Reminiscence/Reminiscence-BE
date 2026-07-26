@@ -115,7 +115,7 @@ write_environment "${next_env_file}"
 compose "${next_env_file}" pull
 compose "${next_env_file}" run --rm --no-deps api \
     python -c \
-    "from supertonic import TTS; TTS(model='supertonic-3', model_dir='/models/supertonic-3', auto_download=True)"
+    "from dataclasses import replace; from reminiscence.tts import SupertonicConfig, SupertonicSynthesizer; config = replace(SupertonicConfig.from_environment(), auto_download=True); result = SupertonicSynthesizer(config).synthesize('오늘 사진을 보며 이야기 나눠 보실래요?'); assert result.audio[:4] == b'RIFF' and result.audio[8:12] == b'WAVE'; print(f'Supertonic smoke passed: {result.sample_rate} Hz, {result.duration_seconds} s')"
 
 if [[ -f "${active_env_file}" ]]; then
     cp -p "${active_env_file}" "${previous_env_file}"
