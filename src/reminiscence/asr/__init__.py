@@ -1,4 +1,4 @@
-"""ETRI ASR integration: audio format conversion, API client, and baseline evaluation."""
+"""ETRI ASR runtime boundary and opt-in baseline evaluation tools."""
 
 from reminiscence.asr.audio_utils import (
     analyze_audio,
@@ -8,23 +8,28 @@ from reminiscence.asr.audio_utils import (
     is_already_target_format,
 )
 from reminiscence.asr.calc_wer import load_pairs
-from reminiscence.asr.etri_client import ETRIClient, ETRIClientConfig
+from reminiscence.asr.etri import EtriRecognizer, EtriRecognizerConfig
 from reminiscence.asr.models import (
     AudioDiagnostics,
     AudioInfo,
+    RecognitionResult,
+    RecognitionUnavailableError,
     RecognizeResult,
     ResultRow,
+    SpeechRecognizer,
     WerPair,
 )
-from reminiscence.asr.run_baseline import run_batch
 
 __all__ = [
     "AudioDiagnostics",
     "AudioInfo",
-    "ETRIClient",
-    "ETRIClientConfig",
+    "EtriRecognizer",
+    "EtriRecognizerConfig",
+    "RecognitionResult",
+    "RecognitionUnavailableError",
     "RecognizeResult",
     "ResultRow",
+    "SpeechRecognizer",
     "WerPair",
     "analyze_audio",
     "batch_convert",
@@ -32,5 +37,4 @@ __all__ = [
     "get_audio_info",
     "is_already_target_format",
     "load_pairs",
-    "run_batch",
 ]

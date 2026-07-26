@@ -1,14 +1,38 @@
-"""Typed data models for ASR audio diagnostics and ETRI recognition results."""
+"""Provider-neutral runtime and baseline-only ASR data types."""
 
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from dataclasses import dataclass
+from typing import Protocol, TypedDict
 
 from pydantic import BaseModel
 
 
+@dataclass(frozen=True, slots=True)
+class RecognitionResult:
+    """Transient transcript and non-sensitive request metadata."""
+
+    transcript: str
+    latency_seconds: float
+    attempts: int
+    http_status: int
+
+
+class RecognitionUnavailableError(RuntimeError):
+    """Raised when a speech provider cannot produce a valid result."""
+
+
+class SpeechRecognizer(Protocol):
+    """Interchangeable ASR provider used by the conversation service."""
+
+    def recognize(self, audio: bytes, content_type: str) -> RecognitionResult:
+        """Recognize one in-memory audio payload without retaining it."""
+
+        ...
+
+
 class AudioInfo(BaseModel):
-    """Basic spec of an audio file as reported by libsndfile."""
+    """Basic audio specification reported by libsndfile."""
 
     sample_rate: int
     channels: int
@@ -17,7 +41,7 @@ class AudioInfo(BaseModel):
 
 
 class AudioDiagnostics(BaseModel):
-    """Diagnostic info used to tell audio-content issues (silence, odd spec) from API issues."""
+    """Audio diagnostics used only by the opt-in baseline tool."""
 
     duration_sec: float
     sample_rate: int
@@ -31,14 +55,12 @@ class AudioDiagnostics(BaseModel):
 
 
 class RecognizeResult(BaseModel):
-    """Outcome of a single ETRI ASR recognition call."""
+    """Compatibility result for the offline baseline runner."""
 
     success: bool
     text: str
     latency_sec: float
     http_status: int | None
-    raw_response: dict[str, Any]
-    raw_response_text: str
     fail_reason: str
     audio_info: AudioDiagnostics | None
     audio_analysis_error: str | None = None
@@ -46,7 +68,7 @@ class RecognizeResult(BaseModel):
 
 
 class ResultRow(TypedDict):
-    """One row of the baseline run's results.csv."""
+    """One row of the explicit offline baseline results file."""
 
     audio_file: str
     recognized_text: str
@@ -66,7 +88,7 @@ class ResultRow(TypedDict):
 
 
 class WerPair(TypedDict):
-    """A (reference, hypothesis) pair extracted from results.csv for WER/CER scoring."""
+    """A reference and hypothesis pair for offline WER/CER scoring."""
 
     audio_file: str
     reference: str
