@@ -34,6 +34,13 @@ uv run uvicorn reminiscence.main:app --reload
 ```
 
 API 문서는 `http://127.0.0.1:8000/docs`에서 확인할 수 있습니다.
+앱은 `.env`를 암묵적으로 읽지 않습니다. 로컬에서 환경 파일을 쓰려면
+`deploy/runtime.env.example`을 바탕으로 Git에서 제외된 `.env`를 만든 뒤 다음처럼
+명시합니다.
+
+```bash
+uv run uvicorn reminiscence.main:app --reload --env-file .env
+```
 
 ### 로컬 데이터와 음성 설정
 
@@ -46,6 +53,7 @@ export REMINISCENCE_DATA_DIR=./data
 export REMINISCENCE_TIMEZONE=Asia/Seoul
 export REMINISCENCE_ROUTINE_TICK_SECONDS=5
 export REMINISCENCE_EVALUATION_SECONDS=60
+export REMINISCENCE_ANOMALY_CONFIRMATION_COUNT=3
 ```
 
 `configuration.json`의 `conversation.suggestion_time`에는 매일 회상 대화를
@@ -53,10 +61,18 @@ export REMINISCENCE_EVALUATION_SECONDS=60
 시작한 대화가 없을 때만 권유하며, 권유를 무시한 사실 자체는 저장하거나 이상으로
 판정하지 않습니다.
 
+각 routine의 `active`가 `false`이면 새 실행을 만들지 않습니다. 이미 시작된
+실행은 시작 당시의 유예시간·재알림 간격·횟수를 저장하므로 설정을 바꾸거나
+routine을 삭제해도 기존 응답 창은 변하지 않습니다. 같은 요일에 활성 routine의
+응답 창이 겹치는 설정은 서버가 거부하며, 한 응답 창의 종료 시각과 다음 시작
+시각이 같은 것은 허용합니다.
+
 회상 대화 ASR을 사용하려면 `deploy/runtime.env.example`의 항목을 실제
 환경변수로 설정합니다. 태블릿은 `audio/wav`를 전송해야 합니다. 서버는
 ETRI 응답의 transcript를 글자 수와 시간 지표로 즉시 축약하며, 음성·transcript·
-provider 원문 응답은 파일에 저장하지 않습니다.
+provider 원문 응답은 파일에 저장하지 않습니다. WAV 요청은 최대 10 MiB이며
+초과한 본문은 FastAPI가 메모리에 적재하거나 ETRI를 호출하기 전에 `413`으로
+거부합니다.
 
 서버는 질문마다 `display_text`와 `spoken_text`를 함께 반환합니다.
 태블릿은 `spoken_text`를 `POST /api/v1/tts/speech`에 전송하고 응답받은
@@ -75,7 +91,8 @@ provider 원문 응답은 파일에 저장하지 않습니다.
 기본 설정은 한국어, `F1` voice, 0.9배속, 8 inference steps이며
 `deploy/runtime.env.example`의 `SUPERTONIC_*` 환경변수로 조정할 수 있습니다.
 client가 voice나 inference parameter를 임의로 선택하지 못하도록 API에는
-합성할 text만 받으며 최대 길이는 500자입니다.
+합성할 text만 받습니다. `SUPERTONIC_MAX_TEXT_CHARS`는 1~500 범위이고 API
+절대 상한은 500자입니다.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/tts/speech \
@@ -83,6 +100,17 @@ curl -X POST http://127.0.0.1:8000/api/v1/tts/speech \
   -d '{"text":"오늘 사진을 보며 이야기 나눠 보실래요?"}' \
   --output speech.wav
 ```
+
+실제 model weights까지 포함한 한국어 합성 검증은 다음 명령으로 실행합니다.
+`SUPERTONIC_MODEL_DIR` 등 `SUPERTONIC_*` 값이 먼저 설정되어 있어야 합니다.
+
+```bash
+RUN_SUPERTONIC_SMOKE=1 uv run pytest tests/tts/test_supertonic_smoke.py
+```
+
+`scripts/deploy.sh`도 새 image로 전환하기 전에 같은 한국어 문장을 메모리에서
+합성하고 RIFF/WAVE header를 확인합니다. 실패하면 기존 container를 바꾸기 전에
+배포가 중단됩니다.
 
 Supertonic SDK 코드는 MIT, Supertonic 3 model weights는 사용 제한과 표시 의무가
 있는 OpenRAIL-M입니다. 배포 전 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)의
@@ -165,4 +193,14 @@ Supertonic model directory만 쓰기 가능한 bind mount로 연결되고 나머
 
 API 프로세스는 태블릿 polling 여부와 관계없이 루틴 상태를 기본 5초마다
 전이하고 개인 이상 및 알림을 기본 60초마다 평가합니다. 두 간격은
-`runtime.env`에서 조정할 수 있으며 0 이하 값은 기동 시 거부합니다.
+`runtime.env`에서 조정할 수 있으며 0 이하·NaN·무한대는 기동 시 거부합니다.
+candidate anomaly는 기본 3회 연속 관찰된 뒤 확정되며
+`REMINISCENCE_ANOMALY_CONFIRMATION_COUNT`로 양의 정수 범위에서 조정합니다.
+
+Nginx는 일반 요청 본문을 1 MiB로 제한하고 대화 WAV route만 10 MiB까지
+허용합니다. Raspberry Pi의 Supertonic cold start를 고려해 upstream 응답
+timeout은 300초입니다.
+
+현재 `.github/workflows/ci-cd.yml`은 자동 trigger 없이 `workflow_dispatch`만
+남겨 둔 비활성 상태입니다. 자동 배포를 다시 켜기 전까지는 수동으로 실행해도
+verify job만 수행되고 image build와 배포 job은 실행되지 않습니다.
