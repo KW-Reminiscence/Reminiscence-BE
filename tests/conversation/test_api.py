@@ -94,7 +94,9 @@ def start_session(client: TestClient) -> str:
         json={"source": "VOLUNTARY"},
     )
     assert response.status_code == 201
-    return response.json()["session_id"]
+    session_id = response.json()["session_id"]
+    assert isinstance(session_id, str)
+    return session_id
 
 
 def test_start_returns_photo_and_browser_tts_question(tmp_path: Path) -> None:
