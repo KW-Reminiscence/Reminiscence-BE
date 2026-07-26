@@ -9,9 +9,14 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import pytest
 from fastapi.testclient import TestClient
 
-from reminiscence.anomaly.api import get_anomaly_service, get_current_time
+from reminiscence.anomaly.api import (
+    _confirmation_count_from_environment,
+    get_anomaly_service,
+    get_current_time,
+)
 from reminiscence.anomaly.service import AnomalyService
 from reminiscence.anomaly.storage import ActivityMetricReader, PersonalStateStore
 from reminiscence.main import app
@@ -261,6 +266,34 @@ def test_concurrent_evaluations_are_serialized() -> None:
 
     assert errors == []
     assert state_store.maximum_active_loads == 1
+
+
+@pytest.mark.parametrize("confirmation_count", [0, -1, True])
+def test_invalid_confirmation_count_is_rejected(
+    tmp_path: Path,
+    confirmation_count: int,
+) -> None:
+    with pytest.raises(ValueError, match="positive integer"):
+        build_service(tmp_path, confirmation_count=confirmation_count)
+
+
+def test_confirmation_count_is_read_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("REMINISCENCE_ANOMALY_CONFIRMATION_COUNT", "5")
+
+    assert _confirmation_count_from_environment() == 5
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "1.5", "invalid", ""])
+def test_invalid_confirmation_count_environment_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+    value: str,
+) -> None:
+    monkeypatch.setenv("REMINISCENCE_ANOMALY_CONFIRMATION_COUNT", value)
+
+    with pytest.raises(RuntimeError, match="ANOMALY_CONFIRMATION_COUNT"):
+        _confirmation_count_from_environment()
 
 
 def test_api_evaluates_and_reads_current_state(tmp_path: Path) -> None:

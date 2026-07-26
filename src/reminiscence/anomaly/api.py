@@ -19,7 +19,10 @@ from reminiscence.anomaly.models import (
     DomainEvaluation,
     PersonalEvaluation,
 )
-from reminiscence.anomaly.service import AnomalyService
+from reminiscence.anomaly.service import (
+    DEFAULT_ANOMALY_CONFIRMATION_COUNT,
+    AnomalyService,
+)
 from reminiscence.anomaly.storage import (
     ActivityMetricReader,
     AnomalyStorageError,
@@ -64,6 +67,24 @@ def _server_timezone() -> ZoneInfo:
         raise RuntimeError(f"unknown REMINISCENCE_TIMEZONE: {timezone_name}") from exc
 
 
+def _confirmation_count_from_environment() -> int:
+    raw_value = os.environ.get(
+        "REMINISCENCE_ANOMALY_CONFIRMATION_COUNT",
+        str(DEFAULT_ANOMALY_CONFIRMATION_COUNT),
+    )
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise RuntimeError(
+            "REMINISCENCE_ANOMALY_CONFIRMATION_COUNT must be an integer"
+        ) from exc
+    if value <= 0:
+        raise RuntimeError(
+            "REMINISCENCE_ANOMALY_CONFIRMATION_COUNT must be positive"
+        )
+    return value
+
+
 @lru_cache(maxsize=1)
 def get_anomaly_service() -> AnomalyService:
     """Build the process-wide detector over local JSON files."""
@@ -83,6 +104,7 @@ def get_anomaly_service() -> AnomalyService:
             )
         ),
         PersonalAnomalyDetector(),
+        confirmation_count=_confirmation_count_from_environment(),
     )
 
 

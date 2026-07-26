@@ -33,8 +33,12 @@ class AnomalyService:
         *,
         confirmation_count: int = DEFAULT_ANOMALY_CONFIRMATION_COUNT,
     ) -> None:
-        if confirmation_count <= 0:
-            raise ValueError("confirmation_count must be positive")
+        if (
+            not isinstance(confirmation_count, int)
+            or isinstance(confirmation_count, bool)
+            or confirmation_count <= 0
+        ):
+            raise ValueError("confirmation_count must be a positive integer")
         self._reader = reader
         self._state_store = state_store
         self._detector = detector or PersonalAnomalyDetector()
