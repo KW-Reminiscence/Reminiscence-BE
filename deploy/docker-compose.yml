@@ -20,6 +20,7 @@ services:
     environment:
       NOTIFICATION_CONFIG_PATH: /run/secrets/notification-config.json
       REMINISCENCE_DATA_DIR: /data
+      SUPERTONIC_MODEL_DIR: /models/supertonic-3
     tmpfs:
       - /tmp
     volumes:
@@ -32,6 +33,11 @@ services:
         source: ${NOTIFICATION_CONFIG_FILE:?NOTIFICATION_CONFIG_FILE is required}
         target: /run/secrets/notification-config.json
         read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SUPERTONIC_MODEL_DIRECTORY:?SUPERTONIC_MODEL_DIRECTORY is required}
+        target: /models/supertonic-3
         bind:
           create_host_path: false
     healthcheck:
