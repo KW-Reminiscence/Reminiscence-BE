@@ -115,7 +115,9 @@ def test_recognize_speech_reports_etri_error_result_as_failure(tmp_path: Path) -
     assert "result=7" in result.fail_reason
 
 
-def test_recognize_speech_writes_a_latency_log_row(tmp_path: Path) -> None:
+def test_recognize_speech_does_not_write_transcript_or_debug_log(
+    tmp_path: Path,
+) -> None:
     audio_path = tmp_path / "sample.wav"
     _write_wav(audio_path)
     fake_http = _FakeHTTP(
@@ -123,11 +125,10 @@ def test_recognize_speech_writes_a_latency_log_row(tmp_path: Path) -> None:
     )
     client = ETRIClient(_make_config(tmp_path), http=fake_http)  # type: ignore[arg-type]
 
-    client.recognize_speech(audio_path, auto_convert=False)
+    result = client.recognize_speech(audio_path, auto_convert=False)
 
-    assert client.log_file.exists()
-    content = client.log_file.read_text(encoding="utf-8-sig")
-    assert "sample.wav" in content
+    assert result.text == "로그"
+    assert not (tmp_path / "logs").exists()
 
 
 def test_from_env_raises_without_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
