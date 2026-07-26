@@ -109,6 +109,9 @@ def test_start_twice_is_rejected() -> None:
     [
         ("REMINISCENCE_ROUTINE_TICK_SECONDS", "0"),
         ("REMINISCENCE_ROUTINE_TICK_SECONDS", "-1"),
+        ("REMINISCENCE_ROUTINE_TICK_SECONDS", "nan"),
+        ("REMINISCENCE_EVALUATION_SECONDS", "inf"),
+        ("REMINISCENCE_EVALUATION_SECONDS", "-inf"),
         ("REMINISCENCE_EVALUATION_SECONDS", "not-a-number"),
     ],
 )
@@ -122,3 +125,27 @@ def test_invalid_environment_intervals_are_rejected(
 
     with pytest.raises(RuntimeError, match=environment_name):
         build_background_runtime(recorder, recorder, lambda: NOW)
+
+
+@pytest.mark.parametrize(
+    ("routine_interval", "evaluation_interval"),
+    [
+        (float("nan"), 1),
+        (1, float("inf")),
+        (1, 0),
+    ],
+)
+def test_constructor_rejects_nonfinite_or_nonpositive_intervals(
+    routine_interval: float,
+    evaluation_interval: float,
+) -> None:
+    recorder = Recorder()
+
+    with pytest.raises(ValueError, match="finite and positive"):
+        BackgroundRuntime(
+            recorder,
+            recorder,
+            lambda: NOW,
+            routine_interval_seconds=routine_interval,
+            evaluation_interval_seconds=evaluation_interval,
+        )

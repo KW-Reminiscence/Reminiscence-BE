@@ -7,6 +7,7 @@ import logging
 import os
 from collections.abc import Callable
 from datetime import datetime
+from math import isfinite
 from typing import Protocol
 
 logger = logging.getLogger(__name__)
@@ -38,8 +39,8 @@ def _positive_interval(environment_name: str, default: float) -> float:
         value = float(raw_value)
     except ValueError as exc:
         raise RuntimeError(f"{environment_name} must be a number") from exc
-    if value <= 0:
-        raise RuntimeError(f"{environment_name} must be positive")
+    if not isfinite(value) or value <= 0:
+        raise RuntimeError(f"{environment_name} must be finite and positive")
     return value
 
 
@@ -55,8 +56,13 @@ class BackgroundRuntime:
         routine_interval_seconds: float,
         evaluation_interval_seconds: float,
     ) -> None:
-        if routine_interval_seconds <= 0 or evaluation_interval_seconds <= 0:
-            raise ValueError("background intervals must be positive")
+        if (
+            not isfinite(routine_interval_seconds)
+            or not isfinite(evaluation_interval_seconds)
+            or routine_interval_seconds <= 0
+            or evaluation_interval_seconds <= 0
+        ):
+            raise ValueError("background intervals must be finite and positive")
         self._routine_scheduler = routine_scheduler
         self._notification_coordinator = notification_coordinator
         self._clock = clock
