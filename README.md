@@ -44,7 +44,14 @@ API 문서는 `http://127.0.0.1:8000/docs`에서 확인할 수 있습니다.
 ```bash
 export REMINISCENCE_DATA_DIR=./data
 export REMINISCENCE_TIMEZONE=Asia/Seoul
+export REMINISCENCE_ROUTINE_TICK_SECONDS=5
+export REMINISCENCE_EVALUATION_SECONDS=60
 ```
+
+`configuration.json`의 `conversation.suggestion_time`에는 매일 회상 대화를
+권유할 서버 로컬 시각을 `HH:MM` 형식으로 설정합니다. 해당 시각 이후 같은 날
+시작한 대화가 없을 때만 권유하며, 권유를 무시한 사실 자체는 저장하거나 이상으로
+판정하지 않습니다.
 
 회상 대화 ASR을 사용하려면 `deploy/runtime.env.example`의 항목을 실제
 환경변수로 설정합니다. 태블릿은 `audio/wav`를 전송해야 합니다. 서버는
@@ -55,6 +62,29 @@ provider 원문 응답은 파일에 저장하지 않습니다.
 `spoken_text`는 태블릿 브라우저의 Web Speech API로 읽는 계약이며, 서버에서
 음성 파일을 합성하지 않습니다. 웹앱을 Raspberry Pi 정적 파일 또는 Vercel 중
 어디에 배포해도 이 API 계약은 같습니다.
+
+### 태블릿 웹앱 연결
+
+Raspberry Pi에서 웹앱과 API를 같은 origin으로 제공하면 CORS 설정이 필요하지
+않습니다. Vercel처럼 다른 origin에서 웹앱을 제공하면 정확한 HTTPS origin을
+쉼표로 구분해 설정합니다.
+
+```bash
+export REMINISCENCE_CORS_ORIGINS=https://your-tablet.vercel.app
+```
+
+태블릿에서 `file://`로 직접 연 HTML이 꼭 필요하면 브라우저가 보내는 `null`
+origin을 명시할 수 있습니다. 다만 마이크 권한은 브라우저와 설치 방식에 따라
+제한될 수 있으므로 실제 운영은 HTTPS 웹앱을 권장합니다.
+
+```bash
+export REMINISCENCE_CORS_ORIGINS=null
+```
+
+`*` wildcard는 허용하지 않습니다. HTTPS Vercel 화면에서 HTTP API를 호출하면
+브라우저가 mixed content로 차단하므로 Raspberry Pi API도 HTTPS endpoint로
+제공해야 합니다. CORS는 접근 인증이 아니므로 인터넷에 API를 공개할 때는
+reverse proxy 또는 tunnel 계층의 접근 제어를 별도로 적용해야 합니다.
 
 ## 보호자 이메일 알림
 
@@ -81,6 +111,10 @@ export NOTIFICATION_CONFIG_PATH=/tmp/notification-config.json
 
 | Method | Path | 설명 |
 | --- | --- | --- |
+| `GET` | `/api/v1/routines/current` | 현재 진행 중인 루틴 문구와 TTS text 반환 |
+| `POST` | `/api/v1/routines/{execution_id}/confirm` | 태블릿 버튼으로 루틴 완료 기록 |
+| `GET` | `/api/v1/routines/history` | 루틴 수행 이력 반환 |
+| `GET` | `/api/v1/conversations/suggestion` | 당일 정시 회상 대화 권유 상태 반환 |
 | `POST` | `/api/v1/conversations/sessions` | 사진 회상 대화 시작과 TTS 질문 반환 |
 | `POST` | `/api/v1/conversations/sessions/{session_id}/turns` | WAV 인식 후 지표만 저장 |
 | `POST` | `/api/v1/conversations/sessions/{session_id}/complete` | 세션 완료와 요약 반환 |
@@ -102,6 +136,10 @@ runtime.env는 mode 0600으로 배치
 Password와 보호자 이메일이 있으므로 Git에 커밋하지 않습니다. 배포 시
 `/data`만 쓰기 가능한 bind mount로 연결되고 나머지 컨테이너 파일 시스템은
 읽기 전용으로 유지됩니다.
+
+API 프로세스는 태블릿 polling 여부와 관계없이 루틴 상태를 기본 5초마다
+전이하고 개인 이상 및 알림을 기본 60초마다 평가합니다. 두 간격은
+`runtime.env`에서 조정할 수 있으며 0 이하 값은 기동 시 거부합니다.
 
 ## 문서
 
