@@ -15,6 +15,7 @@ dependencies = [
     "scikit-learn>=1.5,<2.0",
     "scipy>=1.14,<2.0",
     "soundfile>=0.12,<1.0",
+    "supertonic>=1.3.1,<2.0",
     "urllib3>=2.0,<3.0",
     "uvicorn[standard]>=0.30,<1.0",
 ]
@@ -39,7 +40,7 @@ python_version = "3.12"
 strict = true
 
 [[tool.mypy.overrides]]
-module = ["soundfile", "scipy.signal"]
+module = ["soundfile", "scipy.signal", "supertonic"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
