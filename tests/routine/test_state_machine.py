@@ -43,6 +43,8 @@ def test_start_emits_initial_reminder_at_scheduled_time() -> None:
     assert execution.state is RoutineState.REMINDING
     assert execution.reminder_count == 0
     assert execution.execution_id == "morning-medication:2026-07-27"
+    assert execution.routine_name == "아침 약"
+    assert execution.category is RoutineCategory.MEDICATION
     assert event.event_type is RoutineEventType.INITIAL_REMINDER
     assert event.occurred_at == scheduled_at()
 

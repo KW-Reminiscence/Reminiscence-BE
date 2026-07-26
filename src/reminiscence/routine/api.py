@@ -92,32 +92,35 @@ def get_current_time() -> datetime:
     return datetime.now(tz=_server_timezone())
 
 
-def _prompt_text(definition: RoutineDefinition) -> str:
-    return f"{definition.name} 시간입니다. 마치신 뒤 기록 버튼을 눌러 주세요."
+def _prompt_text(name: str) -> str:
+    return f"{name} 시간입니다. 마치신 뒤 기록 버튼을 눌러 주세요."
 
 
-def _confirm_label(definition: RoutineDefinition) -> str:
-    if definition.category is RoutineCategory.MEDICATION:
-        return f"{definition.name} 기록하기"
-    return f"{definition.name} 기록하기"
+def _confirm_label(name: str, category: RoutineCategory) -> str:
+    del category
+    return f"{name} 기록하기"
 
 
 def _prompt_response(
-    definition: RoutineDefinition,
+    definition: RoutineDefinition | None,
     execution: RoutineExecution,
 ) -> RoutinePromptResponse:
-    text = _prompt_text(definition)
+    name = execution.routine_name or (definition.name if definition else None)
+    category = execution.category or (definition.category if definition else None)
+    if name is None or category is None:
+        raise ValueError("routine execution has no presentation snapshot")
+    text = _prompt_text(name)
     return RoutinePromptResponse(
         execution_id=execution.execution_id,
         routine_id=execution.routine_id,
-        name=definition.name,
-        category=definition.category,
+        name=name,
+        category=category,
         state=execution.state,
         scheduled_at=execution.scheduled_at,
         reminder_count=execution.reminder_count,
         display_text=text,
         spoken_text=text,
-        confirm_label=_confirm_label(definition),
+        confirm_label=_confirm_label(name, category),
     )
 
 
@@ -155,13 +158,19 @@ async def get_current_routines(
             definition.routine_id: definition
             for definition in scheduler.list_definitions()
         }
-        prompts = [
-            _prompt_response(definitions[execution.routine_id], execution)
-            for execution in scheduler.list_executions()
-            if execution.state is RoutineState.REMINDING
-            and execution.routine_id in definitions
-        ]
-    except RoutineStorageError as exc:
+        prompts = []
+        for execution in scheduler.list_executions():
+            if execution.state is not RoutineState.REMINDING:
+                continue
+            definition = definitions.get(execution.routine_id)
+            if (
+                definition is None
+                and execution.routine_name is None
+                and execution.category is None
+            ):
+                continue
+            prompts.append(_prompt_response(definition, execution))
+    except (RoutineStorageError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),

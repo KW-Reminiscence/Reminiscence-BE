@@ -80,6 +80,10 @@ def _serialize_execution(execution: RoutineExecution) -> dict[str, Any]:
         "state": execution.state.value,
         "reminder_count": execution.reminder_count,
         "last_prompted_at": execution.last_prompted_at.isoformat(),
+        "routine_name": execution.routine_name,
+        "category": (
+            execution.category.value if execution.category is not None else None
+        ),
         "policy": (
             {
                 "grace_seconds": int(execution.policy.grace_period.total_seconds()),
@@ -133,6 +137,12 @@ def _optional_policy(value: Any) -> RoutinePolicy | None:
     )
 
 
+def _optional_category(value: Any) -> RoutineCategory | None:
+    if value is None:
+        return None
+    return RoutineCategory(_required_string(value, "category"))
+
+
 def _parse_execution(value: Any) -> RoutineExecution:
     if not isinstance(value, dict):
         raise RoutineStorageError("each routine execution must be an object")
@@ -148,6 +158,12 @@ def _parse_execution(value: Any) -> RoutineExecution:
             last_prompted_at=datetime.fromisoformat(
                 _required_string(value["last_prompted_at"], "last_prompted_at")
             ),
+            routine_name=(
+                _required_string(value["routine_name"], "routine_name")
+                if value.get("routine_name") is not None
+                else None
+            ),
+            category=_optional_category(value.get("category")),
             policy=_optional_policy(value.get("policy")),
             confirmed_at=_optional_datetime(value.get("confirmed_at"), "confirmed_at"),
             confirmation_delay_seconds=_optional_int(

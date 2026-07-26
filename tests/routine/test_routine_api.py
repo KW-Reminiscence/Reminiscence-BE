@@ -87,6 +87,25 @@ def test_current_endpoint_does_not_duplicate_execution(tmp_path: Path) -> None:
     assert len(history.json()) == 1
 
 
+def test_active_prompt_keeps_snapshot_after_definition_is_removed(
+    tmp_path: Path,
+) -> None:
+    client = client_at(tmp_path, at(9, 0))
+    first = client.get("/api/v1/routines/current")
+    (tmp_path / "configuration.json").write_text(
+        json.dumps({"routines": []}),
+        encoding="utf-8",
+    )
+    app.dependency_overrides[get_current_time] = lambda: at(9, 5)
+
+    current = client.get("/api/v1/routines/current")
+
+    assert first.status_code == 200
+    assert current.status_code == 200
+    assert current.json()["items"][0]["name"] == "아침 약"
+    assert current.json()["items"][0]["category"] == "MEDICATION"
+
+
 def test_confirm_uses_server_time_and_removes_current_prompt(tmp_path: Path) -> None:
     client = client_at(tmp_path, at(9, 0))
     client.get("/api/v1/routines/current")

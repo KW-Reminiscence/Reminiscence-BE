@@ -107,6 +107,8 @@ class RoutineExecution:
     reminder_count: int
     last_prompted_at: datetime
     policy: RoutinePolicy | None = None
+    routine_name: str | None = None
+    category: RoutineCategory | None = None
     confirmed_at: datetime | None = None
     confirmation_delay_seconds: int | None = None
     closed_at: datetime | None = None
@@ -116,6 +118,10 @@ class RoutineExecution:
             raise ValueError("execution_id must not be blank")
         if not self.routine_id.strip():
             raise ValueError("routine_id must not be blank")
+        if (self.routine_name is None) != (self.category is None):
+            raise ValueError("routine_name and category must be stored together")
+        if self.routine_name is not None and not self.routine_name.strip():
+            raise ValueError("routine_name must not be blank")
         if self.scheduled_at.tzinfo is None or self.scheduled_at.utcoffset() is None:
             raise ValueError("scheduled_at must be timezone-aware")
         if self.last_prompted_at.tzinfo is None or self.last_prompted_at.utcoffset() is None:

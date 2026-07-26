@@ -71,6 +71,8 @@ def start_execution(
         reminder_count=0,
         last_prompted_at=scheduled_at,
         policy=definition.policy,
+        routine_name=definition.name,
+        category=definition.category,
     )
     event = RoutineEvent(
         event_type=RoutineEventType.INITIAL_REMINDER,

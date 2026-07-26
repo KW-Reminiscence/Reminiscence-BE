@@ -238,6 +238,8 @@ def test_execution_persists_policy_snapshot(tmp_path: Path) -> None:
         "reminder_interval_seconds": 600,
         "max_reminders": 3,
     }
+    assert persisted["routine_executions"][0]["routine_name"] == "아침 약"
+    assert persisted["routine_executions"][0]["category"] == "MEDICATION"
 
 
 def test_legacy_execution_without_policy_uses_current_definition(
@@ -247,6 +249,8 @@ def test_legacy_execution_without_policy_uses_current_definition(
     scheduler.tick(at(9, 0))
     root = json.loads(activity_path.read_text(encoding="utf-8"))
     root["routine_executions"][0].pop("policy")
+    root["routine_executions"][0].pop("routine_name")
+    root["routine_executions"][0].pop("category")
     activity_path.write_text(json.dumps(root), encoding="utf-8")
     restarted = RoutineScheduler(
         JsonRoutineStore(tmp_path / "configuration.json", activity_path),
