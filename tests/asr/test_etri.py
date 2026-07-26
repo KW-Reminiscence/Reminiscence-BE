@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
+from math import inf, nan
 from typing import Any, cast
 
 import pytest
@@ -118,6 +119,66 @@ def test_environment_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("ETRI_API_KEY", raising=False)
 
     with pytest.raises(RuntimeError, match="ETRI_API_KEY"):
+        EtriRecognizerConfig.from_environment()
+
+
+def test_environment_reads_request_timeouts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ETRI_API_KEY", "secret-key")
+    monkeypatch.setenv("ETRI_CONNECT_TIMEOUT_SECONDS", "3.5")
+    monkeypatch.setenv("ETRI_READ_TIMEOUT_SECONDS", "12")
+
+    value = EtriRecognizerConfig.from_environment()
+
+    assert value.connect_timeout_seconds == 3.5
+    assert value.read_timeout_seconds == 12
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"api_key": "  "}, "api_key"),
+        ({"api_url": "ftp://etri.example/speech"}, "api_url"),
+        ({"api_url": 7}, "api_url"),
+        ({"api_url": "https://user:secret@etri.example/speech"}, "api_url"),
+        ({"api_url": "https://etri.example:0/speech"}, "api_url"),
+        ({"min_request_interval_seconds": nan}, "min_request_interval_seconds"),
+        ({"min_request_interval_seconds": inf}, "min_request_interval_seconds"),
+        ({"min_request_interval_seconds": "1"}, "min_request_interval_seconds"),
+        ({"max_retries": True}, "max_retries"),
+        ({"max_retries": -1}, "max_retries"),
+        ({"retry_backoff_seconds": -inf}, "retry_backoff_seconds"),
+        ({"connect_timeout_seconds": 0}, "connect_timeout_seconds"),
+        ({"read_timeout_seconds": nan}, "read_timeout_seconds"),
+    ],
+)
+def test_config_rejects_invalid_runtime_values(
+    overrides: dict[str, Any],
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        config(**overrides)
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("ETRI_MIN_INTERVAL_SECONDS", "not-a-number"),
+        ("ETRI_MAX_RETRIES", "1.5"),
+        ("ETRI_CONNECT_TIMEOUT_SECONDS", "invalid"),
+        ("ETRI_READ_TIMEOUT_SECONDS", "invalid"),
+    ],
+)
+def test_environment_rejects_malformed_numeric_values(
+    monkeypatch: pytest.MonkeyPatch,
+    name: str,
+    value: str,
+) -> None:
+    monkeypatch.setenv("ETRI_API_KEY", "secret-key")
+    monkeypatch.setenv(name, value)
+
+    with pytest.raises(ValueError):
         EtriRecognizerConfig.from_environment()
 
 

@@ -10,7 +10,9 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from math import isfinite
 from typing import Any
+from urllib.parse import urlsplit
 
 import urllib3
 
@@ -23,6 +25,14 @@ DEFAULT_API_URL = "http://epretx.etri.re.kr:8000/api/WiseASR_Recognition"
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 SUPPORTED_CONTENT_TYPES = frozenset({"audio/wav", "audio/x-wav"})
 RETRYABLE_HTTP_STATUSES = frozenset({429, 500, 502, 503, 504})
+
+
+def _is_finite_number(value: object) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and isfinite(value)
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,14 +48,50 @@ class EtriRecognizerConfig:
     read_timeout_seconds: float = 30.0
 
     def __post_init__(self) -> None:
-        if not self.api_key:
+        if not isinstance(self.api_key, str) or not self.api_key.strip():
             raise ValueError("api_key must not be blank")
-        if self.min_request_interval_seconds < 0:
-            raise ValueError("min_request_interval_seconds must not be negative")
-        if self.max_retries < 0:
-            raise ValueError("max_retries must not be negative")
-        if self.retry_backoff_seconds < 0:
-            raise ValueError("retry_backoff_seconds must not be negative")
+        if not isinstance(self.api_url, str):
+            raise ValueError("api_url must be a valid HTTP URL")
+        parsed_url = urlsplit(self.api_url)
+        try:
+            port = parsed_url.port
+        except ValueError as exc:
+            raise ValueError("api_url must be a valid HTTP URL") from exc
+        if (
+            parsed_url.scheme not in {"http", "https"}
+            or parsed_url.hostname is None
+            or parsed_url.username is not None
+            or parsed_url.password is not None
+            or port == 0
+            or parsed_url.fragment
+        ):
+            raise ValueError("api_url must be a valid HTTP URL")
+        if (
+            not _is_finite_number(self.min_request_interval_seconds)
+            or self.min_request_interval_seconds < 0
+        ):
+            raise ValueError(
+                "min_request_interval_seconds must be finite and non-negative"
+            )
+        if (
+            not isinstance(self.max_retries, int)
+            or isinstance(self.max_retries, bool)
+            or self.max_retries < 0
+        ):
+            raise ValueError("max_retries must be a non-negative integer")
+        if (
+            not _is_finite_number(self.retry_backoff_seconds)
+            or self.retry_backoff_seconds < 0
+        ):
+            raise ValueError(
+                "retry_backoff_seconds must be finite and non-negative"
+            )
+        for field_name, value in (
+            ("connect_timeout_seconds", self.connect_timeout_seconds),
+            ("read_timeout_seconds", self.read_timeout_seconds),
+        ):
+            if not _is_finite_number(value) or value <= 0:
+                raise ValueError(f"{field_name} must be finite and positive")
 
     @classmethod
     def from_environment(cls) -> EtriRecognizerConfig:
@@ -63,6 +109,12 @@ class EtriRecognizerConfig:
             max_retries=int(os.environ.get("ETRI_MAX_RETRIES", "2")),
             retry_backoff_seconds=float(
                 os.environ.get("ETRI_RETRY_BACKOFF_SECONDS", "1.0")
+            ),
+            connect_timeout_seconds=float(
+                os.environ.get("ETRI_CONNECT_TIMEOUT_SECONDS", "10.0")
+            ),
+            read_timeout_seconds=float(
+                os.environ.get("ETRI_READ_TIMEOUT_SECONDS", "30.0")
             ),
         )
 
