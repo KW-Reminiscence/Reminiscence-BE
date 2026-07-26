@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -53,6 +54,7 @@ class NotificationCoordinator:
         self._attempt_store = attempt_store
         self._config_loader = config_loader
         self._email_sender = email_sender
+        self._coordination_lock = threading.RLock()
 
     def evaluate_and_notify(
         self,
@@ -60,6 +62,13 @@ class NotificationCoordinator:
     ) -> NotificationEvaluationOutcome:
         """Evaluate and perform at most one SMTP attempt per anomaly episode."""
 
+        with self._coordination_lock:
+            return self._evaluate_and_notify_locked(evaluated_at)
+
+    def _evaluate_and_notify_locked(
+        self,
+        evaluated_at: datetime,
+    ) -> NotificationEvaluationOutcome:
         anomaly = self._anomaly_service.evaluate(evaluated_at)
         if anomaly.evaluation.status is AnomalyStatus.NORMAL:
             self._attempt_store.reset(evaluated_at)
@@ -67,15 +76,15 @@ class NotificationCoordinator:
                 anomaly=anomaly,
                 notification_status=NotificationDeliveryStatus.SKIPPED,
             )
-        if self._attempt_store.was_attempted():
+        config = self._config_loader()
+        if not self._attempt_store.claim_attempt(evaluated_at):
             return NotificationEvaluationOutcome(
                 anomaly=anomaly,
                 notification_status=NotificationDeliveryStatus.SKIPPED,
             )
 
-        self._attempt_store.mark_attempted(evaluated_at)
         self._email_sender.send(
-            self._config_loader(),
+            config,
             anomaly.evaluation,
         )
         return NotificationEvaluationOutcome(

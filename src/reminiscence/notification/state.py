@@ -38,6 +38,27 @@ class NotificationAttemptStore:
 
         self._store.update(mutate)
 
+    def claim_attempt(self, attempted_at: datetime) -> bool:
+        """Atomically claim the current anomaly episode for one sender."""
+
+        claimed = False
+
+        def mutate(root: dict[str, Any]) -> None:
+            nonlocal claimed
+            value = root.get("anomaly_notification_attempted", False)
+            if not isinstance(value, bool):
+                raise NotificationStateError(
+                    "anomaly_notification_attempted must be a boolean"
+                )
+            if value:
+                return
+            root["anomaly_notification_attempted"] = True
+            root["updated_at"] = attempted_at.isoformat()
+            claimed = True
+
+        self._store.update(mutate)
+        return claimed
+
     def reset(self, reset_at: datetime) -> None:
         """Open a new notification episode after state returns to NORMAL."""
 

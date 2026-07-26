@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -24,6 +25,7 @@ from reminiscence.notification.config import (
     CareRecipientConfig,
     GuardianConfig,
     NotificationConfig,
+    NotificationConfigError,
     SmtpConfig,
 )
 from reminiscence.notification.service import (
@@ -185,6 +187,97 @@ def test_failed_delivery_is_not_retried_in_same_episode(tmp_path: Path) -> None:
     second = service.evaluate_and_notify(NOW)
 
     assert second.notification_status is NotificationDeliveryStatus.SKIPPED
+    assert len(sender.sent) == 1
+
+
+def test_concurrent_coordinators_claim_one_delivery_attempt(
+    tmp_path: Path,
+) -> None:
+    barrier = threading.Barrier(2)
+
+    class BarrierAnomalyService:
+        def evaluate(self, evaluated_at: datetime) -> AnomalyEvaluationOutcome:
+            del evaluated_at
+            barrier.wait(timeout=1)
+            current = evaluation(AnomalyStatus.ANOMALOUS)
+            return AnomalyEvaluationOutcome(
+                evaluation=current,
+                became_anomalous=True,
+            )
+
+    sender = FakeEmailSender()
+    state_path = tmp_path / "notification_state.json"
+    coordinators = [
+        NotificationCoordinator(
+            BarrierAnomalyService(),
+            NotificationAttemptStore(
+                JsonObjectStore(
+                    state_path,
+                    missing_default={"anomaly_notification_attempted": False},
+                )
+            ),
+            config,
+            sender,
+        )
+        for _ in range(2)
+    ]
+    outcomes = []
+
+    def evaluate(coordinator: NotificationCoordinator) -> None:
+        outcomes.append(coordinator.evaluate_and_notify(NOW))
+
+    threads = [
+        threading.Thread(target=evaluate, args=(coordinator,))
+        for coordinator in coordinators
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=1)
+
+    assert sorted(outcome.notification_status for outcome in outcomes) == [
+        NotificationDeliveryStatus.SENT,
+        NotificationDeliveryStatus.SKIPPED,
+    ]
+    assert len(sender.sent) == 1
+
+
+def test_invalid_configuration_does_not_consume_delivery_attempt(
+    tmp_path: Path,
+) -> None:
+    state_store = NotificationAttemptStore(
+        JsonObjectStore(
+            tmp_path / "notification_state.json",
+            missing_default={"anomaly_notification_attempted": False},
+        )
+    )
+    sender = FakeEmailSender()
+
+    def invalid_config() -> NotificationConfig:
+        raise NotificationConfigError("invalid")
+
+    invalid = NotificationCoordinator(
+        FakeAnomalyService([AnomalyStatus.ANOMALOUS]),
+        state_store,
+        invalid_config,
+        sender,
+    )
+    try:
+        invalid.evaluate_and_notify(NOW)
+    except NotificationConfigError:
+        pass
+    else:
+        raise AssertionError("expected invalid configuration")
+
+    valid = NotificationCoordinator(
+        FakeAnomalyService([AnomalyStatus.ANOMALOUS]),
+        state_store,
+        config,
+        sender,
+    )
+    outcome = valid.evaluate_and_notify(NOW)
+
+    assert outcome.notification_status is NotificationDeliveryStatus.SENT
     assert len(sender.sent) == 1
 
 
