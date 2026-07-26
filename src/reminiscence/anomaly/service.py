@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 
 from reminiscence.anomaly.detector import PersonalAnomalyDetector
@@ -18,6 +18,9 @@ class AnomalyEvaluationOutcome:
     became_anomalous: bool
 
 
+DEFAULT_ANOMALY_CONFIRMATION_COUNT = 3
+
+
 class AnomalyService:
     """Evaluate activity data and store the latest state."""
 
@@ -26,20 +29,52 @@ class AnomalyService:
         reader: ActivityMetricReader,
         state_store: PersonalStateStore,
         detector: PersonalAnomalyDetector | None = None,
+        *,
+        confirmation_count: int = DEFAULT_ANOMALY_CONFIRMATION_COUNT,
     ) -> None:
+        if confirmation_count <= 0:
+            raise ValueError("confirmation_count must be positive")
         self._reader = reader
         self._state_store = state_store
         self._detector = detector or PersonalAnomalyDetector()
+        self._confirmation_count = confirmation_count
 
     def evaluate(self, evaluated_at: datetime) -> AnomalyEvaluationOutcome:
         """Evaluate current metrics and detect a transition into anomaly."""
 
         previous = self._state_store.load()
         routine_metrics, conversation_metrics = self._reader.read(evaluated_at)
-        evaluation = self._detector.evaluate(
+        candidate = self._detector.evaluate(
             routine_metrics,
             conversation_metrics,
             evaluated_at,
+        )
+        if candidate.status is AnomalyStatus.ANOMALOUS:
+            previous_count = (
+                self._confirmation_count
+                if previous is not None
+                and previous.status is AnomalyStatus.ANOMALOUS
+                else (
+                    previous.consecutive_anomalous_evaluations
+                    if previous is not None
+                    else 0
+                )
+            )
+            consecutive_count = min(
+                previous_count + 1,
+                self._confirmation_count,
+            )
+        else:
+            consecutive_count = 0
+        confirmed_status = (
+            AnomalyStatus.ANOMALOUS
+            if consecutive_count >= self._confirmation_count
+            else AnomalyStatus.NORMAL
+        )
+        evaluation = replace(
+            candidate,
+            status=confirmed_status,
+            consecutive_anomalous_evaluations=consecutive_count,
         )
         became_anomalous = (
             evaluation.status is AnomalyStatus.ANOMALOUS

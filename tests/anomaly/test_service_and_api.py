@@ -19,13 +19,18 @@ SEOUL = ZoneInfo("Asia/Seoul")
 NOW = datetime(2026, 7, 27, 18, 0, tzinfo=SEOUL)
 
 
-def build_service(tmp_path: Path) -> tuple[AnomalyService, Path, Path]:
+def build_service(
+    tmp_path: Path,
+    *,
+    confirmation_count: int = 3,
+) -> tuple[AnomalyService, Path, Path]:
     activity_path = tmp_path / "activity_metrics.json"
     state_path = tmp_path / "personal_state.json"
     return (
         AnomalyService(
             ActivityMetricReader(JsonObjectStore(activity_path)),
             PersonalStateStore(JsonObjectStore(state_path)),
+            confirmation_count=confirmation_count,
         ),
         activity_path,
         state_path,
@@ -62,12 +67,21 @@ def test_evaluate_persists_explainable_cold_start_anomaly(tmp_path: Path) -> Non
     )
 
     first = service.evaluate(NOW)
-    second = service.evaluate(NOW)
+    second = service.evaluate(NOW + timedelta(minutes=1))
+    third = service.evaluate(NOW + timedelta(minutes=2))
+    fourth = service.evaluate(NOW + timedelta(minutes=3))
     persisted = json.loads(state_path.read_text(encoding="utf-8"))
 
-    assert first.evaluation.status.value == "ANOMALOUS"
-    assert first.became_anomalous is True
+    assert first.evaluation.status.value == "NORMAL"
+    assert first.evaluation.consecutive_anomalous_evaluations == 1
+    assert first.became_anomalous is False
+    assert second.evaluation.status.value == "NORMAL"
     assert second.became_anomalous is False
+    assert third.evaluation.status.value == "ANOMALOUS"
+    assert third.became_anomalous is True
+    assert fourth.evaluation.status.value == "ANOMALOUS"
+    assert fourth.became_anomalous is False
+    assert persisted["consecutive_anomalous_evaluations"] == 3
     assert persisted["routine"]["mode"] == "COLD_START"
     assert persisted["routine"]["reasons"] == [
         "medication 루틴 3회 연속 미응답"
@@ -103,6 +117,65 @@ def test_future_metrics_and_active_conversations_are_ignored(
     assert outcome.evaluation.status.value == "NORMAL"
 
 
+def test_active_routine_is_ignored_after_model_baseline(tmp_path: Path) -> None:
+    service, activity_path, _ = build_service(tmp_path)
+    baseline = []
+    for day in range(28):
+        execution = routine_execution(day, "CONFIRMED")
+        execution["scheduled_at"] = (
+            NOW - timedelta(days=28 - day)
+        ).isoformat()
+        execution["confirmation_delay_seconds"] = 300
+        baseline.append(execution)
+    active = routine_execution(3, "REMINDING")
+    active["scheduled_at"] = NOW.isoformat()
+    activity_path.write_text(
+        json.dumps({"routine_executions": [*baseline, active]}),
+        encoding="utf-8",
+    )
+
+    outcome = service.evaluate(NOW)
+
+    assert outcome.evaluation.routine.sample_count == 28
+    assert outcome.evaluation.routine.status.value == "NORMAL"
+    assert outcome.evaluation.status.value == "NORMAL"
+
+
+def test_normal_candidate_resets_persisted_confirmation_count(
+    tmp_path: Path,
+) -> None:
+    service, activity_path, state_path = build_service(tmp_path)
+    activity_path.write_text(
+        json.dumps(
+            {
+                "routine_executions": [
+                    routine_execution(day, "NOT_ANSWERED")
+                    for day in range(3)
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    service.evaluate(NOW)
+    restarted = AnomalyService(
+        ActivityMetricReader(JsonObjectStore(activity_path)),
+        PersonalStateStore(JsonObjectStore(state_path)),
+    )
+    restarted.evaluate(NOW + timedelta(minutes=1))
+    activity_path.write_text(
+        json.dumps({"routine_executions": []}),
+        encoding="utf-8",
+    )
+
+    normal = restarted.evaluate(NOW + timedelta(minutes=2))
+
+    assert normal.evaluation.status.value == "NORMAL"
+    assert normal.evaluation.consecutive_anomalous_evaluations == 0
+    assert json.loads(state_path.read_text(encoding="utf-8"))[
+        "consecutive_anomalous_evaluations"
+    ] == 0
+
+
 def test_malformed_activity_metrics_are_rejected(tmp_path: Path) -> None:
     service, activity_path, _ = build_service(tmp_path)
     activity_path.write_text(
@@ -116,6 +189,25 @@ def test_malformed_activity_metrics_are_rejected(tmp_path: Path) -> None:
         assert "routine_executions" in str(exc)
     else:
         raise AssertionError("expected malformed activity metrics to fail")
+
+
+def test_semantically_invalid_activity_metric_is_rejected(
+    tmp_path: Path,
+) -> None:
+    service, activity_path, _ = build_service(tmp_path)
+    invalid = routine_execution(0, "CONFIRMED")
+    invalid["confirmation_delay_seconds"] = None
+    activity_path.write_text(
+        json.dumps({"routine_executions": [invalid]}),
+        encoding="utf-8",
+    )
+
+    try:
+        service.evaluate(NOW)
+    except RuntimeError as exc:
+        assert "confirmation_delay_seconds" in str(exc)
+    else:
+        raise AssertionError("expected invalid routine metric to fail")
 
 
 def test_api_evaluates_and_reads_current_state(tmp_path: Path) -> None:
@@ -135,11 +227,17 @@ def test_api_evaluates_and_reads_current_state(tmp_path: Path) -> None:
     app.dependency_overrides[get_current_time] = lambda: NOW
     client = TestClient(app)
 
+    pending_one = client.post("/api/v1/anomaly/evaluate")
+    pending_two = client.post("/api/v1/anomaly/evaluate")
     evaluated = client.post("/api/v1/anomaly/evaluate")
     current = client.get("/api/v1/anomaly/state")
 
+    assert pending_one.json()["status"] == "NORMAL"
+    assert pending_one.json()["consecutive_anomalous_evaluations"] == 1
+    assert pending_two.json()["status"] == "NORMAL"
     assert evaluated.status_code == 200
     assert evaluated.json()["became_anomalous"] is True
+    assert evaluated.json()["consecutive_anomalous_evaluations"] == 3
     assert evaluated.json()["routine"]["reasons"]
     assert current.status_code == 200
     assert current.json()["became_anomalous"] is False

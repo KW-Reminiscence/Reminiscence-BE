@@ -47,6 +47,7 @@ class PersonalStateResponse(BaseModel):
     evaluated_at: datetime
     status: AnomalyStatus
     became_anomalous: bool
+    consecutive_anomalous_evaluations: int
     routine: DomainEvaluationResponse
     conversation: DomainEvaluationResponse
 
@@ -111,6 +112,9 @@ def _state_response(
         evaluated_at=evaluation.evaluated_at,
         status=evaluation.status,
         became_anomalous=became_anomalous,
+        consecutive_anomalous_evaluations=(
+            evaluation.consecutive_anomalous_evaluations
+        ),
         routine=_domain_response(evaluation.routine),
         conversation=_domain_response(evaluation.conversation),
     )

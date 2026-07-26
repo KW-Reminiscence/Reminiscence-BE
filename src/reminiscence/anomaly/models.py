@@ -65,3 +65,12 @@ class PersonalEvaluation:
     status: AnomalyStatus
     routine: DomainEvaluation
     conversation: DomainEvaluation
+    consecutive_anomalous_evaluations: int = 0
+
+    def __post_init__(self) -> None:
+        if self.evaluated_at.tzinfo is None or self.evaluated_at.utcoffset() is None:
+            raise ValueError("evaluated_at must be timezone-aware")
+        if self.consecutive_anomalous_evaluations < 0:
+            raise ValueError(
+                "consecutive_anomalous_evaluations must not be negative"
+            )

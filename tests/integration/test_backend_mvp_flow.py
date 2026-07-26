@@ -143,11 +143,17 @@ def test_missed_routines_trigger_one_notification_without_losing_conversation(
     )
     evaluated_at = datetime(2026, 7, 29, 18, 0, tzinfo=SEOUL)
 
+    pending_one = coordinator.evaluate_and_notify(evaluated_at)
+    pending_two = coordinator.evaluate_and_notify(evaluated_at)
     first = coordinator.evaluate_and_notify(evaluated_at)
     second = coordinator.evaluate_and_notify(evaluated_at)
     persisted = activity_path.read_text(encoding="utf-8")
     activity = json.loads(persisted)
 
+    assert pending_one.anomaly.evaluation.status is AnomalyStatus.NORMAL
+    assert pending_one.notification_status is NotificationDeliveryStatus.SKIPPED
+    assert pending_two.anomaly.evaluation.status is AnomalyStatus.NORMAL
+    assert pending_two.notification_status is NotificationDeliveryStatus.SKIPPED
     assert first.anomaly.evaluation.status is AnomalyStatus.ANOMALOUS
     assert first.notification_status is NotificationDeliveryStatus.SENT
     assert second.notification_status is NotificationDeliveryStatus.SKIPPED
