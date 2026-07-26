@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from reminiscence.anomaly.api import router as anomaly_router
+from reminiscence.asr.etri import MAX_AUDIO_BYTES
 from reminiscence.conversation.api import router as conversation_router
 from reminiscence.health import router as health_router
 from reminiscence.notification.api import (
@@ -19,6 +20,7 @@ from reminiscence.notification.api import (
 from reminiscence.notification.api import (
     router as notification_router,
 )
+from reminiscence.request_limits import ConversationAudioLimitMiddleware
 from reminiscence.routine.api import (
     get_current_time,
     get_routine_scheduler,
@@ -108,6 +110,10 @@ def create_app(cors_origins: tuple[str, ...] | None = None) -> FastAPI:
             allow_methods=["GET", "POST"],
             allow_headers=["Content-Type"],
         )
+    application.add_middleware(
+        ConversationAudioLimitMiddleware,
+        max_audio_bytes=MAX_AUDIO_BYTES,
+    )
     application.include_router(health_router)
     application.include_router(routine_router)
     application.include_router(conversation_router)

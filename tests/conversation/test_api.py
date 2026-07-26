@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 from fastapi.testclient import TestClient
 
 from reminiscence.asr import RecognitionResult
+from reminiscence.asr.etri import MAX_AUDIO_BYTES
 from reminiscence.conversation import ConversationService, JsonConversationStore
 from reminiscence.conversation.api import (
     get_conversation_service,
@@ -283,6 +284,39 @@ def test_unsupported_audio_type_is_rejected(tmp_path: Path) -> None:
     )
 
     assert response.status_code == 415
+
+
+def test_oversized_audio_is_rejected_before_asr(tmp_path: Path) -> None:
+    client, _, recognizer = client_with(tmp_path)
+    session_id = start_session(client)
+
+    response = client.post(
+        f"/api/v1/conversations/sessions/{session_id}/turns",
+        params={"turn_duration_seconds": 1},
+        content=b"x" * (MAX_AUDIO_BYTES + 1),
+        headers={"content-type": "audio/wav"},
+    )
+
+    assert response.status_code == 413
+    assert recognizer.calls == []
+
+
+def test_invalid_content_length_is_rejected_before_asr(tmp_path: Path) -> None:
+    client, _, recognizer = client_with(tmp_path)
+    session_id = start_session(client)
+
+    response = client.post(
+        f"/api/v1/conversations/sessions/{session_id}/turns",
+        params={"turn_duration_seconds": 1},
+        content=b"wav",
+        headers={
+            "content-type": "audio/wav",
+            "content-length": "invalid",
+        },
+    )
+
+    assert response.status_code == 400
+    assert recognizer.calls == []
 
 
 def test_conversation_endpoints_are_documented() -> None:
