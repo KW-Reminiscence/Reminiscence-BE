@@ -9,6 +9,7 @@ from reminiscence.asr.audio_utils import (
     convert_to_etri_format,
     get_audio_info,
     is_already_target_format,
+    normalize_wav_bytes,
 )
 
 
@@ -79,6 +80,30 @@ def test_convert_to_etri_format_raises_for_missing_input(tmp_path: Path) -> None
     except FileNotFoundError:
         return
     raise AssertionError("expected FileNotFoundError")
+
+
+def test_normalize_wav_bytes_resamples_without_creating_file(
+    tmp_path: Path,
+) -> None:
+    source_path = tmp_path / "stereo_44k.wav"
+    _write_wav(source_path, sample_rate=44100, channels=2)
+
+    normalized = normalize_wav_bytes(source_path.read_bytes())
+    output_path = tmp_path / "inspection.wav"
+    output_path.write_bytes(normalized)
+
+    info = get_audio_info(output_path)
+    assert info.sample_rate == 16000
+    assert info.channels == 1
+    assert info.subtype == "PCM_16"
+
+
+def test_normalize_wav_bytes_rejects_invalid_payload() -> None:
+    try:
+        normalize_wav_bytes(b"not-wav")
+    except ValueError:
+        return
+    raise AssertionError("expected invalid WAV payload to fail")
 
 
 def test_analyze_audio_flags_silence(tmp_path: Path) -> None:

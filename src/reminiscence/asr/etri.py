@@ -8,11 +8,13 @@ import logging
 import os
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
 import urllib3
 
+from reminiscence.asr.audio_utils import normalize_wav_bytes
 from reminiscence.asr.models import RecognitionResult, RecognitionUnavailableError
 
 logger = logging.getLogger(__name__)
@@ -72,9 +74,11 @@ class EtriRecognizer:
         self,
         config: EtriRecognizerConfig,
         http: urllib3.PoolManager | None = None,
+        audio_normalizer: Callable[[bytes], bytes] = normalize_wav_bytes,
     ) -> None:
         self._config = config
         self._http = http if http is not None else urllib3.PoolManager()
+        self._audio_normalizer = audio_normalizer
         self._request_lock = threading.Lock()
         self._last_request_finished = 0.0
 
@@ -87,12 +91,13 @@ class EtriRecognizer:
             raise ValueError("audio must not be empty")
         if len(audio) > MAX_AUDIO_BYTES:
             raise ValueError(f"audio must not exceed {MAX_AUDIO_BYTES} bytes")
+        normalized_audio = self._audio_normalizer(audio)
 
         request_body = json.dumps(
             {
                 "argument": {
                     "language_code": "korean",
-                    "audio": base64.b64encode(audio).decode("ascii"),
+                    "audio": base64.b64encode(normalized_audio).decode("ascii"),
                 }
             }
         ).encode("utf-8")
@@ -182,7 +187,9 @@ class EtriRecognizer:
         if not isinstance(payload, dict):
             raise RecognitionUnavailableError("ETRI response must be an object")
         if payload.get("result") != 0:
-            raise RecognitionUnavailableError("ETRI returned a recognition error")
+            raise RecognitionUnavailableError(
+                f"ETRI returned a recognition error result={payload.get('result')}"
+            )
         return_object = payload.get("return_object")
         if not isinstance(return_object, dict):
             raise RecognitionUnavailableError("ETRI response is missing return_object")

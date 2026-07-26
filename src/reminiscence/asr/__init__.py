@@ -6,8 +6,8 @@ from reminiscence.asr.audio_utils import (
     convert_to_etri_format,
     get_audio_info,
     is_already_target_format,
+    normalize_wav_bytes,
 )
-from reminiscence.asr.calc_wer import load_pairs
 from reminiscence.asr.etri import EtriRecognizer, EtriRecognizerConfig
 from reminiscence.asr.models import (
     AudioDiagnostics,
@@ -36,5 +36,5 @@ __all__ = [
     "convert_to_etri_format",
     "get_audio_info",
     "is_already_target_format",
-    "load_pairs",
+    "normalize_wav_bytes",
 ]

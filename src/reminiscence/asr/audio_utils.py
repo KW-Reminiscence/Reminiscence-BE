@@ -10,6 +10,7 @@ Raspberry Pi.
 from __future__ import annotations
 
 import logging
+from io import BytesIO
 from math import gcd
 from pathlib import Path
 
@@ -140,6 +141,41 @@ def convert_to_etri_format(input_path: str | Path, output_path: str | Path | Non
         TARGET_SAMPLE_RATE,
     )
     return resolved_output_path
+
+
+def normalize_wav_bytes(audio: bytes) -> bytes:
+    """Normalize a transient WAV payload without creating a server-side file."""
+
+    source = BytesIO(audio)
+    try:
+        info = sf.info(source)
+        if (
+            info.format == "WAV"
+            and info.samplerate == TARGET_SAMPLE_RATE
+            and info.channels == TARGET_CHANNELS
+            and info.subtype == TARGET_SUBTYPE
+        ):
+            return audio
+        source.seek(0)
+        values, original_rate = sf.read(
+            source,
+            dtype="float64",
+            always_2d=False,
+        )
+    except (RuntimeError, TypeError, ValueError) as exc:
+        raise ValueError("audio must be a readable WAV payload") from exc
+    normalized = _to_mono(np.asarray(values, dtype=np.float64))
+    normalized = _resample(normalized, original_rate, TARGET_SAMPLE_RATE)
+    normalized = np.clip(normalized, -1.0, 1.0)
+    destination = BytesIO()
+    sf.write(
+        destination,
+        normalized,
+        TARGET_SAMPLE_RATE,
+        format="WAV",
+        subtype=TARGET_SUBTYPE,
+    )
+    return destination.getvalue()
 
 
 def batch_convert(input_dir: str | Path, output_dir: str | Path) -> list[Path]:

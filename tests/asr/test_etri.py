@@ -48,6 +48,7 @@ def recognizer(fake_http: FakeHttp, **overrides: Any) -> EtriRecognizer:
     return EtriRecognizer(
         config(**overrides),
         http=cast(urllib3.PoolManager, fake_http),
+        audio_normalizer=lambda value: value,
     )
 
 
@@ -153,6 +154,7 @@ def test_complete_provider_calls_are_serialized() -> None:
     client = EtriRecognizer(
         config(),
         http=cast(urllib3.PoolManager, http),
+        audio_normalizer=lambda value: value,
     )
     results: list[str] = []
 
