@@ -7,6 +7,7 @@ import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from io import BytesIO
+from math import isfinite
 from pathlib import Path
 from typing import Protocol, cast
 
@@ -100,17 +101,31 @@ class SupertonicConfig:
             raise ValueError("voice must not be blank")
         if self.language != DEFAULT_LANGUAGE:
             raise ValueError("language must be ko")
-        if not 5 <= self.total_steps <= 12:
+        if (
+            not isinstance(self.total_steps, int)
+            or isinstance(self.total_steps, bool)
+            or not 5 <= self.total_steps <= 12
+        ):
             raise ValueError("total_steps must be between 5 and 12")
-        if not 0.7 <= self.speed <= 2.0:
+        if not isfinite(self.speed) or not 0.7 <= self.speed <= 2.0:
             raise ValueError("speed must be between 0.7 and 2.0")
-        if self.max_text_chars <= 0:
-            raise ValueError("max_text_chars must be positive")
+        if (
+            not isinstance(self.max_text_chars, int)
+            or isinstance(self.max_text_chars, bool)
+            or not 1 <= self.max_text_chars <= DEFAULT_MAX_TEXT_CHARS
+        ):
+            raise ValueError(
+                f"max_text_chars must be between 1 and {DEFAULT_MAX_TEXT_CHARS}"
+            )
         for field_name, value in (
             ("intra_op_num_threads", self.intra_op_num_threads),
             ("inter_op_num_threads", self.inter_op_num_threads),
         ):
-            if value is not None and value <= 0:
+            if value is not None and (
+                not isinstance(value, int)
+                or isinstance(value, bool)
+                or value <= 0
+            ):
                 raise ValueError(f"{field_name} must be positive")
 
     @classmethod
@@ -221,11 +236,18 @@ class SupertonicSynthesizer:
             samples = np.asarray(waveform, dtype=np.float32).reshape(-1)
             if samples.size == 0 or not np.isfinite(samples).all():
                 raise ValueError("Supertonic returned an invalid waveform")
+            sample_rate = self._engine.sample_rate
+            if (
+                not isinstance(sample_rate, int)
+                or isinstance(sample_rate, bool)
+                or sample_rate <= 0
+            ):
+                raise ValueError("Supertonic returned an invalid sample rate")
             audio_buffer = BytesIO()
             sf.write(
                 audio_buffer,
                 samples,
-                self._engine.sample_rate,
+                sample_rate,
                 format="WAV",
                 subtype="PCM_16",
             )
@@ -236,9 +258,9 @@ class SupertonicSynthesizer:
         return SpeechSynthesisResult(
             audio=audio_buffer.getvalue(),
             duration_seconds=round(
-                samples.size / self._engine.sample_rate,
+                samples.size / sample_rate,
                 3,
             ),
-            sample_rate=self._engine.sample_rate,
+            sample_rate=sample_rate,
             engine=SUPERTONIC_MODEL,
         )

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+from math import inf, nan
 from pathlib import Path
 
 import numpy as np
@@ -165,3 +166,42 @@ def test_config_rejects_invalid_boolean(
 
     with pytest.raises(RuntimeError, match="must be a boolean"):
         SupertonicConfig.from_environment()
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("total_steps", True, "total_steps"),
+        ("speed", nan, "speed"),
+        ("speed", inf, "speed"),
+        ("speed", -inf, "speed"),
+        ("max_text_chars", True, "max_text_chars"),
+        ("max_text_chars", 501, "max_text_chars"),
+        ("intra_op_num_threads", True, "intra_op_num_threads"),
+        ("inter_op_num_threads", 0, "inter_op_num_threads"),
+    ],
+)
+def test_config_rejects_invalid_runtime_values(
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    values: dict[str, object] = {field: value}
+
+    with pytest.raises(ValueError, match=message):
+        SupertonicConfig(**values)  # type: ignore[arg-type]
+
+
+def test_synthesizer_rejects_invalid_sample_rate() -> None:
+    engine = FakeEngine()
+    engine.sample_rate = 0
+    synthesizer = SupertonicSynthesizer(
+        SupertonicConfig(),
+        engine_factory=lambda **_: engine,
+    )
+
+    with pytest.raises(
+        SpeechSynthesisUnavailableError,
+        match="synthesis failed",
+    ):
+        synthesizer.synthesize("안내")
