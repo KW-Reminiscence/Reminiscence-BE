@@ -55,7 +55,9 @@ class RoutineScheduler:
 
             for execution in tuple(executions.values()):
                 definition = definitions.get(execution.routine_id)
-                if definition is None or execution.state is not RoutineState.REMINDING:
+                if execution.state is not RoutineState.REMINDING:
+                    continue
+                if definition is None and execution.policy is None:
                     continue
                 advanced, event = advance_execution(definition, execution, local_now)
                 if advanced != execution:
@@ -104,7 +106,7 @@ class RoutineScheduler:
             if execution is None:
                 raise RoutineNotFoundError(f"routine execution not found: {execution_id}")
             definition = self._definitions_by_id().get(execution.routine_id)
-            if definition is None:
+            if definition is None and execution.policy is None:
                 raise RoutineNotFoundError(
                     f"routine definition not found: {execution.routine_id}"
                 )

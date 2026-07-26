@@ -10,6 +10,7 @@ from reminiscence.routine.models import (
     RoutineEvent,
     RoutineEventType,
     RoutineExecution,
+    RoutinePolicy,
     RoutineState,
 )
 
@@ -28,16 +29,30 @@ def _require_aware(timestamp: datetime, field_name: str) -> None:
 
 
 def response_deadline(
-    definition: RoutineDefinition,
+    definition: RoutineDefinition | None,
     execution: RoutineExecution,
 ) -> datetime:
     """Return the exclusive confirmation deadline for an execution."""
 
+    policy = _execution_policy(definition, execution)
     return (
         execution.scheduled_at
-        + definition.grace_period
-        + definition.reminder_interval * definition.max_reminders
+        + policy.grace_period
+        + policy.reminder_interval * policy.max_reminders
     )
+
+
+def _execution_policy(
+    definition: RoutineDefinition | None,
+    execution: RoutineExecution,
+) -> RoutinePolicy:
+    if definition is not None and execution.routine_id != definition.routine_id:
+        raise ValueError("execution and definition routine_id must match")
+    if execution.policy is not None:
+        return execution.policy
+    if definition is None:
+        raise ValueError("legacy execution requires its routine definition")
+    return definition.policy
 
 
 def start_execution(
@@ -55,6 +70,7 @@ def start_execution(
         state=RoutineState.REMINDING,
         reminder_count=0,
         last_prompted_at=scheduled_at,
+        policy=definition.policy,
     )
     event = RoutineEvent(
         event_type=RoutineEventType.INITIAL_REMINDER,
@@ -66,15 +82,14 @@ def start_execution(
 
 
 def advance_execution(
-    definition: RoutineDefinition,
+    definition: RoutineDefinition | None,
     execution: RoutineExecution,
     now: datetime,
 ) -> tuple[RoutineExecution, RoutineEvent | None]:
     """Advance one execution to the state implied by the current time."""
 
     _require_aware(now, "now")
-    if execution.routine_id != definition.routine_id:
-        raise ValueError("execution and definition routine_id must match")
+    policy = _execution_policy(definition, execution)
     if execution.state is not RoutineState.REMINDING:
         return execution, None
     if now < execution.scheduled_at:
@@ -93,19 +108,19 @@ def advance_execution(
             occurred_at=deadline,
         )
 
-    first_reminder_at = execution.scheduled_at + definition.grace_period
-    if now < first_reminder_at or definition.max_reminders == 0:
+    first_reminder_at = execution.scheduled_at + policy.grace_period
+    if now < first_reminder_at or policy.max_reminders == 0:
         return execution, None
 
     elapsed = now - first_reminder_at
     due_count = min(
-        definition.max_reminders,
-        1 + elapsed // definition.reminder_interval,
+        policy.max_reminders,
+        1 + elapsed // policy.reminder_interval,
     )
     if due_count <= execution.reminder_count:
         return execution, None
 
-    prompted_at = first_reminder_at + definition.reminder_interval * (due_count - 1)
+    prompted_at = first_reminder_at + policy.reminder_interval * (due_count - 1)
     reminded = replace(
         execution,
         reminder_count=due_count,
@@ -120,15 +135,14 @@ def advance_execution(
 
 
 def confirm_execution(
-    definition: RoutineDefinition,
+    definition: RoutineDefinition | None,
     execution: RoutineExecution,
     confirmed_at: datetime,
 ) -> tuple[RoutineExecution, RoutineEvent]:
     """Confirm an active execution while its response window is open."""
 
     _require_aware(confirmed_at, "confirmed_at")
-    if execution.routine_id != definition.routine_id:
-        raise ValueError("execution and definition routine_id must match")
+    _execution_policy(definition, execution)
     if execution.state is not RoutineState.REMINDING:
         raise RoutineStateError(f"cannot confirm execution in {execution.state} state")
     if confirmed_at < execution.scheduled_at:

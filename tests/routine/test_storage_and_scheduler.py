@@ -179,8 +179,80 @@ def test_removed_definition_does_not_corrupt_existing_history(tmp_path: Path) ->
         SEOUL,
     )
 
-    assert restarted.tick(at(10, 0)) == ()
-    assert len(restarted.list_executions()) == 1
+    events = restarted.tick(at(10, 0))
+
+    assert len(events) == 1
+    assert events[0].event_type is RoutineEventType.NOT_ANSWERED
+    assert restarted.list_executions()[0].state is RoutineState.NOT_ANSWERED
+
+
+def test_changed_definition_does_not_change_active_execution_policy(
+    tmp_path: Path,
+) -> None:
+    scheduler, activity_path = build_scheduler(tmp_path)
+    scheduler.tick(at(9, 0))
+    configuration_path = tmp_path / "configuration.json"
+    root = json.loads(configuration_path.read_text(encoding="utf-8"))
+    root["routines"][0]["grace_minutes"] = 1
+    root["routines"][0]["reminder_interval_minutes"] = 1
+    root["routines"][0]["max_reminders"] = 0
+    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    restarted = RoutineScheduler(
+        JsonRoutineStore(configuration_path, activity_path),
+        SEOUL,
+    )
+
+    events = restarted.tick(at(9, 2))
+
+    assert events == ()
+    execution = restarted.list_executions()[0]
+    assert execution.state is RoutineState.REMINDING
+    assert execution.policy is not None
+    assert execution.policy.grace_period == timedelta(minutes=10)
+
+
+def test_execution_persists_policy_snapshot(tmp_path: Path) -> None:
+    scheduler, activity_path = build_scheduler(tmp_path)
+
+    scheduler.tick(at(9, 0))
+    persisted = json.loads(activity_path.read_text(encoding="utf-8"))
+
+    assert persisted["routine_executions"][0]["policy"] == {
+        "grace_seconds": 600,
+        "reminder_interval_seconds": 600,
+        "max_reminders": 3,
+    }
+
+
+def test_legacy_execution_without_policy_uses_current_definition(
+    tmp_path: Path,
+) -> None:
+    scheduler, activity_path = build_scheduler(tmp_path)
+    scheduler.tick(at(9, 0))
+    root = json.loads(activity_path.read_text(encoding="utf-8"))
+    root["routine_executions"][0].pop("policy")
+    activity_path.write_text(json.dumps(root), encoding="utf-8")
+    restarted = RoutineScheduler(
+        JsonRoutineStore(tmp_path / "configuration.json", activity_path),
+        SEOUL,
+    )
+
+    events = restarted.tick(at(9, 10))
+
+    assert len(events) == 1
+    assert events[0].event_type is RoutineEventType.RE_REMINDER
+    assert events[0].reminder_number == 1
+
+
+def test_semantically_invalid_execution_is_rejected(tmp_path: Path) -> None:
+    scheduler, activity_path = build_scheduler(tmp_path)
+    scheduler.tick(at(9, 0))
+    root = json.loads(activity_path.read_text(encoding="utf-8"))
+    root["routine_executions"][0]["state"] = "CONFIRMED"
+    activity_path.write_text(json.dumps(root), encoding="utf-8")
+
+    with pytest.raises(RoutineStorageError, match="requires confirmation fields"):
+        scheduler.list_executions()
 
 
 @pytest.mark.parametrize(

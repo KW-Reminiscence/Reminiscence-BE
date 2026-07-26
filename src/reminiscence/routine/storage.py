@@ -10,6 +10,7 @@ from reminiscence.routine.models import (
     RoutineCategory,
     RoutineDefinition,
     RoutineExecution,
+    RoutinePolicy,
     RoutineState,
 )
 from reminiscence.storage import JsonObjectStore, JsonStorageError
@@ -70,6 +71,17 @@ def _serialize_execution(execution: RoutineExecution) -> dict[str, Any]:
         "state": execution.state.value,
         "reminder_count": execution.reminder_count,
         "last_prompted_at": execution.last_prompted_at.isoformat(),
+        "policy": (
+            {
+                "grace_seconds": int(execution.policy.grace_period.total_seconds()),
+                "reminder_interval_seconds": int(
+                    execution.policy.reminder_interval.total_seconds()
+                ),
+                "max_reminders": execution.policy.max_reminders,
+            }
+            if execution.policy is not None
+            else None
+        ),
         "confirmed_at": (
             execution.confirmed_at.isoformat() if execution.confirmed_at is not None else None
         ),
@@ -90,6 +102,28 @@ def _optional_int(value: Any, field_name: str) -> int | None:
     return _required_int(value, field_name)
 
 
+def _optional_policy(value: Any) -> RoutinePolicy | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise RoutineStorageError("policy must be an object or null")
+    return RoutinePolicy(
+        grace_period=timedelta(
+            seconds=_required_int(value["grace_seconds"], "policy.grace_seconds")
+        ),
+        reminder_interval=timedelta(
+            seconds=_required_int(
+                value["reminder_interval_seconds"],
+                "policy.reminder_interval_seconds",
+            )
+        ),
+        max_reminders=_required_int(
+            value["max_reminders"],
+            "policy.max_reminders",
+        ),
+    )
+
+
 def _parse_execution(value: Any) -> RoutineExecution:
     if not isinstance(value, dict):
         raise RoutineStorageError("each routine execution must be an object")
@@ -105,6 +139,7 @@ def _parse_execution(value: Any) -> RoutineExecution:
             last_prompted_at=datetime.fromisoformat(
                 _required_string(value["last_prompted_at"], "last_prompted_at")
             ),
+            policy=_optional_policy(value.get("policy")),
             confirmed_at=_optional_datetime(value.get("confirmed_at"), "confirmed_at"),
             confirmation_delay_seconds=_optional_int(
                 value.get("confirmation_delay_seconds"),
@@ -144,6 +179,7 @@ class JsonRoutineStore:
             return definitions
         except JsonStorageError as exc:
             raise RoutineStorageError(str(exc)) from exc
+
 
     def list_executions(self) -> tuple[RoutineExecution, ...]:
         """Load all persisted routine executions."""

@@ -129,6 +129,44 @@ def test_execution_becomes_not_answered_at_exact_deadline() -> None:
     assert event.event_type is RoutineEventType.NOT_ANSWERED
 
 
+def test_execution_keeps_policy_snapshot_after_definition_changes() -> None:
+    original = definition()
+    execution, _ = start_execution(original, scheduled_at())
+    changed = RoutineDefinition(
+        routine_id=original.routine_id,
+        name=original.name,
+        category=original.category,
+        weekdays=original.weekdays,
+        scheduled_time=original.scheduled_time,
+        grace_period=timedelta(minutes=1),
+        reminder_interval=timedelta(minutes=1),
+        max_reminders=0,
+    )
+
+    unchanged, event = advance_execution(
+        changed,
+        execution,
+        scheduled_at() + timedelta(minutes=2),
+    )
+
+    assert unchanged == execution
+    assert event is None
+
+
+def test_snapshotted_execution_can_advance_without_definition() -> None:
+    execution, _ = start_execution(definition(), scheduled_at())
+
+    closed, event = advance_execution(
+        None,
+        execution,
+        scheduled_at() + timedelta(minutes=40),
+    )
+
+    assert closed.state is RoutineState.NOT_ANSWERED
+    assert event is not None
+    assert event.event_type is RoutineEventType.NOT_ANSWERED
+
+
 def test_confirmation_records_delay_and_stops_future_transitions() -> None:
     routine = definition()
     execution, _ = start_execution(routine, scheduled_at())

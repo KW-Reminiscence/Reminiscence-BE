@@ -6,6 +6,7 @@ from reminiscence.routine.models import (
     RoutineEvent,
     RoutineEventType,
     RoutineExecution,
+    RoutinePolicy,
     RoutineState,
 )
 from reminiscence.routine.state_machine import (
@@ -23,6 +24,7 @@ __all__ = [
     "RoutineEvent",
     "RoutineEventType",
     "RoutineExecution",
+    "RoutinePolicy",
     "RoutineState",
     "RoutineStateError",
     "advance_execution",
