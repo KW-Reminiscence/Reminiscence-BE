@@ -57,7 +57,8 @@ def client_with(
                         "id": "family-1",
                         "image_url": "/media/family-1.jpg",
                     }
-                ]
+                ],
+                "conversation": {"suggestion_time": "14:00"},
             }
         ),
         encoding="utf-8",
@@ -113,6 +114,44 @@ def test_start_returns_photo_and_browser_tts_question(tmp_path: Path) -> None:
     assert payload["image_url"] == "/media/family-1.jpg"
     assert payload["question"]["display_text"]
     assert payload["question"]["spoken_text"] == payload["question"]["display_text"]
+
+
+def test_suggestion_returns_browser_tts_text_at_scheduled_time(
+    tmp_path: Path,
+) -> None:
+    client, _, _ = client_with(tmp_path)
+
+    response = client.get("/api/v1/conversations/suggestion")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["suggested"] is True
+    assert payload["scheduled_time"] == "14:00:00"
+    assert payload["spoken_text"] == payload["display_text"]
+    assert payload["start_label"] == "이야기 시작하기"
+
+
+def test_suggestion_is_suppressed_after_voluntary_session(tmp_path: Path) -> None:
+    client, _, _ = client_with(tmp_path)
+    start_session(client)
+
+    response = client.get("/api/v1/conversations/suggestion")
+
+    assert response.status_code == 200
+    assert response.json()["suggested"] is False
+    assert response.json()["spoken_text"] is None
+
+
+def test_invalid_suggestion_configuration_is_unavailable(tmp_path: Path) -> None:
+    client, _, _ = client_with(tmp_path)
+    configuration_path = tmp_path / "configuration.json"
+    configuration = json.loads(configuration_path.read_text(encoding="utf-8"))
+    configuration["conversation"]["suggestion_time"] = "25:00"
+    configuration_path.write_text(json.dumps(configuration), encoding="utf-8")
+
+    response = client.get("/api/v1/conversations/suggestion")
+
+    assert response.status_code == 503
 
 
 def test_turn_reduces_audio_to_metrics_without_returning_or_storing_text(
@@ -222,6 +261,7 @@ def test_unsupported_audio_type_is_rejected(tmp_path: Path) -> None:
 def test_conversation_endpoints_are_documented() -> None:
     paths = app.openapi()["paths"]
 
+    assert "/api/v1/conversations/suggestion" in paths
     assert "/api/v1/conversations/sessions" in paths
     assert "/api/v1/conversations/sessions/{session_id}/turns" in paths
     assert "/api/v1/conversations/sessions/{session_id}/complete" in paths

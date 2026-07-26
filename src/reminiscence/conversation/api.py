@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime
+from datetime import datetime, time
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any
@@ -40,6 +40,7 @@ from reminiscence.conversation.storage import (
     ConversationStorageError,
     JsonConversationStore,
 )
+from reminiscence.conversation.suggestion import ConversationSuggestionPolicy
 from reminiscence.storage import JsonObjectStore, JsonStorageError
 
 router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])
@@ -50,6 +51,16 @@ class StartConversationRequest(BaseModel):
 
     source: ConversationSource
     photo_id: str | None = None
+
+
+class ConversationSuggestionResponse(BaseModel):
+    """Daily suggestion state consumed by the tablet home screen."""
+
+    suggested: bool
+    scheduled_time: time
+    display_text: str | None
+    spoken_text: str | None
+    start_label: str | None
 
 
 class SpeechTextResponse(BaseModel):
@@ -176,6 +187,30 @@ def _load_photo(photo_id: str | None) -> tuple[str | None, str | None]:
     return selected_id, image_url
 
 
+def _load_conversation_suggestion_time() -> time:
+    root = JsonObjectStore(
+        _data_directory() / "configuration.json",
+        missing_default={},
+    ).read()
+    conversation_value = root.get("conversation", {})
+    if not isinstance(conversation_value, dict):
+        raise ConversationStorageError("conversation must be an object")
+    scheduled_time_value = conversation_value.get("suggestion_time", "14:00")
+    if not isinstance(scheduled_time_value, str):
+        raise ConversationStorageError("conversation.suggestion_time must be a string")
+    try:
+        scheduled_time = time.fromisoformat(scheduled_time_value)
+    except ValueError as exc:
+        raise ConversationStorageError(
+            "conversation.suggestion_time must be a valid local time"
+        ) from exc
+    if scheduled_time.tzinfo is not None:
+        raise ConversationStorageError(
+            "conversation.suggestion_time must not include a timezone"
+        )
+    return scheduled_time
+
+
 def _speech_response(value: SpeechText) -> SpeechTextResponse:
     return SpeechTextResponse(
         display_text=value.display_text,
@@ -210,6 +245,36 @@ QuestionProviderDependency = Annotated[
 CurrentTimeDependency = Annotated[datetime, Depends(get_current_time)]
 AudioBody = Annotated[bytes, Body(media_type="audio/wav")]
 TurnDuration = Annotated[float, Query(ge=0, le=300)]
+
+
+@router.get(
+    "/suggestion",
+    response_model=ConversationSuggestionResponse,
+    summary="Get today's scheduled conversation suggestion",
+)
+async def get_conversation_suggestion(
+    service: ConversationServiceDependency,
+    now: CurrentTimeDependency,
+) -> ConversationSuggestionResponse:
+    """Offer a daily session without treating a dismissed offer as an anomaly."""
+
+    try:
+        outcome = ConversationSuggestionPolicy(
+            _load_conversation_suggestion_time()
+        ).evaluate(now, service.list_sessions())
+    except (ConversationStorageError, JsonStorageError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    text = "오늘 사진을 보며 이야기 나눠 보실래요?"
+    return ConversationSuggestionResponse(
+        suggested=outcome.suggested,
+        scheduled_time=outcome.scheduled_time,
+        display_text=text if outcome.suggested else None,
+        spoken_text=text if outcome.suggested else None,
+        start_label="이야기 시작하기" if outcome.suggested else None,
+    )
 
 
 @router.post(
