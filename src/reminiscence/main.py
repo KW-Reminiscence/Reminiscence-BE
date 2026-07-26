@@ -27,6 +27,7 @@ from reminiscence.routine.api import (
     router as routine_router,
 )
 from reminiscence.runtime import build_background_runtime
+from reminiscence.tts.api import router as tts_router
 
 
 def parse_cors_origins(value: str | None) -> tuple[str, ...]:
@@ -112,6 +113,7 @@ def create_app(cors_origins: tuple[str, ...] | None = None) -> FastAPI:
     application.include_router(conversation_router)
     application.include_router(anomaly_router)
     application.include_router(notification_router)
+    application.include_router(tts_router)
     return application
 
 
