@@ -1,4 +1,4 @@
-"""Tablet API contract for routine prompts and confirmations."""
+"""Tablet-facing API contract for routine prompts and confirmations."""
 
 from __future__ import annotations
 
