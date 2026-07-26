@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 
 from reminiscence.anomaly.api import router as anomaly_router
+from reminiscence.conversation.api import router as conversation_router
 from reminiscence.health import router as health_router
 from reminiscence.notification.api import router as notification_router
 from reminiscence.routine.api import router as routine_router
@@ -13,5 +14,6 @@ app = FastAPI(
 )
 app.include_router(health_router)
 app.include_router(routine_router)
+app.include_router(conversation_router)
 app.include_router(anomaly_router)
 app.include_router(notification_router)
