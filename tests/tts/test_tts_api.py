@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import threading
+
+import pytest
 from fastapi.testclient import TestClient
 
 from reminiscence.main import create_app
+from reminiscence.tts import api as tts_api
 from reminiscence.tts.api import get_speech_synthesizer
 from reminiscence.tts.models import (
     SpeechSynthesisResult,
@@ -77,3 +81,81 @@ def test_speech_endpoint_maps_model_failure_to_503() -> None:
     assert response.json() == {
         "detail": "speech synthesis is temporarily unavailable"
     }
+
+
+def test_cold_start_initializes_supertonic_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    synthesizer = FakeSynthesizer()
+    entered = threading.Event()
+    release = threading.Event()
+    calls = 0
+    calls_lock = threading.Lock()
+
+    def build(_: object) -> FakeSynthesizer:
+        nonlocal calls
+        with calls_lock:
+            calls += 1
+        entered.set()
+        assert release.wait(timeout=2)
+        return synthesizer
+
+    monkeypatch.setattr(
+        tts_api.SupertonicConfig,
+        "from_environment",
+        staticmethod(lambda: object()),
+    )
+    monkeypatch.setattr(tts_api, "SupertonicSynthesizer", build)
+    tts_api._build_speech_synthesizer.cache_clear()
+    results: list[object] = []
+    errors: list[BaseException] = []
+
+    def resolve() -> None:
+        try:
+            results.append(tts_api.get_speech_synthesizer())
+        except BaseException as exc:  # pragma: no cover - asserted below
+            errors.append(exc)
+
+    threads = [threading.Thread(target=resolve) for _ in range(2)]
+    try:
+        for thread in threads:
+            thread.start()
+        assert entered.wait(timeout=2)
+        release.set()
+        for thread in threads:
+            thread.join()
+    finally:
+        release.set()
+        tts_api._build_speech_synthesizer.cache_clear()
+
+    assert errors == []
+    assert results == [synthesizer, synthesizer]
+    assert calls == 1
+
+
+def test_failed_initialization_is_cached(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+
+    def fail(_: object) -> FakeSynthesizer:
+        nonlocal calls
+        calls += 1
+        raise SpeechSynthesisUnavailableError("missing model")
+
+    monkeypatch.setattr(
+        tts_api.SupertonicConfig,
+        "from_environment",
+        staticmethod(lambda: object()),
+    )
+    monkeypatch.setattr(tts_api, "SupertonicSynthesizer", fail)
+    tts_api._build_speech_synthesizer.cache_clear()
+    try:
+        with pytest.raises(Exception, match="503"):
+            tts_api.get_speech_synthesizer()
+        with pytest.raises(Exception, match="503"):
+            tts_api.get_speech_synthesizer()
+    finally:
+        tts_api._build_speech_synthesizer.cache_clear()
+
+    assert calls == 1

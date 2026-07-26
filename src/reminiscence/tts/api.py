@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+import threading
 from functools import lru_cache
 from typing import Annotated
 
@@ -20,6 +22,8 @@ from reminiscence.tts.supertonic import (
 )
 
 router = APIRouter(prefix="/api/v1/tts", tags=["tts"])
+logger = logging.getLogger(__name__)
+_INITIALIZATION_LOCK = threading.Lock()
 
 SpeechText = Annotated[
     str,
@@ -38,16 +42,25 @@ class SpeechSynthesisRequest(BaseModel):
 
 
 @lru_cache(maxsize=1)
-def get_speech_synthesizer() -> SpeechSynthesizer:
-    """Lazily load the process-wide Supertonic 3 ONNX session."""
-
+def _build_speech_synthesizer() -> SpeechSynthesizer | None:
     try:
         return SupertonicSynthesizer(SupertonicConfig.from_environment())
     except (RuntimeError, ValueError, SpeechSynthesisUnavailableError) as exc:
+        logger.error("failed to initialize Supertonic 3: %s", exc)
+        return None
+
+
+def get_speech_synthesizer() -> SpeechSynthesizer:
+    """Load Supertonic once, including one cached failure per process."""
+
+    with _INITIALIZATION_LOCK:
+        synthesizer = _build_speech_synthesizer()
+    if synthesizer is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="speech synthesis is not configured",
-        ) from exc
+        )
+    return synthesizer
 
 
 SynthesizerDependency = Annotated[
