@@ -2,11 +2,6 @@
 
 from __future__ import annotations
 
-import json
-import os
-import tempfile
-import threading
-from collections.abc import Mapping
 from datetime import datetime, time, timedelta
 from pathlib import Path
 from typing import Any
@@ -17,42 +12,11 @@ from reminiscence.routine.models import (
     RoutineExecution,
     RoutineState,
 )
+from reminiscence.storage import JsonObjectStore, JsonStorageError
 
 
 class RoutineStorageError(RuntimeError):
     """Raised when local routine data cannot be read or validated."""
-
-
-def _read_object(path: Path, *, missing_default: Mapping[str, Any]) -> dict[str, Any]:
-    if not path.exists():
-        return dict(missing_default)
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise RoutineStorageError(f"failed to read JSON object from {path}") from exc
-    if not isinstance(value, dict):
-        raise RoutineStorageError(f"JSON root must be an object: {path}")
-    return value
-
-
-def _atomic_write_object(path: Path, value: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(
-        dir=path.parent,
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-    )
-    temporary_path = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as temporary_file:
-            json.dump(value, temporary_file, ensure_ascii=False, indent=2)
-            temporary_file.write("\n")
-            temporary_file.flush()
-            os.fsync(temporary_file.fileno())
-        os.replace(temporary_path, path)
-    except OSError as exc:
-        temporary_path.unlink(missing_ok=True)
-        raise RoutineStorageError(f"failed to write JSON object to {path}") from exc
 
 
 def _required_string(value: Any, field_name: str) -> str:
@@ -156,15 +120,20 @@ class JsonRoutineStore:
     """Store routines without overwriting unrelated activity metric sections."""
 
     def __init__(self, configuration_path: Path, activity_path: Path) -> None:
-        self._configuration_path = configuration_path
-        self._activity_path = activity_path
-        self._lock = threading.RLock()
+        self._configuration_store = JsonObjectStore(
+            configuration_path,
+            missing_default={"routines": []},
+        )
+        self._activity_store = JsonObjectStore(
+            activity_path,
+            missing_default={"routine_executions": []},
+        )
 
     def load_definitions(self) -> tuple[RoutineDefinition, ...]:
         """Load and validate configured routines."""
 
-        with self._lock:
-            root = _read_object(self._configuration_path, missing_default={"routines": []})
+        try:
+            root = self._configuration_store.read()
             routines_value = root.get("routines", [])
             if not isinstance(routines_value, list):
                 raise RoutineStorageError("routines must be an array")
@@ -173,19 +142,20 @@ class JsonRoutineStore:
             if len(identifiers) != len(set(identifiers)):
                 raise RoutineStorageError("routine ids must be unique")
             return definitions
+        except JsonStorageError as exc:
+            raise RoutineStorageError(str(exc)) from exc
 
     def list_executions(self) -> tuple[RoutineExecution, ...]:
         """Load all persisted routine executions."""
 
-        with self._lock:
-            root = _read_object(
-                self._activity_path,
-                missing_default={"routine_executions": []},
-            )
+        try:
+            root = self._activity_store.read()
             executions_value = root.get("routine_executions", [])
             if not isinstance(executions_value, list):
                 raise RoutineStorageError("routine_executions must be an array")
             return tuple(_parse_execution(value) for value in executions_value)
+        except JsonStorageError as exc:
+            raise RoutineStorageError(str(exc)) from exc
 
     def get_execution(self, execution_id: str) -> RoutineExecution | None:
         """Return one execution by its stable identifier."""
@@ -202,11 +172,7 @@ class JsonRoutineStore:
     def save_execution(self, execution: RoutineExecution) -> None:
         """Insert or replace one execution with an atomic file replacement."""
 
-        with self._lock:
-            root = _read_object(
-                self._activity_path,
-                missing_default={"routine_executions": []},
-            )
+        def mutate(root: dict[str, Any]) -> None:
             executions_value = root.get("routine_executions", [])
             if not isinstance(executions_value, list):
                 raise RoutineStorageError("routine_executions must be an array")
@@ -221,4 +187,8 @@ class JsonRoutineStore:
             root["routine_executions"] = [
                 _serialize_execution(current) for current in updated
             ]
-            _atomic_write_object(self._activity_path, root)
+
+        try:
+            self._activity_store.update(mutate)
+        except JsonStorageError as exc:
+            raise RoutineStorageError(str(exc)) from exc

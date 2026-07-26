@@ -5,6 +5,9 @@
       "image_url": "https://example.com/family-photo-1.jpg"
     }
   ],
+  "conversation": {
+    "suggestion_time": "14:00"
+  },
   "routines": [
     {
       "id": "morning-medication",
