@@ -133,3 +133,8 @@ class RoutineScheduler:
         """Return persisted executions for API projection."""
 
         return self._store.list_executions()
+
+    def list_definitions(self) -> tuple[RoutineDefinition, ...]:
+        """Return configured definitions for API projection."""
+
+        return self._store.load_definitions()
