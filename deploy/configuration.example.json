@@ -1,0 +1,30 @@
+{
+  "photos": [
+    {
+      "id": "family-photo-1",
+      "image_url": "https://example.com/family-photo-1.jpg"
+    }
+  ],
+  "routines": [
+    {
+      "id": "morning-medication",
+      "name": "아침 약",
+      "category": "MEDICATION",
+      "weekdays": [0, 1, 2, 3, 4, 5, 6],
+      "scheduled_time": "09:00",
+      "grace_minutes": 10,
+      "reminder_interval_minutes": 10,
+      "max_reminders": 3
+    },
+    {
+      "id": "dinner",
+      "name": "저녁 식사",
+      "category": "MEAL",
+      "weekdays": [0, 1, 2, 3, 4, 5, 6],
+      "scheduled_time": "18:00",
+      "grace_minutes": 10,
+      "reminder_interval_minutes": 10,
+      "max_reminders": 3
+    }
+  ]
+}

@@ -31,6 +31,10 @@ esac
 
 readonly compose_source_file="${project_root}/deploy/docker-compose.yml"
 readonly compose_file="${deployment_directory}/docker-compose.yml"
+readonly notification_config_file="${deployment_directory}/notification-config.json"
+readonly runtime_env_file="${deployment_directory}/runtime.env"
+readonly data_directory="${deployment_directory}/data"
+readonly configuration_file="${data_directory}/configuration.json"
 readonly active_env_file="${deployment_directory}/.env"
 readonly next_env_file="${deployment_directory}/.env.next"
 readonly previous_env_file="${deployment_directory}/.env.previous"
@@ -57,6 +61,9 @@ write_environment() {
         printf 'IMAGE_TAG=%s\n' "${image_tag}"
         printf 'CONTAINER_NAME=%s\n' "${container_name}"
         printf 'HOST_PORT=%s\n' "${host_port}"
+        printf 'DATA_DIRECTORY=%s\n' "${data_directory}"
+        printf 'NOTIFICATION_CONFIG_FILE=%s\n' "${notification_config_file}"
+        printf 'RUNTIME_ENV_FILE=%s\n' "${runtime_env_file}"
     } >"${env_file}"
 }
 
@@ -83,6 +90,22 @@ rollback() {
 trap rollback ERR
 
 mkdir -p "${deployment_directory}"
+mkdir -p "${data_directory}"
+if [[ ! -f "${notification_config_file}" ]]; then
+    echo "Missing notification configuration: ${notification_config_file}" >&2
+    echo "Create it from deploy/notification-config.example.json with mode 0600." >&2
+    exit 78
+fi
+if [[ ! -f "${runtime_env_file}" ]]; then
+    echo "Missing runtime environment: ${runtime_env_file}" >&2
+    echo "Create it from deploy/runtime.env.example with mode 0600." >&2
+    exit 78
+fi
+if [[ ! -f "${configuration_file}" ]]; then
+    echo "Missing application configuration: ${configuration_file}" >&2
+    echo "Create it from deploy/configuration.example.json." >&2
+    exit 78
+fi
 install -m 0644 "${compose_source_file}" "${compose_file}"
 write_environment "${next_env_file}"
 
