@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, replace
 from datetime import datetime
 
@@ -38,10 +39,18 @@ class AnomalyService:
         self._state_store = state_store
         self._detector = detector or PersonalAnomalyDetector()
         self._confirmation_count = confirmation_count
+        self._evaluation_lock = threading.RLock()
 
     def evaluate(self, evaluated_at: datetime) -> AnomalyEvaluationOutcome:
         """Evaluate current metrics and detect a transition into anomaly."""
 
+        with self._evaluation_lock:
+            return self._evaluate_locked(evaluated_at)
+
+    def _evaluate_locked(
+        self,
+        evaluated_at: datetime,
+    ) -> AnomalyEvaluationOutcome:
         previous = self._state_store.load()
         routine_metrics, conversation_metrics = self._reader.read(evaluated_at)
         candidate = self._detector.evaluate(

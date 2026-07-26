@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import threading
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -208,6 +210,57 @@ def test_semantically_invalid_activity_metric_is_rejected(
         assert "confirmation_delay_seconds" in str(exc)
     else:
         raise AssertionError("expected invalid routine metric to fail")
+
+
+def test_concurrent_evaluations_are_serialized() -> None:
+    class EmptyReader:
+        def read(self, evaluated_at: datetime) -> tuple[tuple[()], tuple[()]]:
+            del evaluated_at
+            return (), ()
+
+    class OverlapDetectingStateStore:
+        def __init__(self) -> None:
+            self.active_loads = 0
+            self.maximum_active_loads = 0
+            self.value = None
+            self.lock = threading.Lock()
+
+        def load(self):  # type: ignore[no-untyped-def]
+            with self.lock:
+                self.active_loads += 1
+                self.maximum_active_loads = max(
+                    self.maximum_active_loads,
+                    self.active_loads,
+                )
+            time.sleep(0.02)
+            with self.lock:
+                self.active_loads -= 1
+                return self.value
+
+        def save(self, evaluation):  # type: ignore[no-untyped-def]
+            self.value = evaluation
+
+    state_store = OverlapDetectingStateStore()
+    service = AnomalyService(  # type: ignore[arg-type]
+        EmptyReader(),
+        state_store,
+    )
+    errors: list[BaseException] = []
+
+    def evaluate() -> None:
+        try:
+            service.evaluate(NOW)
+        except BaseException as exc:  # pragma: no cover - assertion aid
+            errors.append(exc)
+
+    threads = [threading.Thread(target=evaluate) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=1)
+
+    assert errors == []
+    assert state_store.maximum_active_loads == 1
 
 
 def test_api_evaluates_and_reads_current_state(tmp_path: Path) -> None:
