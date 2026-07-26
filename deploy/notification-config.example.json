@@ -1,0 +1,15 @@
+{
+  "care_recipient": {
+    "name": "홍길동"
+  },
+  "guardian": {
+    "email": "guardian@example.com"
+  },
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "username": "sender@gmail.com",
+    "app_password": "replace-with-gmail-app-password",
+    "from_name": "Reminiscence"
+  }
+}
