@@ -13,11 +13,10 @@ from __future__ import annotations
 
 import argparse
 import csv
+import importlib
 import logging
 from pathlib import Path
-from typing import cast
-
-import jiwer
+from typing import Any, cast
 
 from reminiscence.asr.models import WerPair
 
@@ -26,8 +25,18 @@ logger = logging.getLogger(__name__)
 DEFAULT_RESULTS_FILE = Path("results.csv")
 
 
+def _load_jiwer() -> Any:
+    try:
+        return importlib.import_module("jiwer")
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "WER/CER 계산에는 evaluation dependency group이 필요합니다"
+        ) from exc
+
+
 def _cer(reference: str | list[str], hypothesis: str | list[str]) -> float:
     """Wrap jiwer.cer(); its return type is a union only due to a deprecated return_dict flag."""
+    jiwer = _load_jiwer()
     return cast(float, jiwer.cer(reference, hypothesis))
 
 
@@ -85,6 +94,7 @@ def main(argv: list[str] | None = None) -> None:
     references = [pair["reference"] for pair in pairs]
     hypotheses = [pair["hypothesis"] for pair in pairs]
 
+    jiwer = _load_jiwer()
     wer = jiwer.wer(references, hypotheses)
     cer = _cer(references, hypotheses)
 
