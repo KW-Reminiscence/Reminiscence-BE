@@ -60,6 +60,7 @@ class RoutineDefinition:
     grace_period: timedelta
     reminder_interval: timedelta
     max_reminders: int
+    active: bool = True
 
     def __post_init__(self) -> None:
         if not self.routine_id.strip():
@@ -70,6 +71,8 @@ class RoutineDefinition:
             raise ValueError("weekdays must contain values from 0 to 6")
         if self.scheduled_time.tzinfo is not None:
             raise ValueError("scheduled_time must not include timezone information")
+        if not isinstance(self.active, bool):
+            raise ValueError("active must be a boolean")
         _ = self.policy
 
     @property

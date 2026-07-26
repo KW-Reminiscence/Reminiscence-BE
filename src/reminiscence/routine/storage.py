@@ -32,6 +32,14 @@ def _required_int(value: Any, field_name: str) -> int:
     return value
 
 
+def _optional_bool(value: Any, field_name: str, *, default: bool) -> bool:
+    if value is None:
+        return default
+    if not isinstance(value, bool):
+        raise RoutineStorageError(f"{field_name} must be a boolean")
+    return value
+
+
 def _parse_definition(value: Any) -> RoutineDefinition:
     if not isinstance(value, dict):
         raise RoutineStorageError("each routine must be an object")
@@ -58,6 +66,7 @@ def _parse_definition(value: Any) -> RoutineDefinition:
                 )
             ),
             max_reminders=_required_int(value["max_reminders"], "max_reminders"),
+            active=_optional_bool(value.get("active"), "active", default=True),
         )
     except (KeyError, ValueError) as exc:
         raise RoutineStorageError(f"invalid routine definition: {exc}") from exc
@@ -151,6 +160,52 @@ def _parse_execution(value: Any) -> RoutineExecution:
         raise RoutineStorageError(f"invalid routine execution: {exc}") from exc
 
 
+def _validate_non_overlapping_windows(
+    definitions: tuple[RoutineDefinition, ...],
+) -> None:
+    week_seconds = 7 * 24 * 60 * 60
+    windows: list[tuple[str, int, float, float]] = []
+    for definition in definitions:
+        if not definition.active:
+            continue
+        start_seconds = (
+            definition.scheduled_time.hour * 60 * 60
+            + definition.scheduled_time.minute * 60
+            + definition.scheduled_time.second
+            + definition.scheduled_time.microsecond / 1_000_000
+        )
+        duration_seconds = (
+            definition.grace_period
+            + definition.reminder_interval * definition.max_reminders
+        ).total_seconds()
+        for weekday in definition.weekdays:
+            start = weekday * 24 * 60 * 60 + start_seconds
+            windows.append(
+                (
+                    definition.routine_id,
+                    weekday,
+                    start,
+                    start + duration_seconds,
+                )
+            )
+
+    for index, left in enumerate(windows):
+        for right in windows[index + 1 :]:
+            for shift in (-week_seconds, 0, week_seconds):
+                shifted_start = right[2] + shift
+                shifted_end = right[3] + shift
+                if left[2] < shifted_end and shifted_start < left[3]:
+                    raise RoutineStorageError(
+                        "routine response windows must not overlap: "
+                        f"{left[0]} weekday {left[1]} and "
+                        f"{right[0]} weekday {right[1]}"
+                    )
+        if left[3] - left[2] > week_seconds:
+            raise RoutineStorageError(
+                f"routine response window must be shorter than one week: {left[0]}"
+            )
+
+
 class JsonRoutineStore:
     """Store routines without overwriting unrelated activity metric sections."""
 
@@ -176,6 +231,7 @@ class JsonRoutineStore:
             identifiers = [definition.routine_id for definition in definitions]
             if len(identifiers) != len(set(identifiers)):
                 raise RoutineStorageError("routine ids must be unique")
+            _validate_non_overlapping_windows(definitions)
             return definitions
         except JsonStorageError as exc:
             raise RoutineStorageError(str(exc)) from exc

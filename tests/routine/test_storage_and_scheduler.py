@@ -211,6 +211,22 @@ def test_changed_definition_does_not_change_active_execution_policy(
     assert execution.policy.grace_period == timedelta(minutes=10)
 
 
+def test_inactive_definition_does_not_create_execution(tmp_path: Path) -> None:
+    configuration_path = tmp_path / "configuration.json"
+    activity_path = tmp_path / "activity_metrics.json"
+    write_configuration(configuration_path)
+    root = json.loads(configuration_path.read_text(encoding="utf-8"))
+    root["routines"][0]["active"] = False
+    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    scheduler = RoutineScheduler(
+        JsonRoutineStore(configuration_path, activity_path),
+        SEOUL,
+    )
+
+    assert scheduler.tick(at(9, 0)) == ()
+    assert scheduler.list_executions() == ()
+
+
 def test_execution_persists_policy_snapshot(tmp_path: Path) -> None:
     scheduler, activity_path = build_scheduler(tmp_path)
 
@@ -253,6 +269,100 @@ def test_semantically_invalid_execution_is_rejected(tmp_path: Path) -> None:
 
     with pytest.raises(RoutineStorageError, match="requires confirmation fields"):
         scheduler.list_executions()
+
+
+def test_overlapping_response_windows_are_rejected(tmp_path: Path) -> None:
+    configuration_path = tmp_path / "configuration.json"
+    write_configuration(configuration_path)
+    root = json.loads(configuration_path.read_text(encoding="utf-8"))
+    overlapping = dict(root["routines"][0])
+    overlapping["id"] = "breakfast"
+    overlapping["name"] = "아침 식사"
+    overlapping["category"] = "MEAL"
+    overlapping["scheduled_time"] = "09:39"
+    root["routines"].append(overlapping)
+    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    store = JsonRoutineStore(configuration_path, tmp_path / "activity_metrics.json")
+
+    with pytest.raises(RoutineStorageError, match="must not overlap"):
+        store.load_definitions()
+
+
+def test_touching_response_window_boundaries_are_allowed(tmp_path: Path) -> None:
+    configuration_path = tmp_path / "configuration.json"
+    write_configuration(configuration_path)
+    root = json.loads(configuration_path.read_text(encoding="utf-8"))
+    touching = dict(root["routines"][0])
+    touching["id"] = "breakfast"
+    touching["name"] = "아침 식사"
+    touching["category"] = "MEAL"
+    touching["scheduled_time"] = "09:40"
+    root["routines"].append(touching)
+    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    store = JsonRoutineStore(configuration_path, tmp_path / "activity_metrics.json")
+
+    assert len(store.load_definitions()) == 2
+
+
+def test_inactive_overlapping_definition_is_allowed(tmp_path: Path) -> None:
+    configuration_path = tmp_path / "configuration.json"
+    write_configuration(configuration_path)
+    root = json.loads(configuration_path.read_text(encoding="utf-8"))
+    inactive = dict(root["routines"][0])
+    inactive["id"] = "disabled-breakfast"
+    inactive["active"] = False
+    root["routines"].append(inactive)
+    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    store = JsonRoutineStore(configuration_path, tmp_path / "activity_metrics.json")
+
+    definitions = store.load_definitions()
+
+    assert len(definitions) == 2
+    assert definitions[1].active is False
+
+
+def test_cross_week_response_window_overlap_is_rejected(tmp_path: Path) -> None:
+    configuration_path = tmp_path / "configuration.json"
+    write_configuration(configuration_path)
+    root = json.loads(configuration_path.read_text(encoding="utf-8"))
+    sunday = dict(root["routines"][0])
+    sunday.update(
+        {
+            "id": "sunday-late",
+            "weekdays": [6],
+            "scheduled_time": "23:50",
+            "grace_minutes": 20,
+            "max_reminders": 0,
+        }
+    )
+    monday = dict(root["routines"][0])
+    monday.update(
+        {
+            "id": "monday-early",
+            "weekdays": [0],
+            "scheduled_time": "00:05",
+            "grace_minutes": 10,
+            "max_reminders": 0,
+        }
+    )
+    root["routines"] = [sunday, monday]
+    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    store = JsonRoutineStore(configuration_path, tmp_path / "activity_metrics.json")
+
+    with pytest.raises(RoutineStorageError, match="must not overlap"):
+        store.load_definitions()
+
+
+def test_non_boolean_active_flag_is_rejected(tmp_path: Path) -> None:
+    configuration_path = tmp_path / "configuration.json"
+    write_configuration(configuration_path)
+    root = json.loads(configuration_path.read_text(encoding="utf-8"))
+    root["routines"][0]["active"] = 1
+    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    store = JsonRoutineStore(configuration_path, tmp_path / "activity_metrics.json")
+
+    with pytest.raises(RoutineStorageError, match="active must be a boolean"):
+        store.load_definitions()
 
 
 @pytest.mark.parametrize(

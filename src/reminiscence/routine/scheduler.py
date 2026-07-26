@@ -67,7 +67,9 @@ class RoutineScheduler:
                     events.append(event)
 
             for definition in definitions.values():
-                if not definition.is_scheduled_on(local_now.date()):
+                if not definition.active or not definition.is_scheduled_on(
+                    local_now.date()
+                ):
                     continue
                 scheduled_at = definition.scheduled_datetime(
                     local_now.date(),
