@@ -8,9 +8,9 @@
 ### 장기 브랜치
 
 - `main`: 배포 가능한 운영 브랜치
-- `dev`: 다음 배포를 준비하는 통합 브랜치
+- `develop`: 다음 배포를 준비하는 통합 브랜치
 
-`main`과 `dev`에는 직접 커밋하지 않는다. 모든 변경은 작업 브랜치에서
+`main`과 `develop`에는 직접 커밋하지 않는다. 모든 변경은 작업 브랜치에서
 Pull Request(PR)를 통해 병합한다.
 
 ### 작업 브랜치
@@ -20,13 +20,13 @@ Pull Request(PR)를 통해 병합한다.
 
 | 유형 | 용도 | 분기 기준 | 예시 |
 | --- | --- | --- | --- |
-| `feat` | 신규 기능 | `dev` | `feat/#12-create-memory-api` |
-| `fix` | 일반 버그 수정 | `dev` | `fix/#24-handle-empty-title` |
+| `feat` | 신규 기능 | `develop` | `feat/#12-create-memory-api` |
+| `fix` | 일반 버그 수정 | `develop` | `fix/#24-handle-empty-title` |
 | `hotfix` | 운영 긴급 수정 | `main` | `hotfix/#31-fix-login-failure` |
-| `refactor` | 동작 변경 없는 구조 개선 | `dev` | `refactor/#42-split-user-service` |
-| `docs` | 문서 변경 | `dev` | `docs/#18-update-api-guide` |
-| `test` | 테스트 추가·수정 | `dev` | `test/#27-add-auth-edge-cases` |
-| `chore` | 빌드, 설정, 의존성 등 | `dev` | `chore/#35-update-dependencies` |
+| `refactor` | 동작 변경 없는 구조 개선 | `develop` | `refactor/#42-split-user-service` |
+| `docs` | 문서 변경 | `develop` | `docs/#18-update-api-guide` |
+| `test` | 테스트 추가·수정 | `develop` | `test/#27-add-auth-edge-cases` |
+| `chore` | 빌드, 설정, 의존성 등 | `develop` | `chore/#35-update-dependencies` |
 
 - 작업을 시작하기 전에 이슈를 만든다.
 - 하나의 브랜치는 하나의 이슈와 하나의 목적만 다룬다.
@@ -37,10 +37,10 @@ Pull Request(PR)를 통해 병합한다.
 
 ### 대상 브랜치
 
-- 일반 작업: 작업 브랜치 → `dev`
-- 정기 배포: `dev` → `main`
+- 일반 작업: 작업 브랜치 → `develop`
+- 정기 배포: `develop` → `main`
 - 긴급 수정: `hotfix/#<issue-number>-<title>` → `main`
-- 핫픽스 배포 후: `main` → `dev` 동기화 PR을 즉시 생성
+- 핫픽스 배포 후: `main` → `develop` 동기화 PR을 즉시 생성
 
 ### 제목과 본문
 
@@ -81,8 +81,8 @@ PR 본문에는 다음 내용을 포함한다.
 - 리뷰 준비 전에는 Draft PR을 사용한다.
 - 최소 1명의 승인을 받고 필수 CI가 모두 통과한 뒤 병합한다.
 - 리뷰 의견은 반영하거나, 반영하지 않는 이유를 답변한 뒤 resolve한다.
-- 일반 작업 브랜치는 `dev`에 squash merge한다.
-- `dev`에서 `main`으로 가는 배포 PR은 변경 이력을 보존하도록 merge commit을
+- 일반 작업 브랜치는 `develop`에 squash merge한다.
+- `develop`에서 `main`으로 가는 배포 PR은 변경 이력을 보존하도록 merge commit을
   사용한다.
 - force push와 rebase는 개인 작업 브랜치에서만 허용한다.
 
