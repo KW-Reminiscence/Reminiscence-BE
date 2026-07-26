@@ -64,7 +64,7 @@ class ConversationSuggestionResponse(BaseModel):
 
 
 class SpeechTextResponse(BaseModel):
-    """Browser TTS contract coupled to visible text."""
+    """Supertonic 3 input contract coupled to visible text."""
 
     display_text: str
     spoken_text: str
@@ -289,7 +289,7 @@ async def start_conversation(
     questions: QuestionProviderDependency,
     now: CurrentTimeDependency,
 ) -> StartConversationResponse:
-    """Start a scheduled or voluntary session with a browser-TTS question."""
+    """Start a scheduled or voluntary session with a synthesizable question."""
 
     try:
         photo_id, image_url = _load_photo(payload.photo_id)

@@ -1,4 +1,4 @@
-"""Conversation API and browser-TTS contract tests."""
+"""Conversation API and Supertonic text contract tests."""
 
 from __future__ import annotations
 
@@ -100,7 +100,7 @@ def start_session(client: TestClient) -> str:
     return session_id
 
 
-def test_start_returns_photo_and_browser_tts_question(tmp_path: Path) -> None:
+def test_start_returns_photo_and_synthesizable_question(tmp_path: Path) -> None:
     client, _, _ = client_with(tmp_path)
 
     response = client.post(
@@ -116,7 +116,7 @@ def test_start_returns_photo_and_browser_tts_question(tmp_path: Path) -> None:
     assert payload["question"]["spoken_text"] == payload["question"]["display_text"]
 
 
-def test_suggestion_returns_browser_tts_text_at_scheduled_time(
+def test_suggestion_returns_synthesizable_text_at_scheduled_time(
     tmp_path: Path,
 ) -> None:
     client, _, _ = client_with(tmp_path)

@@ -23,8 +23,8 @@ FastAPI의 타입 기반 검증과 자동 OpenAPI 문서를 활용해 API 구현
 | Package manager | [uv](https://docs.astral.sh/uv/) |
 
 MVP 데이터는 Raspberry Pi의 로컬 JSON 파일에 저장합니다. 태블릿 웹앱은
-화면·마이크·스피커를 담당하고, 이 저장소의 FastAPI 서버는 루틴, ASR,
-대화 지표, 이상 탐지와 보호자 알림을 담당합니다.
+화면·마이크·스피커와 WAV 재생을 담당하고, 이 저장소의 FastAPI 서버는 루틴,
+ASR, Supertonic 3 음성 합성, 대화 지표, 이상 탐지와 보호자 알림을 담당합니다.
 
 ## 로컬 실행
 
@@ -59,9 +59,34 @@ ETRI 응답의 transcript를 글자 수와 시간 지표로 즉시 축약하며,
 provider 원문 응답은 파일에 저장하지 않습니다.
 
 서버는 질문마다 `display_text`와 `spoken_text`를 함께 반환합니다.
-`spoken_text`는 태블릿 브라우저의 Web Speech API로 읽는 계약이며, 서버에서
-음성 파일을 합성하지 않습니다. 웹앱을 Raspberry Pi 정적 파일 또는 Vercel 중
-어디에 배포해도 이 API 계약은 같습니다.
+태블릿은 `spoken_text`를 `POST /api/v1/tts/speech`에 전송하고 응답받은
+44.1kHz PCM WAV를 재생합니다. 음성은 Raspberry Pi에서 Supertonic 3 ONNX
+모델로 생성하며 저장하거나 캐시하지 않습니다. 웹앱을 Raspberry Pi 정적 파일
+또는 Vercel 중 어디에 배포해도 이 API 계약은 같습니다.
+
+### Supertonic 3 TTS
+
+로컬 개발에서는 첫 TTS 요청이 약 400MB의 모델을 기본 cache에 내려받습니다.
+운영 배포는 `scripts/deploy.sh`가 모델을
+`/home/ubuntu/apps/reminiscence/<environment>/supertonic3`에 먼저 내려받고,
+컨테이너의 `/models/supertonic-3`에 영속 mount합니다. 이후 음성 합성에는
+외부 TTS API나 인터넷 연결이 필요하지 않습니다.
+
+기본 설정은 한국어, `F1` voice, 0.9배속, 8 inference steps이며
+`deploy/runtime.env.example`의 `SUPERTONIC_*` 환경변수로 조정할 수 있습니다.
+client가 voice나 inference parameter를 임의로 선택하지 못하도록 API에는
+합성할 text만 받으며 최대 길이는 500자입니다.
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/tts/speech \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"오늘 사진을 보며 이야기 나눠 보실래요?"}' \
+  --output speech.wav
+```
+
+Supertonic SDK 코드는 MIT, Supertonic 3 model weights는 사용 제한과 표시 의무가
+있는 OpenRAIL-M입니다. 배포 전 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)의
+공식 라이선스 링크를 확인해야 합니다.
 
 ### 태블릿 웹앱 연결
 
@@ -118,6 +143,7 @@ export NOTIFICATION_CONFIG_PATH=/tmp/notification-config.json
 | `POST` | `/api/v1/conversations/sessions` | 사진 회상 대화 시작과 TTS 질문 반환 |
 | `POST` | `/api/v1/conversations/sessions/{session_id}/turns` | WAV 인식 후 지표만 저장 |
 | `POST` | `/api/v1/conversations/sessions/{session_id}/complete` | 세션 완료와 요약 반환 |
+| `POST` | `/api/v1/tts/speech` | `spoken_text`를 Supertonic 3 WAV로 합성 |
 | `POST` | `/api/v1/anomaly/evaluate` | 개인별 루틴·대화 모델 평가 |
 | `GET` | `/api/v1/anomaly/state` | 저장된 현재 상태와 근거 조회 |
 | `POST` | `/api/v1/notifications/evaluate` | 평가 후 anomaly episode당 이메일 1회 시도 |
@@ -133,9 +159,9 @@ runtime.env는 mode 0600으로 배치
 ```
 
 `runtime.env`에는 ETRI API key가, `notification-config.json`에는 SMTP App
-Password와 보호자 이메일이 있으므로 Git에 커밋하지 않습니다. 배포 시
-`/data`만 쓰기 가능한 bind mount로 연결되고 나머지 컨테이너 파일 시스템은
-읽기 전용으로 유지됩니다.
+Password와 보호자 이메일이 있으므로 Git에 커밋하지 않습니다. 배포 시 `/data`와
+Supertonic model directory만 쓰기 가능한 bind mount로 연결되고 나머지 컨테이너
+파일 시스템은 읽기 전용으로 유지됩니다.
 
 API 프로세스는 태블릿 polling 여부와 관계없이 루틴 상태를 기본 5초마다
 전이하고 개인 이상 및 알림을 기본 60초마다 평가합니다. 두 간격은

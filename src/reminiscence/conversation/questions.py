@@ -8,7 +8,7 @@ from typing import Protocol
 
 @dataclass(frozen=True, slots=True)
 class SpeechText:
-    """Text displayed by the web app and spoken by browser TTS."""
+    """Text displayed by the web app and synthesized by Supertonic 3."""
 
     display_text: str
     spoken_text: str
