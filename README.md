@@ -33,7 +33,3 @@ uv run uvicorn reminiscence.main:app --reload
 ```
 
 API 문서는 `http://127.0.0.1:8000/docs`에서 확인할 수 있습니다.
-
-## 문서
-
-- [개발 및 협업 규칙](./TBD.md)
