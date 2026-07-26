@@ -6,6 +6,10 @@ __pycache__/
 *.py[cod]
 
 .env
+.DS_Store
+data/
+runtime.env
+notification-config.json
 logs/
 test_audio/
 _incoming/
