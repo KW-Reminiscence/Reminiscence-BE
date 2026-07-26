@@ -219,7 +219,7 @@ def test_complete_returns_metrics_only_summary(tmp_path: Path) -> None:
 
 
 def test_completed_session_rejects_another_turn(tmp_path: Path) -> None:
-    client, _, _ = client_with(tmp_path)
+    client, _, recognizer = client_with(tmp_path)
     session_id = start_session(client)
     client.post(f"/api/v1/conversations/sessions/{session_id}/complete")
 
@@ -231,6 +231,33 @@ def test_completed_session_rejects_another_turn(tmp_path: Path) -> None:
     )
 
     assert response.status_code == 409
+    assert recognizer.calls == []
+
+
+def test_unknown_session_is_rejected_before_asr(tmp_path: Path) -> None:
+    client, _, recognizer = client_with(tmp_path)
+
+    response = client.post(
+        "/api/v1/conversations/sessions/missing/turns",
+        params={"turn_duration_seconds": 1},
+        content=b"wav",
+        headers={"content-type": "audio/wav"},
+    )
+
+    assert response.status_code == 404
+    assert recognizer.calls == []
+
+
+def test_completion_before_session_start_is_rejected(tmp_path: Path) -> None:
+    client, _, _ = client_with(tmp_path)
+    session_id = start_session(client)
+    app.dependency_overrides[get_current_time] = lambda: at() - timedelta(seconds=1)
+
+    response = client.post(
+        f"/api/v1/conversations/sessions/{session_id}/complete"
+    )
+
+    assert response.status_code == 422
 
 
 def test_unknown_photo_is_not_found(tmp_path: Path) -> None:

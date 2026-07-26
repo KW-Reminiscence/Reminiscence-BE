@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
+from math import isfinite
 from typing import Any
 
 from reminiscence.conversation.models import (
@@ -16,6 +18,10 @@ from reminiscence.storage import JsonObjectStore, JsonStorageError
 
 class ConversationStorageError(JsonStorageError):
     """Raised when conversation metrics are malformed."""
+
+
+class ConversationStorageNotFoundError(LookupError):
+    """Raised when an atomic session update cannot find its target."""
 
 
 def _required_string(value: Any, field_name: str) -> str:
@@ -33,7 +39,10 @@ def _required_int(value: Any, field_name: str) -> int:
 def _required_number(value: Any, field_name: str) -> float:
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise ConversationStorageError(f"{field_name} must be a number")
-    return float(value)
+    number = float(value)
+    if not isfinite(number):
+        raise ConversationStorageError(f"{field_name} must be finite")
+    return number
 
 
 def _optional_number(value: Any, field_name: str) -> float | None:
@@ -197,3 +206,49 @@ class JsonConversationStore:
             ]
 
         self._json_store.update(mutate)
+
+    def update_session(
+        self,
+        session_id: str,
+        updater: Callable[[ConversationSession], ConversationSession],
+    ) -> ConversationSession:
+        """Atomically read, update, and replace one session."""
+
+        updated_session: ConversationSession | None = None
+
+        def mutate(root: dict[str, Any]) -> None:
+            nonlocal updated_session
+            sessions_value = root.get("conversation_sessions", [])
+            if not isinstance(sessions_value, list):
+                raise ConversationStorageError(
+                    "conversation_sessions must be an array"
+                )
+            sessions = [_parse_session(value) for value in sessions_value]
+            current = next(
+                (
+                    session
+                    for session in sessions
+                    if session.session_id == session_id
+                ),
+                None,
+            )
+            if current is None:
+                raise ConversationStorageNotFoundError(
+                    f"conversation session not found: {session_id}"
+                )
+            updated_session = updater(current)
+            updated = [
+                session
+                for session in sessions
+                if session.session_id != session_id
+            ]
+            updated.append(updated_session)
+            updated.sort(key=lambda session: (session.started_at, session.session_id))
+            root["conversation_sessions"] = [
+                _serialize_session(session) for session in updated
+            ]
+
+        self._json_store.update(mutate)
+        if updated_session is None:  # pragma: no cover - defensive invariant
+            raise ConversationStorageError("session update produced no result")
+        return updated_session

@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import threading
 from datetime import datetime, timedelta
+from math import inf, nan
 from pathlib import Path
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -112,7 +115,7 @@ def test_zero_duration_has_no_chars_per_second(tmp_path: Path) -> None:
     assert metric.chars_per_second is None
 
 
-@pytest.mark.parametrize("duration", [-0.1, 300.1])
+@pytest.mark.parametrize("duration", [-0.1, 300.1, nan, inf, -inf])
 def test_invalid_duration_is_rejected(tmp_path: Path, duration: float) -> None:
     service, _ = service_at(tmp_path)
     session = service.start_session(ConversationSource.VOLUNTARY, None, now())
@@ -124,6 +127,73 @@ def test_invalid_duration_is_rejected(tmp_path: Path, duration: float) -> None:
             duration,
             now(),
         )
+
+
+def test_turn_before_session_start_is_rejected(tmp_path: Path) -> None:
+    service, _ = service_at(tmp_path)
+    session = service.start_session(ConversationSource.VOLUNTARY, None, now())
+
+    with pytest.raises(ValueError, match="before started_at"):
+        service.record_turn(
+            session.session_id,
+            recognition("응답"),
+            1,
+            now() - timedelta(seconds=1),
+        )
+
+
+def test_concurrent_turns_are_both_persisted(tmp_path: Path) -> None:
+    path = tmp_path / "activity_metrics.json"
+    store = JsonObjectStore(
+        path,
+        missing_default={"conversation_sessions": []},
+    )
+    first_service = ConversationService(
+        JsonConversationStore(store),
+        id_factory=lambda: uuid4().hex,
+    )
+    second_service = ConversationService(
+        JsonConversationStore(
+            JsonObjectStore(
+                path,
+                missing_default={"conversation_sessions": []},
+            )
+        ),
+        id_factory=lambda: uuid4().hex,
+    )
+    session = first_service.start_session(
+        ConversationSource.VOLUNTARY,
+        None,
+        now(),
+    )
+    barrier = threading.Barrier(2)
+    errors: list[BaseException] = []
+
+    def record(service: ConversationService, transcript: str) -> None:
+        try:
+            barrier.wait()
+            service.record_turn(
+                session.session_id,
+                recognition(transcript),
+                1,
+                now() + timedelta(seconds=1),
+            )
+        except BaseException as exc:  # pragma: no cover - asserted below
+            errors.append(exc)
+
+    threads = [
+        threading.Thread(target=record, args=(first_service, "첫 응답")),
+        threading.Thread(target=record, args=(second_service, "둘째 응답")),
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    persisted = first_service.get_session(session.session_id)
+    assert errors == []
+    assert len(persisted.turns) == 2
+    assert sum(turn.utterance_chars for turn in persisted.turns) == 7
 
 
 def test_completed_session_rejects_more_turns(tmp_path: Path) -> None:
@@ -174,4 +244,65 @@ def test_malformed_session_data_is_rejected(tmp_path: Path) -> None:
     )
 
     with pytest.raises(RuntimeError, match="invalid conversation session"):
+        service.list_sessions()
+
+
+def test_semantically_invalid_completed_session_is_rejected(tmp_path: Path) -> None:
+    service, path = service_at(tmp_path)
+    path.write_text(
+        json.dumps(
+            {
+                "conversation_sessions": [
+                    {
+                        "session_id": "session-1",
+                        "source": "VOLUNTARY",
+                        "photo_id": None,
+                        "started_at": now().isoformat(),
+                        "status": "COMPLETED",
+                        "completed_at": None,
+                        "turns": [],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="COMPLETED session requires completed_at"):
+        service.list_sessions()
+
+
+def test_nonfinite_persisted_metric_is_rejected(tmp_path: Path) -> None:
+    service, path = service_at(tmp_path)
+    path.write_text(
+        json.dumps(
+            {
+                "conversation_sessions": [
+                    {
+                        "session_id": "session-1",
+                        "source": "VOLUNTARY",
+                        "photo_id": None,
+                        "started_at": now().isoformat(),
+                        "status": "ACTIVE",
+                        "completed_at": None,
+                        "turns": [
+                            {
+                                "turn_id": "turn-1",
+                                "recorded_at": now().isoformat(),
+                                "utterance_chars": 2,
+                                "turn_duration_seconds": nan,
+                                "chars_per_second": 2,
+                                "no_response": False,
+                                "asr_latency_seconds": 0.2,
+                                "asr_attempts": 1,
+                            }
+                        ],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="turn_duration_seconds must be finite"):
         service.list_sessions()

@@ -339,6 +339,7 @@ async def record_conversation_turn(
             detail="audio must not be empty",
         )
     try:
+        service.require_active_session(session_id)
         recognition = await run_in_threadpool(
             recognizer.recognize,
             audio,
@@ -404,6 +405,11 @@ async def complete_conversation(
     except ConversationStateError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
     except (ConversationStorageError, JsonStorageError) as exc:

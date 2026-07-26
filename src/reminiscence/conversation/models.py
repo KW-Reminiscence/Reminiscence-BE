@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
+from math import isfinite
 
 
 class ConversationSource(StrEnum):
@@ -34,6 +35,29 @@ class ConversationTurnMetric:
     asr_latency_seconds: float
     asr_attempts: int
 
+    def __post_init__(self) -> None:
+        if not self.turn_id.strip():
+            raise ValueError("turn_id must not be blank")
+        if self.recorded_at.tzinfo is None or self.recorded_at.utcoffset() is None:
+            raise ValueError("recorded_at must be timezone-aware")
+        if self.utterance_chars < 0:
+            raise ValueError("utterance_chars must not be negative")
+        if (
+            not isfinite(self.turn_duration_seconds)
+            or self.turn_duration_seconds < 0
+        ):
+            raise ValueError("turn_duration_seconds must be finite and non-negative")
+        if self.chars_per_second is not None and (
+            not isfinite(self.chars_per_second) or self.chars_per_second < 0
+        ):
+            raise ValueError("chars_per_second must be finite and non-negative")
+        if self.no_response != (self.utterance_chars == 0):
+            raise ValueError("no_response must match utterance_chars")
+        if not isfinite(self.asr_latency_seconds) or self.asr_latency_seconds < 0:
+            raise ValueError("asr_latency_seconds must be finite and non-negative")
+        if self.asr_attempts <= 0:
+            raise ValueError("asr_attempts must be positive")
+
 
 @dataclass(frozen=True, slots=True)
 class ConversationSummary:
@@ -57,6 +81,31 @@ class ConversationSession:
     status: ConversationStatus
     turns: tuple[ConversationTurnMetric, ...]
     completed_at: datetime | None = None
+
+    def __post_init__(self) -> None:
+        if not self.session_id.strip():
+            raise ValueError("session_id must not be blank")
+        if self.photo_id is not None and not self.photo_id.strip():
+            raise ValueError("photo_id must not be blank")
+        if self.started_at.tzinfo is None or self.started_at.utcoffset() is None:
+            raise ValueError("started_at must be timezone-aware")
+        if self.status is ConversationStatus.ACTIVE and self.completed_at is not None:
+            raise ValueError("ACTIVE session must not have completed_at")
+        if self.status is ConversationStatus.COMPLETED:
+            if self.completed_at is None:
+                raise ValueError("COMPLETED session requires completed_at")
+            if (
+                self.completed_at.tzinfo is None
+                or self.completed_at.utcoffset() is None
+            ):
+                raise ValueError("completed_at must be timezone-aware")
+            if self.completed_at < self.started_at:
+                raise ValueError("completed_at must not be before started_at")
+        for turn in self.turns:
+            if turn.recorded_at < self.started_at:
+                raise ValueError("turn must not be recorded before session start")
+            if self.completed_at is not None and turn.recorded_at > self.completed_at:
+                raise ValueError("turn must not be recorded after session completion")
 
     @property
     def summary(self) -> ConversationSummary:

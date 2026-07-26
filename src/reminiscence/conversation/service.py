@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime
+from math import isfinite
 from uuid import uuid4
 
 from reminiscence.asr import RecognitionResult
@@ -14,7 +15,10 @@ from reminiscence.conversation.models import (
     ConversationStatus,
     ConversationTurnMetric,
 )
-from reminiscence.conversation.storage import JsonConversationStore
+from reminiscence.conversation.storage import (
+    ConversationStorageNotFoundError,
+    JsonConversationStore,
+)
 
 
 class ConversationNotFoundError(LookupError):
@@ -74,27 +78,43 @@ class ConversationService:
         """Reduce a transient transcript to metrics and discard the text."""
 
         _require_aware(recorded_at, "recorded_at")
-        if turn_duration_seconds < 0 or turn_duration_seconds > 300:
+        if (
+            not isfinite(turn_duration_seconds)
+            or turn_duration_seconds < 0
+            or turn_duration_seconds > 300
+        ):
             raise ValueError("turn_duration_seconds must be between 0 and 300")
-        session = self._require_active_session(session_id)
-        utterance_chars = len("".join(recognition.transcript.split()))
-        no_response = utterance_chars == 0
-        metric = ConversationTurnMetric(
-            turn_id=self._id_factory(),
-            recorded_at=recorded_at,
-            utterance_chars=utterance_chars,
-            turn_duration_seconds=turn_duration_seconds,
-            chars_per_second=(
-                round(utterance_chars / turn_duration_seconds, 3)
-                if utterance_chars > 0 and turn_duration_seconds > 0
-                else None
-            ),
-            no_response=no_response,
-            asr_latency_seconds=recognition.latency_seconds,
-            asr_attempts=recognition.attempts,
-        )
-        updated = replace(session, turns=(*session.turns, metric))
-        self._store.save_session(updated)
+        metric: ConversationTurnMetric | None = None
+
+        def append_turn(session: ConversationSession) -> ConversationSession:
+            nonlocal metric
+            self._require_active(session)
+            if recorded_at < session.started_at:
+                raise ValueError("recorded_at must not be before started_at")
+            utterance_chars = len("".join(recognition.transcript.split()))
+            no_response = utterance_chars == 0
+            metric = ConversationTurnMetric(
+                turn_id=self._id_factory(),
+                recorded_at=recorded_at,
+                utterance_chars=utterance_chars,
+                turn_duration_seconds=turn_duration_seconds,
+                chars_per_second=(
+                    round(utterance_chars / turn_duration_seconds, 3)
+                    if utterance_chars > 0 and turn_duration_seconds > 0
+                    else None
+                ),
+                no_response=no_response,
+                asr_latency_seconds=recognition.latency_seconds,
+                asr_attempts=recognition.attempts,
+            )
+            return replace(session, turns=(*session.turns, metric))
+
+        try:
+            self._store.update_session(session_id, append_turn)
+        except ConversationStorageNotFoundError as exc:
+            raise ConversationNotFoundError(str(exc)) from exc
+        if metric is None:  # pragma: no cover - defensive invariant
+            raise RuntimeError("conversation turn update produced no metric")
         return metric
 
     def complete_session(
@@ -105,16 +125,21 @@ class ConversationService:
         """Finalize one active conversation session."""
 
         _require_aware(completed_at, "completed_at")
-        session = self._require_active_session(session_id)
-        if completed_at < session.started_at:
-            raise ValueError("completed_at must not be before started_at")
-        completed = replace(
-            session,
-            status=ConversationStatus.COMPLETED,
-            completed_at=completed_at,
-        )
-        self._store.save_session(completed)
-        return completed
+
+        def complete(session: ConversationSession) -> ConversationSession:
+            self._require_active(session)
+            if completed_at < session.started_at:
+                raise ValueError("completed_at must not be before started_at")
+            return replace(
+                session,
+                status=ConversationStatus.COMPLETED,
+                completed_at=completed_at,
+            )
+
+        try:
+            return self._store.update_session(session_id, complete)
+        except ConversationStorageNotFoundError as exc:
+            raise ConversationNotFoundError(str(exc)) from exc
 
     def get_session(self, session_id: str) -> ConversationSession:
         """Return one session or raise a domain-specific error."""
@@ -131,10 +156,19 @@ class ConversationService:
 
         return self._store.list_sessions()
 
+    def require_active_session(self, session_id: str) -> ConversationSession:
+        """Validate a session before sending its audio to an ASR provider."""
+
+        return self._require_active_session(session_id)
+
     def _require_active_session(self, session_id: str) -> ConversationSession:
         session = self.get_session(session_id)
+        self._require_active(session)
+        return session
+
+    @staticmethod
+    def _require_active(session: ConversationSession) -> None:
         if session.status is not ConversationStatus.ACTIVE:
             raise ConversationStateError(
                 f"conversation session is {session.status}"
             )
-        return session
