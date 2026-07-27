@@ -22,7 +22,7 @@ A1에는 codex-lb 기반 gpt-4o-transcribe 전사 경계, Supertonic 3 로컬 �
 
 ETRI는 현재 runtime 전사 경로가 아니므로 본문과 시스템 도표에서 제외했다. runtime은 codex-lb의 OpenAI 호환 /v1/audio/transcriptions를 사용하며 모델 식별자는 gpt-4o-transcribe이다. WAV와 전사문은 Reminiscence 로컬 저장소에 보존하지 않지만 음성은 전사를 위해 codex-lb로 전송된다. provider 측 보존 정책은 별도 운영 검토 대상이다.
 
-합성 이상 탐지 plot은 저장소의 test fixture를 재현한 동작 예시이다. score는 위험 확률이 아니며 accuracy, sensitivity, specificity 또는 임상적 위험도로 표현할 수 없다. 회상요법 문헌은 설계 배경이며 이 프로토타입의 치매 예방·치료 효과를 입증하지 않는다.
+합성 이상 탐지 plot은 handoff용으로 작성한 결정적 fixture를 현재 detector와 동일한 feature 계산에 입력한 동작 예시이다. 기준 세션에는 요일 변화와 완만한 감소를 모사한 값이 포함되며 관측 자료로 해석할 수 없다. score는 위험 확률이 아니며 accuracy, sensitivity, specificity 또는 임상적 위험도로 표현할 수 없다. 회상요법 문헌은 설계 배경이며 이 프로토타입의 치매 예방·치료 효과를 입증하지 않는다.
 
 ## 편집 전 확인
 

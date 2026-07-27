@@ -1,0 +1,23 @@
+[
+  {"session": 1, "role": "baseline", "day_offset": 0, "user_turn_count": 5, "total_utterance_chars": 104, "average_turn_duration_seconds": 8.4, "no_response_count": 0},
+  {"session": 2, "role": "baseline", "day_offset": 1, "user_turn_count": 5, "total_utterance_chars": 98, "average_turn_duration_seconds": 7.9, "no_response_count": 0},
+  {"session": 3, "role": "baseline", "day_offset": 2, "user_turn_count": 7, "total_utterance_chars": 151, "average_turn_duration_seconds": 9.2, "no_response_count": 0},
+  {"session": 4, "role": "baseline", "day_offset": 3, "user_turn_count": 7, "total_utterance_chars": 158, "average_turn_duration_seconds": 9.4, "no_response_count": 0},
+  {"session": 5, "role": "baseline", "day_offset": 4, "user_turn_count": 4, "total_utterance_chars": 75, "average_turn_duration_seconds": 7.5, "no_response_count": 1},
+  {"session": 6, "role": "baseline", "day_offset": 5, "user_turn_count": 5, "total_utterance_chars": 102, "average_turn_duration_seconds": 8.0, "no_response_count": 0},
+  {"session": 7, "role": "baseline", "day_offset": 6, "user_turn_count": 5, "total_utterance_chars": 93, "average_turn_duration_seconds": 7.8, "no_response_count": 0},
+  {"session": 8, "role": "baseline", "day_offset": 7, "user_turn_count": 5, "total_utterance_chars": 107, "average_turn_duration_seconds": 8.1, "no_response_count": 0},
+  {"session": 9, "role": "baseline", "day_offset": 8, "user_turn_count": 5, "total_utterance_chars": 99, "average_turn_duration_seconds": 7.9, "no_response_count": 0},
+  {"session": 10, "role": "baseline", "day_offset": 9, "user_turn_count": 7, "total_utterance_chars": 149, "average_turn_duration_seconds": 9.1, "no_response_count": 0},
+  {"session": 11, "role": "baseline", "day_offset": 10, "user_turn_count": 6, "total_utterance_chars": 130, "average_turn_duration_seconds": 8.8, "no_response_count": 0},
+  {"session": 12, "role": "baseline", "day_offset": 11, "user_turn_count": 4, "total_utterance_chars": 74, "average_turn_duration_seconds": 7.3, "no_response_count": 1},
+  {"session": 13, "role": "baseline", "day_offset": 12, "user_turn_count": 5, "total_utterance_chars": 101, "average_turn_duration_seconds": 7.8, "no_response_count": 0},
+  {"session": 14, "role": "baseline", "day_offset": 13, "user_turn_count": 4, "total_utterance_chars": 78, "average_turn_duration_seconds": 7.4, "no_response_count": 0},
+  {"session": 15, "role": "baseline", "day_offset": 14, "user_turn_count": 5, "total_utterance_chars": 96, "average_turn_duration_seconds": 7.7, "no_response_count": 0},
+  {"session": 16, "role": "baseline", "day_offset": 15, "user_turn_count": 4, "total_utterance_chars": 73, "average_turn_duration_seconds": 7.2, "no_response_count": 1},
+  {"session": 17, "role": "baseline", "day_offset": 16, "user_turn_count": 6, "total_utterance_chars": 124, "average_turn_duration_seconds": 8.5, "no_response_count": 0},
+  {"session": 18, "role": "baseline", "day_offset": 17, "user_turn_count": 5, "total_utterance_chars": 101, "average_turn_duration_seconds": 8.0, "no_response_count": 0},
+  {"session": 19, "role": "baseline", "day_offset": 18, "user_turn_count": 3, "total_utterance_chars": 53, "average_turn_duration_seconds": 6.7, "no_response_count": 1},
+  {"session": 20, "role": "baseline", "day_offset": 19, "user_turn_count": 4, "total_utterance_chars": 70, "average_turn_duration_seconds": 7.0, "no_response_count": 1},
+  {"session": 21, "role": "current", "day_offset": 20, "user_turn_count": 2, "total_utterance_chars": 31, "average_turn_duration_seconds": 5.4, "no_response_count": 2}
+]

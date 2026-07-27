@@ -546,22 +546,36 @@ function panelPlot({
   }));
 
   const points = values.map((value, index) => [sx(index + 1), sy(value)]);
-  parts.push(polyline(points, { stroke: palette.blue, strokeWidth: 4 }));
-  for (let index = 0; index < points.length - 1; index += 1) {
+  const baselinePoints = points.slice(0, -1);
+  parts.push(polyline(baselinePoints, { stroke: palette.muted, strokeWidth: 4 }));
+  for (let index = 0; index < baselinePoints.length; index += 1) {
     const [px, py] = points[index];
-    parts.push(circle(px, py, 4.5, { fill: palette.white, stroke: palette.blue, strokeWidth: 2 }));
+    parts.push(circle(px, py, 4.5, {
+      fill: palette.white,
+      stroke: palette.muted,
+      strokeWidth: 2,
+    }));
   }
+  parts.push(polyline(points.slice(-2), {
+    stroke: palette.blue,
+    strokeWidth: 4,
+    dash: "7 5",
+  }));
   const [lastX, lastY] = points.at(-1);
-  parts.push(diamond(lastX, lastY, 9, { fill: palette.gold, stroke: palette.blueDark, strokeWidth: 2 }));
+  parts.push(diamond(lastX, lastY, 9, {
+    fill: palette.blue,
+    stroke: palette.blueDark,
+    strokeWidth: 2,
+  }));
   parts.push(text(lastX - 12, Math.max(plotY + 18, lastY - 15), `${values.at(-1)}`, 18, {
     anchor: "end",
-    fill: palette.gold,
+    fill: palette.blue,
     weight: 500,
   }));
-  parts.push(text(plotX + 12, plotY + 22, "기준 S1–S20", 15, { fill: palette.blueDark }));
+  parts.push(text(plotX + 12, plotY + 22, "기준 S1–S20", 15, { fill: palette.muted }));
   parts.push(text(plotX + plotWidth - 8, plotY + 22, "현재", 15, {
     anchor: "end",
-    fill: palette.gold,
+    fill: palette.blue,
   }));
 
   return parts.join("\n");
@@ -574,7 +588,7 @@ function figureSyntheticReplay() {
     text(
       70,
       105,
-      "20 baseline sessions + 1 current session · tests/anomaly/test_detector.py fixture 재현",
+      "20 baseline sessions + 1 current session · 요일 변화와 완만한 추세를 포함한 합성 replay",
       22,
       { fill: palette.muted },
     ),
@@ -586,9 +600,21 @@ function figureSyntheticReplay() {
     weight: 500,
   }));
 
-  const recentTurns = [5, 10, 15, 20, 25, 30, ...Array(14).fill(35), 30];
-  const chars = [...Array(20).fill(100), 0];
-  const noResponse = [...Array(20).fill(0), 5];
+  const fixture = JSON.parse(
+    fs.readFileSync(
+      path.join(ROOT, "source", "synthetic_anomaly_fixture.json"),
+      "utf8",
+    ),
+  );
+  const recentTurns = fixture.map((row, index) => {
+    const currentDay = row.day_offset;
+    return fixture
+      .slice(0, index + 1)
+      .filter((candidate) => candidate.day_offset > currentDay - 7)
+      .reduce((sum, candidate) => sum + candidate.user_turn_count, 0);
+  });
+  const chars = fixture.map((row) => row.total_utterance_chars);
+  const noResponse = fixture.map((row) => row.no_response_count);
   body.push(panelPlot({
     x: 60,
     y: 220,
@@ -597,7 +623,7 @@ function figureSyntheticReplay() {
     title: "최근 7일 사용자 턴 수",
     unit: "회",
     values: recentTurns,
-    maxValue: 40,
+    maxValue: 42,
     ticks: [0, 10, 20, 30, 40],
   }));
   body.push(panelPlot({
@@ -608,8 +634,8 @@ function figureSyntheticReplay() {
     title: "세션 총 발화 글자 수",
     unit: "공백 제외 글자",
     values: chars,
-    maxValue: 120,
-    ticks: [0, 30, 60, 90, 120],
+    maxValue: 180,
+    ticks: [0, 50, 100, 150],
   }));
   body.push(panelPlot({
     x: 1076,
@@ -619,8 +645,8 @@ function figureSyntheticReplay() {
     title: "세션 무응답 횟수",
     unit: "회",
     values: noResponse,
-    maxValue: 6,
-    ticks: [0, 2, 4, 6],
+    maxValue: 4,
+    ticks: [0, 1, 2, 3, 4],
   }));
 
   const strip = [
@@ -651,7 +677,7 @@ function figureSyntheticReplay() {
     }
   }
 
-  body.push(text(70, 838, "Domain detector 결과: ANOMALOUS · decision function: -0.001109", 19, {
+  body.push(text(70, 838, "Domain detector 결과: ANOMALOUS · decision function: -0.048242", 19, {
     fill: palette.blueDark,
   }));
   body.push(text(1530, 838, "score는 확률·위험도·중증도가 아님", 19, {
