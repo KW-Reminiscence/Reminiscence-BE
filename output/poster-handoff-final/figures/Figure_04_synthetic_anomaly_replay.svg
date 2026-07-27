@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,7 L8,3.5 z" fill="#214A70"/>
+    </marker>
+  </defs>
+  <rect width="1600" height="900" fill="#FFFFFF"/>
+  <text x="70" y="65" fill="#1F2933" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="44" font-weight="500" text-anchor="start" letter-spacing="0">합성 입력에 대한 이상 탐지 동작 예시</text>
+<text x="70" y="105" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="400" text-anchor="start" letter-spacing="0">20 baseline sessions + 1 current session · tests/anomaly/test_detector.py fixture 재현</text>
+<rect x="70" y="130" width="1460" height="54" rx="8" fill="#F7ECD4" stroke="none" stroke-width="0"/>
+<text x="800" y="165" fill="#B07A1B" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">합성 테스트 fixture · 사용자 및 임상 데이터 아님 · 모델 성능 평가가 아닌 동작 검증</text>
+<rect x="60" y="220" width="465" height="390" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
+<text x="80" y="254" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">최근 7일 사용자 턴 수</text>
+<text x="505" y="254" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="end" letter-spacing="0">회</text>
+<rect x="114" y="280" width="375.65" height="276" fill="#F3F8FC" stroke="none"/>
+<rect x="489.65" y="280" width="11.350000000000023" height="276" fill="#F7ECD4" stroke="none"/>
+<line x1="114" y1="556" x2="501" y2="556" stroke="#E2E7EC" stroke-width="1"/>
+<text x="104" y="562" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">0</text>
+<line x1="114" y1="487" x2="501" y2="487" stroke="#E2E7EC" stroke-width="1"/>
+<text x="104" y="493" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">10</text>
+<line x1="114" y1="418" x2="501" y2="418" stroke="#E2E7EC" stroke-width="1"/>
+<text x="104" y="424" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">20</text>
+<line x1="114" y1="349" x2="501" y2="349" stroke="#E2E7EC" stroke-width="1"/>
+<text x="104" y="355" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">30</text>
+<line x1="114" y1="280" x2="501" y2="280" stroke="#E2E7EC" stroke-width="1"/>
+<text x="104" y="286" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">40</text>
+<line x1="114" y1="280" x2="114" y2="556" stroke="#B8C1CA" stroke-width="2"/>
+<line x1="114" y1="556" x2="501" y2="556" stroke="#B8C1CA" stroke-width="2"/>
+<line x1="114" y1="556" x2="114" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="114" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S1</text>
+<line x1="191.4" y1="556" x2="191.4" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="191.4" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S5</text>
+<line x1="288.15" y1="556" x2="288.15" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="288.15" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S10</text>
+<line x1="384.9" y1="556" x2="384.9" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="384.9" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S15</text>
+<line x1="501" y1="556" x2="501" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="501" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S21</text>
+<line x1="501" y1="280" x2="501" y2="556" stroke="#B07A1B" stroke-width="2" stroke-dasharray="7 6"/>
+<polyline points="114,521.5 133.35,487 152.7,452.5 172.05,418 191.4,383.5 210.75,349 230.1,314.5 249.45,314.5 268.8,314.5 288.15,314.5 307.5,314.5 326.85,314.5 346.2,314.5 365.55,314.5 384.9,314.5 404.25,314.5 423.6,314.5 442.95,314.5 462.3,314.5 481.65,314.5 501,349" fill="none" stroke="#2D6294" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="114" cy="521.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="133.35" cy="487" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="152.7" cy="452.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="172.05" cy="418" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="191.4" cy="383.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="210.75" cy="349" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="230.1" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="249.45" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="268.8" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="288.15" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="307.5" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="326.85" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="346.2" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="365.55" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="384.9" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="404.25" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="423.6" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="442.95" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="462.3" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="481.65" cy="314.5" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<polygon points="501,340 510,349 501,358 492,349" fill="#B07A1B" stroke="#214A70" stroke-width="2"/>
+<text x="489" y="334" fill="#B07A1B" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="500" text-anchor="end" letter-spacing="0">30</text>
+<text x="126" y="302" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="start" letter-spacing="0">기준 S1–S20</text>
+<text x="493" y="302" fill="#B07A1B" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">현재</text>
+<rect x="568" y="220" width="465" height="390" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
+<text x="588" y="254" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">세션 총 발화 글자 수</text>
+<text x="1013" y="254" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="end" letter-spacing="0">공백 제외 글자</text>
+<rect x="622" y="280" width="375.65" height="276" fill="#F3F8FC" stroke="none"/>
+<rect x="997.65" y="280" width="11.350000000000023" height="276" fill="#F7ECD4" stroke="none"/>
+<line x1="622" y1="556" x2="1009" y2="556" stroke="#E2E7EC" stroke-width="1"/>
+<text x="612" y="562" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">0</text>
+<line x1="622" y1="487" x2="1009" y2="487" stroke="#E2E7EC" stroke-width="1"/>
+<text x="612" y="493" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">30</text>
+<line x1="622" y1="418" x2="1009" y2="418" stroke="#E2E7EC" stroke-width="1"/>
+<text x="612" y="424" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">60</text>
+<line x1="622" y1="349" x2="1009" y2="349" stroke="#E2E7EC" stroke-width="1"/>
+<text x="612" y="355" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">90</text>
+<line x1="622" y1="280" x2="1009" y2="280" stroke="#E2E7EC" stroke-width="1"/>
+<text x="612" y="286" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">120</text>
+<line x1="622" y1="280" x2="622" y2="556" stroke="#B8C1CA" stroke-width="2"/>
+<line x1="622" y1="556" x2="1009" y2="556" stroke="#B8C1CA" stroke-width="2"/>
+<line x1="622" y1="556" x2="622" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="622" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S1</text>
+<line x1="699.4" y1="556" x2="699.4" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="699.4" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S5</text>
+<line x1="796.15" y1="556" x2="796.15" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="796.15" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S10</text>
+<line x1="892.9" y1="556" x2="892.9" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="892.9" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S15</text>
+<line x1="1009" y1="556" x2="1009" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="1009" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S21</text>
+<line x1="1009" y1="280" x2="1009" y2="556" stroke="#B07A1B" stroke-width="2" stroke-dasharray="7 6"/>
+<polyline points="622,326 641.35,326 660.7,326 680.05,326 699.4,326 718.75,326 738.1,326 757.45,326 776.8,326 796.15,326 815.5,326 834.85,326 854.2,326 873.55,326 892.9,326 912.25,326 931.6,326 950.95,326 970.3,326 989.65,326 1009,556" fill="none" stroke="#2D6294" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="622" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="641.35" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="660.7" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="680.05" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="699.4" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="718.75" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="738.1" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="757.45" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="776.8" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="796.15" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="815.5" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="834.85" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="854.2" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="873.55" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="892.9" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="912.25" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="931.6" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="950.95" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="970.3" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="989.65" cy="326" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<polygon points="1009,547 1018,556 1009,565 1000,556" fill="#B07A1B" stroke="#214A70" stroke-width="2"/>
+<text x="997" y="541" fill="#B07A1B" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="500" text-anchor="end" letter-spacing="0">0</text>
+<text x="634" y="302" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="start" letter-spacing="0">기준 S1–S20</text>
+<text x="1001" y="302" fill="#B07A1B" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">현재</text>
+<rect x="1076" y="220" width="465" height="390" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
+<text x="1096" y="254" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">세션 무응답 횟수</text>
+<text x="1521" y="254" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="end" letter-spacing="0">회</text>
+<rect x="1130" y="280" width="375.6500000000001" height="276" fill="#F3F8FC" stroke="none"/>
+<rect x="1505.65" y="280" width="11.349999999999909" height="276" fill="#F7ECD4" stroke="none"/>
+<line x1="1130" y1="556" x2="1517" y2="556" stroke="#E2E7EC" stroke-width="1"/>
+<text x="1120" y="562" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">0</text>
+<line x1="1130" y1="464" x2="1517" y2="464" stroke="#E2E7EC" stroke-width="1"/>
+<text x="1120" y="470" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">2</text>
+<line x1="1130" y1="372" x2="1517" y2="372" stroke="#E2E7EC" stroke-width="1"/>
+<text x="1120" y="378" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">4</text>
+<line x1="1130" y1="280" x2="1517" y2="280" stroke="#E2E7EC" stroke-width="1"/>
+<text x="1120" y="286" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">6</text>
+<line x1="1130" y1="280" x2="1130" y2="556" stroke="#B8C1CA" stroke-width="2"/>
+<line x1="1130" y1="556" x2="1517" y2="556" stroke="#B8C1CA" stroke-width="2"/>
+<line x1="1130" y1="556" x2="1130" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="1130" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S1</text>
+<line x1="1207.4" y1="556" x2="1207.4" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="1207.4" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S5</text>
+<line x1="1304.15" y1="556" x2="1304.15" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="1304.15" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S10</text>
+<line x1="1400.9" y1="556" x2="1400.9" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="1400.9" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S15</text>
+<line x1="1517" y1="556" x2="1517" y2="563" stroke="#B8C1CA" stroke-width="1"/>
+<text x="1517" y="583" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="14" font-weight="400" text-anchor="middle" letter-spacing="0">S21</text>
+<line x1="1517" y1="280" x2="1517" y2="556" stroke="#B07A1B" stroke-width="2" stroke-dasharray="7 6"/>
+<polyline points="1130,556 1149.35,556 1168.7,556 1188.05,556 1207.4,556 1226.75,556 1246.1,556 1265.45,556 1284.8,556 1304.15,556 1323.5,556 1342.85,556 1362.2,556 1381.55,556 1400.9,556 1420.25,556 1439.6,556 1458.95,556 1478.3,556 1497.65,556 1517,326" fill="none" stroke="#2D6294" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1130" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1149.35" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1168.7" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1188.05" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1207.4" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1226.75" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1246.1" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1265.45" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1284.8" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1304.15" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1323.5" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1342.85" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1362.2" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1381.55" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1400.9" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1420.25" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1439.6" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1458.95" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1478.3" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<circle cx="1497.65" cy="556" r="4.5" fill="#FFFFFF" stroke="#2D6294" stroke-width="2"/>
+<polygon points="1517,317 1526,326 1517,335 1508,326" fill="#B07A1B" stroke="#214A70" stroke-width="2"/>
+<text x="1505" y="311" fill="#B07A1B" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="500" text-anchor="end" letter-spacing="0">5</text>
+<text x="1142" y="302" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="start" letter-spacing="0">기준 S1–S20</text>
+<text x="1509" y="302" fill="#B07A1B" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">현재</text>
+<rect x="95" y="675" width="260" height="105" rx="12" fill="#F6F8FA" stroke="#B8C1CA" stroke-width="2"/>
+<text x="225" y="706" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">평가 1</text>
+<text x="225" y="738" fill="#1F2933" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">후보 1</text>
+<text x="225" y="766" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">공개 NORMAL</text>
+<line x1="355" y1="728" x2="437" y2="728" stroke="#214A70" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="445" y="675" width="260" height="105" rx="12" fill="#F6F8FA" stroke="#B8C1CA" stroke-width="2"/>
+<text x="575" y="706" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">평가 2</text>
+<text x="575" y="738" fill="#1F2933" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">후보 2</text>
+<text x="575" y="766" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">공개 NORMAL</text>
+<line x1="705" y1="728" x2="787" y2="728" stroke="#214A70" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="795" y="675" width="260" height="105" rx="12" fill="#F7ECD4" stroke="#B07A1B" stroke-width="2"/>
+<text x="925" y="706" fill="#B07A1B" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">평가 3</text>
+<text x="925" y="738" fill="#1F2933" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">후보 3</text>
+<text x="925" y="766" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">공개 ANOMALOUS</text>
+<line x1="1055" y1="728" x2="1137" y2="728" stroke="#214A70" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="1145" y="675" width="260" height="105" rx="12" fill="#F7ECD4" stroke="#B07A1B" stroke-width="2"/>
+<text x="1275" y="706" fill="#B07A1B" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">알림</text>
+<text x="1275" y="738" fill="#1F2933" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">episode claim</text>
+<text x="1275" y="766" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">이메일 1회 시도</text>
+<text x="70" y="838" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="start" letter-spacing="0">Domain detector 결과: ANOMALOUS · decision function: -0.001109</text>
+<text x="1530" y="838" fill="#B07A1B" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="end" letter-spacing="0">score는 확률·위험도·중증도가 아님</text>
+<text x="70" y="872" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="start" letter-spacing="0">StandardScaler → Isolation Forest · 100 trees · contamination 0.1 · random state 42 · constant-feature shift guard 포함</text>
+</svg>

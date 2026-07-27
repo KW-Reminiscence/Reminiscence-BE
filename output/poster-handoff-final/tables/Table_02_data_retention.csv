@@ -1,0 +1,10 @@
+데이터,처리 경로,Reminiscence 로컬 보존
+사용자 WAV,"태블릿, Raspberry Pi 메모리, codex-lb",보존하지 않음
+전사 text와 provider 응답,codex-lb에서 Raspberry Pi 메모리,보존하지 않음
+대화 턴 지표,Raspberry Pi metric reducer,activity_metrics.json
+루틴 상태와 확인 지연,Raspberry Pi state machine,activity_metrics.json
+설정된 사진 URL과 루틴,로컬 구성 파일,configuration.json
+최신 이상 상태와 근거,Raspberry Pi anomaly service,personal_state.json
+합성 요청 text와 WAV,"Raspberry Pi Supertonic 3, 태블릿",TTS 계층에서 보존하지 않음
+알림 시도 표식,Raspberry Pi notification coordinator,notification_state.json
+이메일 본문,"Raspberry Pi, SMTP, 보호자",발송 이력으로 보존하지 않음
