@@ -1,4 +1,4 @@
-"""Convert audio files to the ETRI ASR required format (16kHz, mono, 16-bit PCM WAV).
+"""Convert audio files to the ASR target format (16kHz, mono, 16-bit PCM WAV).
 
 Uses soundfile + scipy only (no ffmpeg): the project's audio sources (AI Hub
 datasets, team members' laptop mic recordings, Raspberry Pi mic input) are all
@@ -104,7 +104,7 @@ def _resample(audio: NDArray[np.float64], orig_sr: int, target_sr: int) -> NDArr
 
 
 def convert_to_etri_format(input_path: str | Path, output_path: str | Path | None = None) -> Path:
-    """Convert an input audio file to the ETRI-required format (16kHz, mono, 16-bit PCM WAV).
+    """Convert an input audio file to the ASR target format (16kHz, mono, 16-bit PCM WAV).
 
     Args:
         input_path: Source audio file (wav, flac, ogg, or another libsndfile-supported format).

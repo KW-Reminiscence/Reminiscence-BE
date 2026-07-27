@@ -1,4 +1,4 @@
-"""ETRI ASR runtime boundary and opt-in baseline evaluation tools."""
+"""ASR runtime boundary with codex-lb and opt-in ETRI baseline tools."""
 
 from reminiscence.asr.audio_utils import (
     analyze_audio,

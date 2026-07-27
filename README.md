@@ -69,10 +69,16 @@ routine을 삭제해도 기존 응답 창은 변하지 않습니다. 같은 요�
 
 회상 대화 ASR을 사용하려면 `deploy/runtime.env.example`의 항목을 실제
 환경변수로 설정합니다. 태블릿은 `audio/wav`를 전송해야 합니다. 서버는
-ETRI 응답의 transcript를 글자 수와 시간 지표로 즉시 축약하며, 음성·transcript·
-provider 원문 응답은 파일에 저장하지 않습니다. WAV 요청은 최대 10 MiB이며
-초과한 본문은 FastAPI가 메모리에 적재하거나 ETRI를 호출하기 전에 `413`으로
-거부합니다.
+codex-lb의 OpenAI 호환 `POST /v1/audio/transcriptions`에 정규화한 WAV와 고정
+model `gpt-4o-transcribe`를 전송합니다. `CODEX_LB_BASE_URL`은 `/v1`까지 포함한
+URL이고 `CODEX_LB_API_KEY`에는 codex-lb proxy key를 설정합니다.
+
+codex-lb 응답의 `text`는 글자 수와 시간 지표로 즉시 축약하며,
+음성·transcript·provider 원문 응답은 파일에 저장하지 않습니다. WAV 요청은
+최대 10 MiB이며 초과한 본문은 FastAPI가 메모리에 적재하거나 codex-lb를
+호출하기 전에 `413`으로 거부합니다. 기존 ETRI client와 baseline 도구는
+오프라인 성능 비교용으로 유지하지만 Conversation API의 runtime provider로는
+사용하지 않습니다.
 
 서버는 질문마다 `display_text`와 `spoken_text`를 함께 반환합니다.
 태블릿은 `spoken_text`를 `POST /api/v1/tts/speech`에 전송하고 응답받은
@@ -186,10 +192,10 @@ notification-config.json은 mode 0600으로 배치
 runtime.env는 mode 0600으로 배치
 ```
 
-`runtime.env`에는 ETRI API key가, `notification-config.json`에는 SMTP App
-Password와 보호자 이메일이 있으므로 Git에 커밋하지 않습니다. 배포 시 `/data`와
-Supertonic model directory만 쓰기 가능한 bind mount로 연결되고 나머지 컨테이너
-파일 시스템은 읽기 전용으로 유지됩니다.
+`runtime.env`에는 codex-lb proxy key가, `notification-config.json`에는 SMTP
+App Password와 보호자 이메일이 있으므로 Git에 커밋하지 않습니다. 배포 시
+`/data`와 Supertonic model directory만 쓰기 가능한 bind mount로 연결되고
+나머지 컨테이너 파일 시스템은 읽기 전용으로 유지됩니다.
 
 API 프로세스는 태블릿 polling 여부와 관계없이 루틴 상태를 기본 5초마다
 전이하고 개인 이상 및 알림을 기본 60초마다 평가합니다. 두 간격은
