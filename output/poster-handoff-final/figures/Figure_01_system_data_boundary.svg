@@ -2,72 +2,72 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,7 L8,3.5 z" fill="#214A70"/>
+      <path d="M0,0 L0,7 L8,3.5 z" fill="#651000"/>
     </marker>
   </defs>
   <rect width="1600" height="900" fill="#FFFFFF"/>
-  <text x="70" y="72" fill="#1F2933" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="46" font-weight="500" text-anchor="start" letter-spacing="0">시스템과 데이터 경계</text>
-<text x="70" y="112" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="24" font-weight="400" text-anchor="start" letter-spacing="0">외부 전사는 일시 처리하고, 원본 대화 대신 축약 지표를 Raspberry Pi에 저장</text>
-<rect x="55" y="155" width="335" height="635" rx="18" fill="#F6F8FA" stroke="#B8C1CA" stroke-width="2"/>
-<rect x="450" y="135" width="720" height="675" rx="18" fill="#F3F8FC" stroke="#2D6294" stroke-width="2"/>
-<rect x="1235" y="155" width="310" height="635" rx="18" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2" stroke-dasharray="10 8"/>
-<rect x="75" y="175" width="295" height="44" rx="8" fill="#F3F8FC" stroke="none" stroke-width="0"/><text x="91" y="205" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">태블릿</text>
-<rect x="470" y="155" width="680" height="44" rx="8" fill="#F3F8FC" stroke="none" stroke-width="0"/><text x="486" y="185" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">Raspberry Pi · Reminiscence API</text>
-<rect x="1255" y="175" width="270" height="44" rx="8" fill="#F3F8FC" stroke="none" stroke-width="0"/><text x="1271" y="205" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">설정된 네트워크 서비스</text>
-<polyline points="355,315 480,315" fill="none" stroke="#214A70" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
-<polyline points="620,245 620,215 1270,215 1270,285" fill="none" stroke="#214A70" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
-<polyline points="1270,355 1120,355" fill="none" stroke="#214A70" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
-<polyline points="1120,315 1150,315 1150,660 1120,660" fill="none" stroke="#2D6294" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<polyline points="760,500 840,500" fill="none" stroke="#2D6294" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<polyline points="840,545 805,545 805,580 410,580 410,500 355,500" fill="none" stroke="#2D6294" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<polyline points="355,685 480,685" fill="none" stroke="#2D6294" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<polyline points="760,685 840,685" fill="none" stroke="#2D6294" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<polyline points="1120,705 1270,705" fill="none" stroke="#2D6294" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<rect x="90" y="250" width="265" height="130" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
-<text x="222.5" y="292" fill="#1F2933" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="24" font-weight="500" text-anchor="middle" letter-spacing="0">마이크 입력</text>
-<text x="222.5" y="329" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle"><tspan x="222.5" dy="0">WAV ≤ 10 MiB</tspan><tspan x="222.5" dy="28">회상 대화 턴</tspan></text>
-<rect x="90" y="435" width="265" height="130" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
-<text x="222.5" y="477" fill="#1F2933" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="24" font-weight="500" text-anchor="middle" letter-spacing="0">화면 · 스피커</text>
-<text x="222.5" y="514" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle"><tspan x="222.5" dy="0">가족사진과 안내</tspan><tspan x="222.5" dy="28">합성 WAV 재생</tspan></text>
-<rect x="90" y="620" width="265" height="130" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
-<text x="222.5" y="662" fill="#1F2933" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="24" font-weight="500" text-anchor="middle" letter-spacing="0">루틴 입력</text>
-<text x="222.5" y="699" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle"><tspan x="222.5" dy="0">큰 기록 버튼</tspan><tspan x="222.5" dy="28">실제 수행 후 확인</tspan></text>
-<rect x="480" y="245" width="280" height="130" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
-<text x="498" y="282" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">WAV 검증·정규화</text>
-<text x="498" y="320" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="498" dy="0">16 kHz · mono</tspan><tspan x="498" dy="28">PCM 16-bit · 메모리 처리</tspan></text>
-<rect x="840" y="245" width="280" height="130" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
-<text x="858" y="282" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">대화 지표 축약</text>
-<text x="858" y="320" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="858" dy="0">text → 글자 수·시간</tspan><tspan x="858" dy="28">무응답·ASR 처리 지표</tspan></text>
-<rect x="480" y="435" width="280" height="130" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
-<text x="498" y="472" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">안전한 고정형 질문</text>
-<text x="498" y="510" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="498" dy="0">사진 사실을 단정하지 않는</tspan><tspan x="498" dy="28">열린 질문 template</tspan></text>
-<rect x="840" y="435" width="280" height="130" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
-<text x="858" y="472" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">Supertonic 3</text>
-<text x="858" y="510" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="858" dy="0">한국어 · F1 · speed 0.9</tspan><tspan x="858" dy="28">로컬 PCM 16-bit WAV</tspan></text>
-<rect x="480" y="620" width="280" height="130" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
-<text x="498" y="657" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">루틴 상태 머신</text>
-<text x="498" y="695" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="498" dy="0">REMINDING · CONFIRMED</tspan><tspan x="498" dy="28">NOT_ANSWERED</tspan></text>
-<rect x="840" y="600" width="280" height="170" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
-<text x="858" y="637" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">로컬 JSON·변화 평가</text>
-<text x="858" y="675" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="858" dy="0">설정·활동 지표·최신 상태</tspan><tspan x="858" dy="28">루틴·대화 별도 모델</tspan><tspan x="858" dy="28">3회 연속 후보 확인</tspan></text>
-<rect x="1270" y="250" width="240" height="145" rx="12" fill="#F7ECD4" stroke="#B07A1B" stroke-width="2"/>
-<text x="1390" y="293" fill="#1F2933" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="26" font-weight="500" text-anchor="middle" letter-spacing="0">codex-lb</text>
-<text x="1390" y="334" fill="#1F2933" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle"><tspan x="1390" dy="0">POST /v1/audio/transcriptions</tspan><tspan x="1390" dy="28">model: gpt-4o-transcribe</tspan></text>
-<rect x="1270" y="640" width="240" height="130" rx="12" fill="#FFFFFF" stroke="#B8C1CA" stroke-width="2"/>
-<text x="1390" y="682" fill="#1F2933" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="26" font-weight="400" text-anchor="middle" letter-spacing="0">SMTP</text>
-<text x="1390" y="720" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle"><tspan x="1390" dy="0">관찰 근거 이메일</tspan><tspan x="1390" dy="28">episode당 1회 시도</tspan></text>
-<text x="414" y="300" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">WAV</text>
-<text x="950" y="203" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">정규화 WAV · 일시 처리</text>
-<text x="1195" y="342" fill="#214A70" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">text</text>
-<text x="1142" y="500" fill="#2D6294" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="end" letter-spacing="0">축약 지표</text>
-<text x="800" y="487" fill="#2D6294" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">spoken text</text>
-<text x="610" y="570" fill="#2D6294" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">합성 WAV</text>
-<text x="410" y="674" fill="#2D6294" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">확인</text>
-<text x="800" y="674" fill="#2D6294" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">루틴 지표</text>
-<text x="1195" y="694" fill="#2D6294" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">확정 상태와 근거</text>
-<line x1="70" y1="835" x2="165" y2="835" stroke="#2D6294" stroke-width="4"/>
-<text x="180" y="842" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="start" letter-spacing="0">로컬 저장 또는 장치 내 처리</text>
-<line x1="520" y1="835" x2="615" y2="835" stroke="#214A70" stroke-width="4" stroke-dasharray="10 8"/>
-<text x="630" y="842" fill="#66727E" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="start" letter-spacing="0">네트워크·메모리에서 일시 처리</text>
-<text x="1530" y="842" fill="#B07A1B" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="end" letter-spacing="0">WAV·전사문은 Reminiscence 로컬 저장소에 비보존</text>
+  <text x="70" y="72" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="46" font-weight="500" text-anchor="start" letter-spacing="0">시스템과 데이터 경계</text>
+<text x="70" y="112" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="24" font-weight="400" text-anchor="start" letter-spacing="0">외부 전사는 일시 처리하고, 원본 대화 대신 축약 지표를 Raspberry Pi에 저장</text>
+<rect x="55" y="155" width="335" height="635" rx="18" fill="#F6F3F2" stroke="#C8B8B4" stroke-width="2"/>
+<rect x="450" y="135" width="720" height="675" rx="18" fill="#F8EDEA" stroke="#8A1601" stroke-width="2"/>
+<rect x="1235" y="155" width="310" height="635" rx="18" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2" stroke-dasharray="10 8"/>
+<rect x="75" y="175" width="295" height="44" rx="8" fill="#F8EDEA" stroke="none" stroke-width="0"/><text x="91" y="205" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">태블릿</text>
+<rect x="470" y="155" width="680" height="44" rx="8" fill="#F8EDEA" stroke="none" stroke-width="0"/><text x="486" y="185" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">Raspberry Pi · Reminiscence API</text>
+<rect x="1255" y="175" width="270" height="44" rx="8" fill="#F8EDEA" stroke="none" stroke-width="0"/><text x="1271" y="205" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">설정된 네트워크 서비스</text>
+<polyline points="355,315 480,315" fill="none" stroke="#651000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<polyline points="620,245 620,215 1270,215 1270,285" fill="none" stroke="#651000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<polyline points="1270,355 1120,355" fill="none" stroke="#651000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<polyline points="1120,315 1150,315 1150,660 1120,660" fill="none" stroke="#8A1601" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="760,500 840,500" fill="none" stroke="#8A1601" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="840,545 805,545 805,580 410,580 410,500 355,500" fill="none" stroke="#8A1601" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="355,685 480,685" fill="none" stroke="#8A1601" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="760,685 840,685" fill="none" stroke="#8A1601" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="1120,705 1270,705" fill="none" stroke="#8A1601" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="90" y="250" width="265" height="130" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
+<text x="222.5" y="292" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="24" font-weight="500" text-anchor="middle" letter-spacing="0">마이크 입력</text>
+<text x="222.5" y="329" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle"><tspan x="222.5" dy="0">WAV ≤ 10 MiB</tspan><tspan x="222.5" dy="28">회상 대화 턴</tspan></text>
+<rect x="90" y="435" width="265" height="130" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
+<text x="222.5" y="477" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="24" font-weight="500" text-anchor="middle" letter-spacing="0">화면 · 스피커</text>
+<text x="222.5" y="514" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle"><tspan x="222.5" dy="0">가족사진과 안내</tspan><tspan x="222.5" dy="28">합성 WAV 재생</tspan></text>
+<rect x="90" y="620" width="265" height="130" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
+<text x="222.5" y="662" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="24" font-weight="500" text-anchor="middle" letter-spacing="0">루틴 입력</text>
+<text x="222.5" y="699" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle"><tspan x="222.5" dy="0">큰 기록 버튼</tspan><tspan x="222.5" dy="28">실제 수행 후 확인</tspan></text>
+<rect x="480" y="245" width="280" height="130" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
+<text x="498" y="282" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">WAV 검증·정규화</text>
+<text x="498" y="320" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="498" dy="0">16 kHz · mono</tspan><tspan x="498" dy="28">PCM 16-bit · 메모리 처리</tspan></text>
+<rect x="840" y="245" width="280" height="130" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
+<text x="858" y="282" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">대화 지표 축약</text>
+<text x="858" y="320" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="858" dy="0">text → 글자 수·시간</tspan><tspan x="858" dy="28">무응답·ASR 처리 지표</tspan></text>
+<rect x="480" y="435" width="280" height="130" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
+<text x="498" y="472" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">안전한 고정형 질문</text>
+<text x="498" y="510" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="498" dy="0">사진 사실을 단정하지 않는</tspan><tspan x="498" dy="28">열린 질문 template</tspan></text>
+<rect x="840" y="435" width="280" height="130" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
+<text x="858" y="472" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">Supertonic 3</text>
+<text x="858" y="510" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="858" dy="0">한국어 · F1 · speed 0.9</tspan><tspan x="858" dy="28">로컬 PCM 16-bit WAV</tspan></text>
+<rect x="480" y="620" width="280" height="130" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
+<text x="498" y="657" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">루틴 상태 머신</text>
+<text x="498" y="695" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="498" dy="0">REMINDING · CONFIRMED</tspan><tspan x="498" dy="28">NOT_ANSWERED</tspan></text>
+<rect x="840" y="600" width="280" height="170" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
+<text x="858" y="637" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">로컬 JSON·변화 평가</text>
+<text x="858" y="675" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="858" dy="0">설정·활동 지표·최신 상태</tspan><tspan x="858" dy="28">루틴·대화 별도 모델</tspan><tspan x="858" dy="28">3회 연속 후보 확인</tspan></text>
+<rect x="1270" y="250" width="240" height="145" rx="12" fill="#F3D7D1" stroke="#B64E38" stroke-width="2"/>
+<text x="1390" y="293" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="26" font-weight="500" text-anchor="middle" letter-spacing="0">codex-lb</text>
+<text x="1390" y="334" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle"><tspan x="1390" dy="0">POST /v1/audio/transcriptions</tspan><tspan x="1390" dy="28">model: gpt-4o-transcribe</tspan></text>
+<rect x="1270" y="640" width="240" height="130" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
+<text x="1390" y="682" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="26" font-weight="400" text-anchor="middle" letter-spacing="0">SMTP</text>
+<text x="1390" y="720" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle"><tspan x="1390" dy="0">관찰 근거 이메일</tspan><tspan x="1390" dy="28">episode당 1회 시도</tspan></text>
+<text x="414" y="300" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">WAV</text>
+<text x="950" y="203" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">정규화 WAV · 일시 처리</text>
+<text x="1195" y="342" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">text</text>
+<text x="1142" y="500" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="end" letter-spacing="0">축약 지표</text>
+<text x="800" y="487" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">spoken text</text>
+<text x="610" y="570" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">합성 WAV</text>
+<text x="410" y="674" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">확인</text>
+<text x="800" y="674" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">루틴 지표</text>
+<text x="1195" y="694" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">확정 상태와 근거</text>
+<line x1="70" y1="835" x2="165" y2="835" stroke="#8A1601" stroke-width="4"/>
+<text x="180" y="842" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="start" letter-spacing="0">로컬 저장 또는 장치 내 처리</text>
+<line x1="520" y1="835" x2="615" y2="835" stroke="#651000" stroke-width="4" stroke-dasharray="10 8"/>
+<text x="630" y="842" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="start" letter-spacing="0">네트워크·메모리에서 일시 처리</text>
+<text x="1530" y="842" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="end" letter-spacing="0">WAV·전사문은 Reminiscence 로컬 저장소에 비보존</text>
 </svg>

@@ -14,7 +14,7 @@ A1에는 codex-lb 기반 gpt-4o-transcribe 전사 경계, Supertonic 3 로컬 �
 
 ## figure 사용
 
-각 figure는 편집 가능한 SVG와 3200 px 폭의 PNG로 제공한다. PNG는 PowerPoint와 일반 편집 도구에 바로 삽입할 수 있고 SVG는 글자와 색, 간격을 수정할 때 사용한다. Figure 4의 합성 자료 표시는 제목, plot 내부 주석과 캡션에서 유지해야 한다.
+각 figure는 편집 가능한 SVG와 3200 px 폭의 PNG로 제공한다. PNG는 PowerPoint와 일반 편집 도구에 바로 삽입할 수 있고 SVG는 글자와 색, 간격을 수정할 때 사용한다. 네 figure의 비중립 색상은 #8A1601을 중심으로 한 단일 계열이며 상태는 색상과 선, 마커, 직접 라벨을 함께 사용해 구분한다. Figure 4의 합성 자료 표시는 제목, plot 내부 주석과 캡션에서 유지해야 한다.
 
 실제 사용자 UI와 실물 장치 사진은 현재 백엔드 저장소에 없다. assets의 FastAPI 화면은 실제 실행 화면이며, repository QR은 저장소 연결용이다. 프런트엔드 캡처나 실물 사진을 추가할 때에는 생성 시안과 실제 구현 화면을 구분해야 한다.
 

@@ -14,17 +14,17 @@ const FIGURE_DIR = path.join(ROOT, "figures");
 fs.mkdirSync(FIGURE_DIR, { recursive: true });
 
 const palette = {
-  ink: "#1F2933",
-  muted: "#66727E",
-  blue: "#2D6294",
-  blueDark: "#214A70",
-  blueLight: "#DDEAF4",
-  blueOpen: "#F3F8FC",
-  gold: "#B07A1B",
-  goldLight: "#F7ECD4",
-  line: "#B8C1CA",
-  grid: "#E2E7EC",
-  soft: "#F6F8FA",
+  ink: "#2F2523",
+  muted: "#6F625F",
+  blue: "#8A1601",
+  blueDark: "#651000",
+  blueLight: "#F3D7D1",
+  blueOpen: "#F8EDEA",
+  gold: "#B64E38",
+  goldLight: "#F3D7D1",
+  line: "#C8B8B4",
+  grid: "#E8DEDB",
+  soft: "#F6F3F2",
   white: "#FFFFFF",
 };
 
