@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from reminiscence.anomaly.api import router as anomaly_router
-from reminiscence.asr.etri import MAX_AUDIO_BYTES
+from reminiscence.asr.models import MAX_AUDIO_BYTES
 from reminiscence.conversation.api import router as conversation_router
 from reminiscence.health import router as health_router
 from reminiscence.notification.api import (

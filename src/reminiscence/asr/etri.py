@@ -17,13 +17,16 @@ from urllib.parse import urlsplit
 import urllib3
 
 from reminiscence.asr.audio_utils import normalize_wav_bytes
-from reminiscence.asr.models import RecognitionResult, RecognitionUnavailableError
+from reminiscence.asr.models import (
+    MAX_AUDIO_BYTES,
+    SUPPORTED_CONTENT_TYPES,
+    RecognitionResult,
+    RecognitionUnavailableError,
+)
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_API_URL = "http://epretx.etri.re.kr:8000/api/WiseASR_Recognition"
-MAX_AUDIO_BYTES = 10 * 1024 * 1024
-SUPPORTED_CONTENT_TYPES = frozenset({"audio/wav", "audio/x-wav"})
 RETRYABLE_HTTP_STATUSES = frozenset({429, 500, 502, 503, 504})
 
 

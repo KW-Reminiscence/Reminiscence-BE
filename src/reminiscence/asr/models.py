@@ -7,6 +7,9 @@ from typing import Protocol, TypedDict
 
 from pydantic import BaseModel
 
+MAX_AUDIO_BYTES = 10 * 1024 * 1024
+SUPPORTED_CONTENT_TYPES = frozenset({"audio/wav", "audio/x-wav"})
+
 
 @dataclass(frozen=True, slots=True)
 class RecognitionResult:

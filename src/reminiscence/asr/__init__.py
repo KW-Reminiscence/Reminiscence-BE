@@ -8,6 +8,10 @@ from reminiscence.asr.audio_utils import (
     is_already_target_format,
     normalize_wav_bytes,
 )
+from reminiscence.asr.codex_lb import (
+    CodexLbRecognizer,
+    CodexLbRecognizerConfig,
+)
 from reminiscence.asr.etri import EtriRecognizer, EtriRecognizerConfig
 from reminiscence.asr.models import (
     AudioDiagnostics,
@@ -23,6 +27,8 @@ from reminiscence.asr.models import (
 __all__ = [
     "AudioDiagnostics",
     "AudioInfo",
+    "CodexLbRecognizer",
+    "CodexLbRecognizerConfig",
     "EtriRecognizer",
     "EtriRecognizerConfig",
     "RecognitionResult",
