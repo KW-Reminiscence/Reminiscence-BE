@@ -19,15 +19,20 @@ def test_runtime_environment_example_covers_validated_settings() -> None:
     }
 
     assert {
-        "ETRI_API_KEY",
-        "ETRI_CONNECT_TIMEOUT_SECONDS",
-        "ETRI_READ_TIMEOUT_SECONDS",
+        "CODEX_LB_API_KEY",
+        "CODEX_LB_BASE_URL",
+        "CODEX_LB_CONNECT_TIMEOUT_SECONDS",
+        "CODEX_LB_READ_TIMEOUT_SECONDS",
         "REMINISCENCE_ANOMALY_CONFIRMATION_COUNT",
         "REMINISCENCE_ROUTINE_TICK_SECONDS",
         "REMINISCENCE_EVALUATION_SECONDS",
         "SUPERTONIC_AUTO_DOWNLOAD",
         "SUPERTONIC_MAX_TEXT_CHARS",
     } <= names
+    assert not {
+        "ETRI_API_KEY",
+        "ETRI_ASR_URL",
+    } & names
 
 
 def test_configuration_example_is_accepted_by_routine_store(
