@@ -14,8 +14,8 @@ from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from reminiscence.asr import (
-    EtriRecognizer,
-    EtriRecognizerConfig,
+    CodexLbRecognizer,
+    CodexLbRecognizerConfig,
     RecognitionUnavailableError,
     SpeechRecognizer,
 )
@@ -136,7 +136,7 @@ def get_speech_recognizer() -> SpeechRecognizer:
     """Build the configured ASR provider without persisting its credential."""
 
     try:
-        return EtriRecognizer(EtriRecognizerConfig.from_environment())
+        return CodexLbRecognizer(CodexLbRecognizerConfig.from_environment())
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

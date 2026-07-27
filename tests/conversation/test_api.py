@@ -8,10 +8,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import pytest
 from fastapi.testclient import TestClient
 
-from reminiscence.asr import RecognitionResult
-from reminiscence.asr.etri import MAX_AUDIO_BYTES
+from reminiscence.asr import CodexLbRecognizer, RecognitionResult
+from reminiscence.asr.models import MAX_AUDIO_BYTES
 from reminiscence.conversation import ConversationService, JsonConversationStore
 from reminiscence.conversation.api import (
     get_conversation_service,
@@ -99,6 +100,22 @@ def start_session(client: TestClient) -> str:
     session_id = response.json()["session_id"]
     assert isinstance(session_id, str)
     return session_id
+
+
+def test_default_recognizer_uses_codex_lb(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CODEX_LB_API_KEY", "proxy-secret")
+    monkeypatch.setenv("CODEX_LB_BASE_URL", "https://codex-lb.example/v1")
+    monkeypatch.delenv("ETRI_API_KEY", raising=False)
+    get_speech_recognizer.cache_clear()
+
+    try:
+        recognizer = get_speech_recognizer()
+    finally:
+        get_speech_recognizer.cache_clear()
+
+    assert isinstance(recognizer, CodexLbRecognizer)
 
 
 def test_start_returns_photo_and_synthesizable_question(tmp_path: Path) -> None:
