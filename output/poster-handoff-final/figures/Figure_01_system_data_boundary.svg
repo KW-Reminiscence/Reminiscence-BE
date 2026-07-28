@@ -51,7 +51,7 @@
 <text x="858" y="637" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">로컬 JSON·변화 평가</text>
 <text x="858" y="675" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="858" dy="0">설정·활동 지표·최신 상태</tspan><tspan x="858" dy="28">루틴·대화 별도 모델</tspan><tspan x="858" dy="28">3회 연속 후보 확인</tspan></text>
 <rect x="1270" y="250" width="240" height="145" rx="12" fill="#F3D7D1" stroke="#B64E38" stroke-width="2"/>
-<text x="1390" y="293" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="26" font-weight="500" text-anchor="middle" letter-spacing="0">codex-lb</text>
+<text x="1390" y="293" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="26" font-weight="500" text-anchor="middle" letter-spacing="0">OpenAI API</text>
 <text x="1390" y="334" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle"><tspan x="1390" dy="0">POST /v1/audio/transcriptions</tspan><tspan x="1390" dy="28">model: gpt-4o-transcribe</tspan></text>
 <rect x="1270" y="640" width="240" height="130" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
 <text x="1390" y="682" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="26" font-weight="400" text-anchor="middle" letter-spacing="0">SMTP</text>

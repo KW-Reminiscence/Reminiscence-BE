@@ -246,7 +246,7 @@ function figureSystemBoundary() {
   }
 
   body.push(rect(1270, 250, 240, 145, { fill: palette.goldLight, stroke: palette.gold, radius: 12 }));
-  body.push(text(1390, 293, "codex-lb", 26, { anchor: "middle", weight: 500 }));
+  body.push(text(1390, 293, "OpenAI API", 26, { anchor: "middle", weight: 500 }));
   body.push(multiline(1390, 334, ["POST /v1/audio/transcriptions", "model: gpt-4o-transcribe"], 17, {
     anchor: "middle",
     fill: palette.ink,

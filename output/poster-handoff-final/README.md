@@ -10,7 +10,7 @@ preview의 PDF는 DOCX를 검수용으로 렌더링한 결과다. MANIFEST.sha25
 
 A0에는 프로젝트 소개, 연구 배경과 세 문제, 시스템 경계도, 사용자 시나리오, 개인 기준 평가, 구현 검증, 논의와 한계를 배치한다. Figure 1과 Figure 2를 중앙의 넓은 시각 영역으로 사용하면 원거리에서 장치 역할과 데이터 흐름을 먼저 읽을 수 있다.
 
-A1에는 codex-lb 기반 gpt-4o-transcribe 전사 경계, Supertonic 3 로컬 음성 출력, 루틴 타임라인, 합성 이상 탐지 plot, 데이터 보존 정책, 소프트웨어 검증과 실제 시연 화면을 배치한다. Figure 3과 Figure 4는 기술 설명과 인접하게 두고, 표는 exact lookup이 필요한 하단 또는 우측 영역에 배치한다.
+A1에는 OpenAI API 기반 gpt-4o-transcribe 전사 경계, Supertonic 3 로컬 음성 출력, 루틴 타임라인, 합성 이상 탐지 plot, 데이터 보존 정책, 소프트웨어 검증과 실제 시연 화면을 배치한다. Figure 3과 Figure 4는 기술 설명과 인접하게 두고, 표는 exact lookup이 필요한 하단 또는 우측 영역에 배치한다.
 
 ## figure 사용
 
@@ -20,7 +20,7 @@ A1에는 codex-lb 기반 gpt-4o-transcribe 전사 경계, Supertonic 3 로컬 �
 
 ## 학술적 표기
 
-ETRI는 현재 runtime 전사 경로가 아니므로 본문과 시스템 도표에서 제외했다. runtime은 codex-lb의 OpenAI 호환 /v1/audio/transcriptions를 사용하며 모델 식별자는 gpt-4o-transcribe이다. WAV와 전사문은 Reminiscence 로컬 저장소에 보존하지 않지만 음성은 전사를 위해 codex-lb로 전송된다. provider 측 보존 정책은 별도 운영 검토 대상이다.
+ETRI는 현재 runtime 전사 경로가 아니므로 본문과 시스템 도표에서 제외했다. 음성 전사는 OpenAI API의 /v1/audio/transcriptions를 사용하며 모델 식별자는 gpt-4o-transcribe이다. WAV와 전사문은 Reminiscence 로컬 저장소에 보존하지 않으며 OpenAI API의 서버 측 데이터 처리는 운영 시 별도로 확인한다.
 
 합성 이상 탐지 plot은 handoff용으로 작성한 결정적 fixture를 현재 detector와 동일한 feature 계산에 입력한 동작 예시이다. 기준 세션에는 요일 변화와 완만한 감소를 모사한 값이 포함되며 관측 자료로 해석할 수 없다. score는 위험 확률이 아니며 accuracy, sensitivity, specificity 또는 임상적 위험도로 표현할 수 없다. 회상요법 문헌은 설계 배경이며 이 프로토타입의 치매 예방·치료 효과를 입증하지 않는다.
 
