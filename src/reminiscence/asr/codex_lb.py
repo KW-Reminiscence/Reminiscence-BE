@@ -24,6 +24,7 @@ from reminiscence.asr.models import (
 DEFAULT_BASE_URL = "http://127.0.0.1:2455/v1"
 TRANSCRIPTION_MODEL = "gpt-4o-transcribe"
 TRANSCRIPTION_PROMPT = "한국어로 말한 어르신의 회상 대화입니다."
+CLIENT_USER_AGENT = "Reminiscence-API/0.1"
 
 
 def _is_finite_number(value: object) -> bool:
@@ -133,7 +134,11 @@ class CodexLbRecognizer:
             response = self._http.request(
                 "POST",
                 self._config.transcription_url,
-                headers={"Authorization": f"Bearer {self._config.api_key}"},
+                headers={
+                    "Authorization": f"Bearer {self._config.api_key}",
+                    "User-Agent": CLIENT_USER_AGENT,
+                    "Accept": "application/json",
+                },
                 fields={
                     "model": TRANSCRIPTION_MODEL,
                     "prompt": TRANSCRIPTION_PROMPT,

@@ -15,6 +15,7 @@ from reminiscence.asr import (
     RecognitionUnavailableError,
 )
 from reminiscence.asr.codex_lb import (
+    CLIENT_USER_AGENT,
     TRANSCRIPTION_MODEL,
     TRANSCRIPTION_PROMPT,
 )
@@ -76,7 +77,11 @@ def test_success_sends_fixed_model_and_wav_multipart() -> None:
     request = http.requests[0]
     assert request["method"] == "POST"
     assert request["url"] == "https://codex-lb.example/v1/audio/transcriptions"
-    assert request["headers"] == {"Authorization": "Bearer proxy-secret"}
+    assert request["headers"] == {
+        "Authorization": "Bearer proxy-secret",
+        "User-Agent": CLIENT_USER_AGENT,
+        "Accept": "application/json",
+    }
     assert request["fields"] == {
         "model": TRANSCRIPTION_MODEL,
         "prompt": TRANSCRIPTION_PROMPT,
