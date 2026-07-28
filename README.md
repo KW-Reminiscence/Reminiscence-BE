@@ -205,7 +205,8 @@ candidate anomaly는 기본 3회 연속 관찰된 뒤 확정되며
 
 Nginx는 일반 요청 본문을 1 MiB로 제한하고 대화 WAV route만 10 MiB까지
 허용합니다. Raspberry Pi의 Supertonic cold start를 고려해 upstream 응답
-timeout은 300초입니다.
+timeout은 300초입니다. production API는
+`https://reminiscence-api.leehyowon14.dev`에서 제공합니다.
 
 `.github/workflows/ci-cd.yml`은 `main` 대상 pull request에서 테스트, lint,
 type check를 수행합니다. `main` push에서는 같은 검증을 통과한 ARM64 image를
