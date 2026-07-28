@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+from reminiscence.conversation.photos import PhotoMemory
+
 
 @dataclass(frozen=True, slots=True)
 class SpeechText:
@@ -15,15 +17,20 @@ class SpeechText:
 
 
 class QuestionProvider(Protocol):
-    """Boundary for future AI-backed question generation."""
+    """Boundary for photo-aware question generation."""
 
-    def initial_question(self) -> SpeechText:
+    def initial_question(self, photo: PhotoMemory) -> SpeechText:
         """Return a non-leading opening question."""
 
         ...
 
-    def follow_up_question(self, turn_count: int) -> SpeechText:
-        """Return a non-leading follow-up without requiring transcript retention."""
+    def follow_up_question(
+        self,
+        photo: PhotoMemory,
+        transcript: str,
+        turn_count: int,
+    ) -> SpeechText:
+        """Return a follow-up using the current transcript transiently."""
 
         ...
 
@@ -37,11 +44,16 @@ class SafeTemplateQuestionProvider:
         "이 사진과 함께 떠오르는 이야기가 있다면 들려주세요.",
     )
 
-    def initial_question(self) -> SpeechText:
+    def initial_question(self, photo: PhotoMemory) -> SpeechText:
         text = "이 사진을 천천히 보시고, 떠오르는 이야기가 있으면 들려주세요."
         return SpeechText(display_text=text, spoken_text=text)
 
-    def follow_up_question(self, turn_count: int) -> SpeechText:
+    def follow_up_question(
+        self,
+        photo: PhotoMemory,
+        transcript: str,
+        turn_count: int,
+    ) -> SpeechText:
         index = max(0, turn_count - 1) % len(self._FOLLOW_UPS)
         text = self._FOLLOW_UPS[index]
         return SpeechText(display_text=text, spoken_text=text)

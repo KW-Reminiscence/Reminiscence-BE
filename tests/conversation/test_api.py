@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 from datetime import datetime, timedelta
@@ -17,13 +18,21 @@ from reminiscence.conversation import ConversationService, JsonConversationStore
 from reminiscence.conversation.api import (
     get_conversation_service,
     get_current_time,
+    get_question_provider,
     get_speech_recognizer,
 )
+from reminiscence.conversation.llm_questions import (
+    CodexLbQuestionProvider,
+    QuestionGenerationUnavailableError,
+)
+from reminiscence.conversation.photos import PhotoMemory
+from reminiscence.conversation.questions import SpeechText
 from reminiscence.main import app
 from reminiscence.storage import JsonObjectStore
 
 SEOUL = ZoneInfo("Asia/Seoul")
 ORIGINAL_DATA_DIRECTORY = os.environ.get("REMINISCENCE_DATA_DIR")
+PHOTO_BASE64 = base64.b64encode(b"\x89PNG\r\n\x1a\nphoto").decode("ascii")
 
 
 class FakeRecognizer:
@@ -41,6 +50,36 @@ class FakeRecognizer:
         )
 
 
+class FakeQuestionProvider:
+    def __init__(self, error: Exception | None = None) -> None:
+        self.error = error
+        self.initial_photos: list[PhotoMemory] = []
+        self.follow_ups: list[tuple[PhotoMemory, str, int]] = []
+
+    def initial_question(self, photo: PhotoMemory) -> SpeechText:
+        self.initial_photos.append(photo)
+        if self.error is not None:
+            raise self.error
+        return SpeechText(
+            display_text="제주도 가족여행에서 무엇이 가장 기억에 남으시나요?",
+            spoken_text="제주도 가족여행에서 무엇이 가장 기억에 남으시나요?",
+        )
+
+    def follow_up_question(
+        self,
+        photo: PhotoMemory,
+        transcript: str,
+        turn_count: int,
+    ) -> SpeechText:
+        self.follow_ups.append((photo, transcript, turn_count))
+        if self.error is not None:
+            raise self.error
+        return SpeechText(
+            display_text="그때 함께 웃었던 일도 들려주시겠어요?",
+            spoken_text="그때 함께 웃었던 일도 들려주시겠어요?",
+        )
+
+
 def at(minute: int = 0) -> datetime:
     return datetime(2026, 7, 27, 14, minute, tzinfo=SEOUL)
 
@@ -48,6 +87,7 @@ def at(minute: int = 0) -> datetime:
 def client_with(
     tmp_path: Path,
     recognizer: FakeRecognizer | None = None,
+    questions: FakeQuestionProvider | None = None,
 ) -> tuple[TestClient, Path, FakeRecognizer]:
     activity_path = tmp_path / "activity_metrics.json"
     configuration_path = tmp_path / "configuration.json"
@@ -57,7 +97,12 @@ def client_with(
                 "photos": [
                     {
                         "id": "family-1",
-                        "image_url": "/media/family-1.jpg",
+                        "image_base64": PHOTO_BASE64,
+                        "image_media_type": "image/png",
+                        "location": "제주도 성산일출봉",
+                        "people": ["딸 영희", "손자 민준"],
+                        "event": "2022년 봄 가족여행",
+                        "description": "성산일출봉에 오르기 전에 함께 찍은 사진",
                     }
                 ],
                 "conversation": {"suggestion_time": "14:00"},
@@ -77,6 +122,9 @@ def client_with(
     fake_recognizer = recognizer or FakeRecognizer()
     app.dependency_overrides[get_conversation_service] = lambda: service
     app.dependency_overrides[get_speech_recognizer] = lambda: fake_recognizer
+    app.dependency_overrides[get_question_provider] = lambda: (
+        questions or FakeQuestionProvider()
+    )
     app.dependency_overrides[get_current_time] = lambda: at()
     os.environ["REMINISCENCE_DATA_DIR"] = str(tmp_path)
     client = TestClient(app)
@@ -118,6 +166,21 @@ def test_default_recognizer_uses_codex_lb(
     assert isinstance(recognizer, CodexLbRecognizer)
 
 
+def test_default_question_provider_uses_codex_lb(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CODEX_LB_API_KEY", "proxy-secret")
+    monkeypatch.setenv("CODEX_LB_BASE_URL", "https://codex-lb.example/v1")
+    get_question_provider.cache_clear()
+
+    try:
+        provider = get_question_provider()
+    finally:
+        get_question_provider.cache_clear()
+
+    assert isinstance(provider, CodexLbQuestionProvider)
+
+
 def test_start_returns_photo_and_synthesizable_question(tmp_path: Path) -> None:
     client, _, _ = client_with(tmp_path)
 
@@ -128,10 +191,32 @@ def test_start_returns_photo_and_synthesizable_question(tmp_path: Path) -> None:
 
     assert response.status_code == 201
     payload = response.json()
-    assert payload["photo_id"] == "family-1"
-    assert payload["image_url"] == "/media/family-1.jpg"
+    assert payload["photo"] == {
+        "id": "family-1",
+        "image_base64": PHOTO_BASE64,
+        "image_media_type": "image/png",
+        "location": "제주도 성산일출봉",
+        "people": ["딸 영희", "손자 민준"],
+        "event": "2022년 봄 가족여행",
+        "description": "성산일출봉에 오르기 전에 함께 찍은 사진",
+    }
     assert payload["question"]["display_text"]
     assert payload["question"]["spoken_text"] == payload["question"]["display_text"]
+
+
+def test_start_passes_photo_context_to_question_provider(tmp_path: Path) -> None:
+    questions = FakeQuestionProvider()
+    client, _, _ = client_with(tmp_path, questions=questions)
+
+    response = client.post(
+        "/api/v1/conversations/sessions",
+        json={"source": "SCHEDULED"},
+    )
+
+    assert response.status_code == 201
+    assert len(questions.initial_photos) == 1
+    assert questions.initial_photos[0].location == "제주도 성산일출봉"
+    assert questions.initial_photos[0].people == ("딸 영희", "손자 민준")
 
 
 def test_suggestion_returns_synthesizable_text_at_scheduled_time(
@@ -175,7 +260,8 @@ def test_invalid_suggestion_configuration_is_unavailable(tmp_path: Path) -> None
 def test_turn_reduces_audio_to_metrics_without_returning_or_storing_text(
     tmp_path: Path,
 ) -> None:
-    client, activity_path, recognizer = client_with(tmp_path)
+    questions = FakeQuestionProvider()
+    client, activity_path, recognizer = client_with(tmp_path, questions=questions)
     session_id = start_session(client)
 
     response = client.post(
@@ -195,6 +281,46 @@ def test_turn_reduces_audio_to_metrics_without_returning_or_storing_text(
     assert "비밀 가족 이야기" not in persisted
     assert "wav-audio" not in persisted
     assert recognizer.calls == [(b"wav-audio", "audio/wav")]
+    assert len(questions.follow_ups) == 1
+    photo, transcript, turn_count = questions.follow_ups[0]
+    assert photo.photo_id == "family-1"
+    assert transcript == "비밀 가족 이야기"
+    assert turn_count == 1
+
+
+def test_question_failure_does_not_persist_turn(tmp_path: Path) -> None:
+    questions = FakeQuestionProvider(
+        QuestionGenerationUnavailableError("provider unavailable")
+    )
+    client, activity_path, _ = client_with(tmp_path)
+    session_id = start_session(client)
+    app.dependency_overrides[get_question_provider] = lambda: questions
+
+    response = client.post(
+        f"/api/v1/conversations/sessions/{session_id}/turns",
+        params={"turn_duration_seconds": 4},
+        content=b"wav",
+        headers={"content-type": "audio/wav"},
+    )
+
+    assert response.status_code == 503
+    persisted = json.loads(activity_path.read_text(encoding="utf-8"))
+    assert persisted["conversation_sessions"][0]["turns"] == []
+
+
+def test_question_failure_does_not_create_session(tmp_path: Path) -> None:
+    questions = FakeQuestionProvider(
+        QuestionGenerationUnavailableError("provider unavailable")
+    )
+    client, activity_path, _ = client_with(tmp_path, questions=questions)
+
+    response = client.post(
+        "/api/v1/conversations/sessions",
+        json={"source": "VOLUNTARY"},
+    )
+
+    assert response.status_code == 503
+    assert not activity_path.exists()
 
 
 def test_whitespace_transcript_is_recorded_as_no_response(tmp_path: Path) -> None:
@@ -287,6 +413,21 @@ def test_unknown_photo_is_not_found(tmp_path: Path) -> None:
     )
 
     assert response.status_code == 404
+
+
+def test_invalid_photo_configuration_is_unavailable(tmp_path: Path) -> None:
+    client, _, _ = client_with(tmp_path)
+    configuration_path = tmp_path / "configuration.json"
+    configuration = json.loads(configuration_path.read_text(encoding="utf-8"))
+    configuration["photos"][0]["image_base64"] = "invalid!"
+    configuration_path.write_text(json.dumps(configuration), encoding="utf-8")
+
+    response = client.post(
+        "/api/v1/conversations/sessions",
+        json={"source": "VOLUNTARY"},
+    )
+
+    assert response.status_code == 503
 
 
 def test_unsupported_audio_type_is_rejected(tmp_path: Path) -> None:
