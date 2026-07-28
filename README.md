@@ -92,8 +92,9 @@ codex-lb 응답의 `text`는 글자 수와 시간 지표로 즉시 축약하며,
 운영 배포는 `scripts/deploy.sh`가 모델을
 `/home/ubuntu/apps/reminiscence/<environment>/supertonic3`에 먼저 내려받고,
 컨테이너의 `/models`에 영속 mount합니다. SDK가 `/models/supertonic-3`와
-다운로드용 임시 경로를 같은 writable volume에 생성하며, 이후 음성 합성에는
-외부 TTS API나 인터넷 연결이 필요하지 않습니다.
+다운로드용 임시 경로를 같은 writable volume에 생성하고, Hugging Face cache도
+`/models/.cache/huggingface`에 저장합니다. 이후 음성 합성에는 외부 TTS API나
+인터넷 연결이 필요하지 않습니다.
 
 기본 설정은 한국어, `F1` voice, 0.9배속, 8 inference steps이며
 `deploy/runtime.env.example`의 `SUPERTONIC_*` 환경변수로 조정할 수 있습니다.
