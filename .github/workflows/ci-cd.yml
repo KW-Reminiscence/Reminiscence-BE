@@ -1,7 +1,12 @@
 name: CI/CD
 
 on:
-  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -91,7 +96,6 @@ jobs:
       packages: read
 
     env:
-      DEPLOYMENT_ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'development' }}
       IMAGE_NAME: ghcr.io/kw-reminiscence/reminiscence-be
       IMAGE_TAG: ${{ github.sha }}
 
@@ -105,7 +109,7 @@ jobs:
         run: printf '%s' "${GITHUB_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
 
       - name: Deploy with Docker Compose
-        run: ./scripts/deploy.sh "${DEPLOYMENT_ENVIRONMENT}" "${IMAGE_TAG}"
+        run: ./scripts/deploy.sh production "${IMAGE_TAG}"
 
       - name: Log out from GHCR
         if: always()

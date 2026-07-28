@@ -207,6 +207,7 @@ Nginx는 일반 요청 본문을 1 MiB로 제한하고 대화 WAV route만 10 Mi
 허용합니다. Raspberry Pi의 Supertonic cold start를 고려해 upstream 응답
 timeout은 300초입니다.
 
-현재 `.github/workflows/ci-cd.yml`은 자동 trigger 없이 `workflow_dispatch`만
-남겨 둔 비활성 상태입니다. 자동 배포를 다시 켜기 전까지는 수동으로 실행해도
-verify job만 수행되고 image build와 배포 job은 실행되지 않습니다.
+`.github/workflows/ci-cd.yml`은 `main` 대상 pull request에서 테스트, lint,
+type check를 수행합니다. `main` push에서는 같은 검증을 통과한 ARM64 image를
+GHCR에 게시한 뒤 production Docker Compose 배포를 수행합니다. 다른 branch의
+push는 image build나 배포를 시작하지 않습니다.
