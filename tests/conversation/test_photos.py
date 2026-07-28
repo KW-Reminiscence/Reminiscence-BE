@@ -36,6 +36,17 @@ def test_parse_photo_returns_data_url_and_context() -> None:
     assert photo.data_url.startswith("data:image/png;base64,")
 
 
+def test_parse_photo_accepts_base64_larger_than_metadata_limit() -> None:
+    configured = valid_photo()
+    configured["image_base64"] = base64.b64encode(
+        b"\x89PNG\r\n\x1a\n" + b"x" * 1_024
+    ).decode("ascii")
+
+    photo = parse_photo(configured)
+
+    assert len(photo.image_base64) > 500
+
+
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [

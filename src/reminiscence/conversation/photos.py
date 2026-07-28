@@ -68,6 +68,12 @@ def _people(value: object) -> tuple[str, ...]:
     )
 
 
+def _required_base64(value: object) -> str:
+    if not isinstance(value, str) or not value:
+        raise PhotoConfigurationError("image_base64 must be a non-empty string")
+    return value
+
+
 def _validate_image(image_base64: str, image_media_type: str) -> None:
     maximum_encoded_length = ((MAX_PHOTO_BYTES + 2) // 3) * 4
     if len(image_base64) > maximum_encoded_length:
@@ -104,7 +110,7 @@ def parse_photo(value: Mapping[str, Any]) -> PhotoMemory:
     """Parse and validate one configured photo memory."""
 
     photo_id = _required_text(value.get("id"), "id")
-    image_base64 = _required_text(value.get("image_base64"), "image_base64")
+    image_base64 = _required_base64(value.get("image_base64"))
     image_media_type = _required_text(
         value.get("image_media_type"),
         "image_media_type",
