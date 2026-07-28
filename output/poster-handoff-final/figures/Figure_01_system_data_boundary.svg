@@ -1,19 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,7 L8,3.5 z" fill="#651000"/>
+    <marker id="arrow" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="#651000"/>
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="#C8B8B4"/>
+    </marker>
+    <marker id="arrow-gold" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="#B64E38"/>
     </marker>
   </defs>
   <rect width="1600" height="900" fill="#FFFFFF"/>
   <text x="70" y="72" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="46" font-weight="500" text-anchor="start" letter-spacing="0">시스템과 데이터 경계</text>
-<text x="70" y="112" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="24" font-weight="400" text-anchor="start" letter-spacing="0">외부 전사는 일시 처리하고, 원본 대화 대신 축약 지표를 Raspberry Pi에 저장</text>
+<text x="70" y="112" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="24" font-weight="400" text-anchor="start" letter-spacing="0">WAV는 OpenAI API에서 일시 처리하고, 축약 지표만 Raspberry Pi에 저장</text>
 <rect x="55" y="155" width="335" height="635" rx="18" fill="#F6F3F2" stroke="#C8B8B4" stroke-width="2"/>
 <rect x="450" y="135" width="720" height="675" rx="18" fill="#F8EDEA" stroke="#8A1601" stroke-width="2"/>
 <rect x="1235" y="155" width="310" height="635" rx="18" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2" stroke-dasharray="10 8"/>
 <rect x="75" y="175" width="295" height="44" rx="8" fill="#F8EDEA" stroke="none" stroke-width="0"/><text x="91" y="205" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">태블릿</text>
 <rect x="470" y="155" width="680" height="44" rx="8" fill="#F8EDEA" stroke="none" stroke-width="0"/><text x="486" y="185" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">Raspberry Pi · Reminiscence API</text>
-<rect x="1255" y="175" width="270" height="44" rx="8" fill="#F8EDEA" stroke="none" stroke-width="0"/><text x="1271" y="205" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">설정된 네트워크 서비스</text>
+<rect x="1255" y="175" width="270" height="44" rx="8" fill="#F8EDEA" stroke="none" stroke-width="0"/><text x="1271" y="205" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">외부 서비스</text>
 <polyline points="355,315 480,315" fill="none" stroke="#651000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
 <polyline points="620,245 620,215 1270,215 1270,285" fill="none" stroke="#651000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
 <polyline points="1270,355 1120,355" fill="none" stroke="#651000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
@@ -52,22 +58,17 @@
 <text x="858" y="675" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="858" dy="0">설정·활동 지표·최신 상태</tspan><tspan x="858" dy="28">루틴·대화 별도 모델</tspan><tspan x="858" dy="28">3회 연속 후보 확인</tspan></text>
 <rect x="1270" y="250" width="240" height="145" rx="12" fill="#F3D7D1" stroke="#B64E38" stroke-width="2"/>
 <text x="1390" y="293" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="26" font-weight="500" text-anchor="middle" letter-spacing="0">OpenAI API</text>
-<text x="1390" y="334" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle"><tspan x="1390" dy="0">POST /v1/audio/transcriptions</tspan><tspan x="1390" dy="28">model: gpt-4o-transcribe</tspan></text>
+<text x="1390" y="334" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle"><tspan x="1390" dy="0">/v1/audio/transcriptions</tspan><tspan x="1390" dy="28">gpt-4o-transcribe</tspan></text>
 <rect x="1270" y="640" width="240" height="130" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
 <text x="1390" y="682" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="26" font-weight="400" text-anchor="middle" letter-spacing="0">SMTP</text>
 <text x="1390" y="720" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle"><tspan x="1390" dy="0">관찰 근거 이메일</tspan><tspan x="1390" dy="28">episode당 1회 시도</tspan></text>
 <text x="414" y="300" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">WAV</text>
 <text x="950" y="203" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">정규화 WAV · 일시 처리</text>
-<text x="1195" y="342" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">text</text>
-<text x="1142" y="500" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="end" letter-spacing="0">축약 지표</text>
-<text x="800" y="487" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">spoken text</text>
+<text x="1195" y="342" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">전사 text</text>
 <text x="610" y="570" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">합성 WAV</text>
-<text x="410" y="674" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">확인</text>
-<text x="800" y="674" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">루틴 지표</text>
-<text x="1195" y="694" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">확정 상태와 근거</text>
 <line x1="70" y1="835" x2="165" y2="835" stroke="#8A1601" stroke-width="4"/>
-<text x="180" y="842" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="start" letter-spacing="0">로컬 저장 또는 장치 내 처리</text>
+<text x="180" y="842" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="start" letter-spacing="0">실선 · 로컬 처리·저장</text>
 <line x1="520" y1="835" x2="615" y2="835" stroke="#651000" stroke-width="4" stroke-dasharray="10 8"/>
-<text x="630" y="842" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="start" letter-spacing="0">네트워크·메모리에서 일시 처리</text>
-<text x="1530" y="842" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="end" letter-spacing="0">WAV·전사문은 Reminiscence 로컬 저장소에 비보존</text>
+<text x="630" y="842" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="start" letter-spacing="0">점선 · 네트워크 일시 처리</text>
+<text x="1530" y="842" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="end" letter-spacing="0">로컬 보존 · 축약 지표만</text>
 </svg>

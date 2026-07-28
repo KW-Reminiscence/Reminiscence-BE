@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,7 L8,3.5 z" fill="#651000"/>
+    <marker id="arrow" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="#651000"/>
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="#C8B8B4"/>
+    </marker>
+    <marker id="arrow-gold" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="#B64E38"/>
     </marker>
   </defs>
   <rect width="1600" height="900" fill="#FFFFFF"/>
   <text x="70" y="72" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="46" font-weight="500" text-anchor="start" letter-spacing="0">루틴 상태 타임라인</text>
-<text x="70" y="112" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="23" font-weight="400" text-anchor="start" letter-spacing="0">시연 설정 · 예정 09:00 · 유예 10분 · 재알림 간격 10분 · 최대 재알림 3회</text>
+<text x="70" y="112" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="23" font-weight="400" text-anchor="start" letter-spacing="0">시연 설정 · 09:00 시작 · 10분 간격 · 재알림 3회 · 09:40 마감</text>
 <rect x="160" y="332" width="1240" height="88" rx="10" fill="#F8EDEA" stroke="none" stroke-width="0"/>
 <text x="780" y="322" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="400" text-anchor="middle" letter-spacing="0">확인 가능 구간 [09:00, 09:40)</text>
 <line x1="160" y1="376" x2="1400" y2="376" stroke="#651000" stroke-width="5"/>
@@ -35,19 +41,19 @@
 <text x="1090" y="567" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle"><tspan x="1090" dy="0">버튼 미입력 시</tspan><tspan x="1090" dy="24">reminder count 3</tspan></text>
 <rect x="1295" y="175" width="230" height="105" rx="12" fill="#F3D7D1" stroke="#B64E38" stroke-width="2"/>
 <text x="1410" y="210" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="middle" letter-spacing="0">응답 기한</text>
-<text x="1410" y="242" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle"><tspan x="1410" dy="0">09:40부터</tspan><tspan x="1410" dy="24">NOT_ANSWERED</tspan></text>
-<line x1="160" y1="280" x2="160" y2="360" stroke="#C8B8B4" stroke-width="3" marker-end="url(#arrow)"/>
-<line x1="470" y1="392" x2="470" y2="500" stroke="#C8B8B4" stroke-width="3" marker-end="url(#arrow)"/>
-<line x1="780" y1="280" x2="780" y2="360" stroke="#C8B8B4" stroke-width="3" marker-end="url(#arrow)"/>
-<line x1="1090" y1="392" x2="1090" y2="500" stroke="#C8B8B4" stroke-width="3" marker-end="url(#arrow)"/>
-<line x1="1400" y1="280" x2="1400" y2="360" stroke="#B64E38" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="1410" y="242" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle"><tspan x="1410" dy="0">09:40 도달</tspan><tspan x="1410" dy="24">NOT_ANSWERED</tspan></text>
+<line x1="160" y1="280" x2="160" y2="360" stroke="#C8B8B4" stroke-width="3"/>
+<line x1="470" y1="392" x2="470" y2="500" stroke="#C8B8B4" stroke-width="3"/>
+<line x1="780" y1="280" x2="780" y2="360" stroke="#C8B8B4" stroke-width="3"/>
+<line x1="1090" y1="392" x2="1090" y2="500" stroke="#C8B8B4" stroke-width="3"/>
+<line x1="1400" y1="280" x2="1400" y2="360" stroke="#B64E38" stroke-width="3"/>
 <rect x="230" y="690" width="500" height="105" rx="14" fill="#F3D7D1" stroke="#8A1601" stroke-width="2"/>
 <text x="480" y="730" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="23" font-weight="500" text-anchor="middle" letter-spacing="0">응답 가능 시간에 버튼 입력</text>
-<text x="480" y="768" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="middle" letter-spacing="0">CONFIRMED · 이후 재알림 중단 · 확인 지연 저장</text>
+<text x="480" y="768" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="middle" letter-spacing="0">CONFIRMED · 재알림 중단 · 확인 지연 저장</text>
 <rect x="870" y="690" width="500" height="105" rx="14" fill="#F3D7D1" stroke="#B64E38" stroke-width="2"/>
-<text x="1120" y="730" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="23" font-weight="500" text-anchor="middle" letter-spacing="0">09:40까지 입력 없음</text>
-<text x="1120" y="768" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="middle" letter-spacing="0">NOT_ANSWERED · 이후 확인 입력 거부 · 사진 화면 복귀</text>
-<polyline points="780,420 780,645 480,645 480,690" fill="none" stroke="#8A1601" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<polyline points="1400,420 1400,645 1120,645 1120,690" fill="none" stroke="#B64E38" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<text x="800" y="860" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">최초 안내는 최대 재알림 횟수에 포함되지 않음 · 정책 값은 실행 시작 시 snapshot으로 보존</text>
+<text x="1120" y="730" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="23" font-weight="500" text-anchor="middle" letter-spacing="0">09:40 도달 시 입력 없음</text>
+<text x="1120" y="768" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="middle" letter-spacing="0">NOT_ANSWERED · 사진 화면 복귀</text>
+<polyline points="625,420 625,645 480,645 480,690" fill="none" stroke="#8A1601" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="1400,420 1400,645 1120,645 1120,690" fill="none" stroke="#B64E38" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-gold)"/>
+<text x="800" y="860" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">최초 안내는 재알림 횟수에서 제외 · 정책 값은 실행 시작 시 고정</text>
 </svg>

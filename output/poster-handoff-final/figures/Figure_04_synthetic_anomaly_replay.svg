@@ -1,15 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,7 L8,3.5 z" fill="#651000"/>
+    <marker id="arrow" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="#651000"/>
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="#C8B8B4"/>
+    </marker>
+    <marker id="arrow-gold" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="#B64E38"/>
     </marker>
   </defs>
   <rect width="1600" height="900" fill="#FFFFFF"/>
   <text x="70" y="65" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="44" font-weight="500" text-anchor="start" letter-spacing="0">합성 입력에 대한 이상 탐지 동작 예시</text>
-<text x="70" y="105" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="400" text-anchor="start" letter-spacing="0">20 baseline sessions + 1 current session · 요일 변화와 완만한 추세를 포함한 합성 replay</text>
+<text x="70" y="105" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="400" text-anchor="start" letter-spacing="0">기준 세션 20회 + 현재 세션 1회 · 요일 변화와 완만한 추세를 포함한 합성 replay</text>
 <rect x="70" y="130" width="1460" height="54" rx="8" fill="#F3D7D1" stroke="none" stroke-width="0"/>
-<text x="800" y="165" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">합성 테스트 fixture · 사용자 및 임상 데이터 아님 · 모델 성능 평가가 아닌 동작 검증</text>
+<text x="800" y="165" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">합성 데이터 · 동작 검증용 · 사용자·임상 자료 아님</text>
 <rect x="60" y="220" width="465" height="390" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
 <text x="80" y="254" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">최근 7일 사용자 턴 수</text>
 <text x="505" y="254" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="end" letter-spacing="0">회</text>
@@ -171,25 +177,24 @@
 <text x="1142" y="302" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="start" letter-spacing="0">기준 S1–S20</text>
 <text x="1509" y="302" fill="#8A1601" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="15" font-weight="400" text-anchor="end" letter-spacing="0">현재</text>
 <rect x="95" y="675" width="260" height="105" rx="12" fill="#F6F3F2" stroke="#C8B8B4" stroke-width="2"/>
-<text x="225" y="706" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">평가 1</text>
-<text x="225" y="738" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">후보 1</text>
+<text x="225" y="706" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">1차 평가</text>
+<text x="225" y="738" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">이상 후보 1</text>
 <text x="225" y="766" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">공개 NORMAL</text>
 <line x1="355" y1="728" x2="437" y2="728" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
 <rect x="445" y="675" width="260" height="105" rx="12" fill="#F6F3F2" stroke="#C8B8B4" stroke-width="2"/>
-<text x="575" y="706" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">평가 2</text>
-<text x="575" y="738" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">후보 2</text>
+<text x="575" y="706" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">2차 평가</text>
+<text x="575" y="738" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">이상 후보 2</text>
 <text x="575" y="766" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">공개 NORMAL</text>
 <line x1="705" y1="728" x2="787" y2="728" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
 <rect x="795" y="675" width="260" height="105" rx="12" fill="#F3D7D1" stroke="#B64E38" stroke-width="2"/>
-<text x="925" y="706" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">평가 3</text>
-<text x="925" y="738" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">후보 3</text>
+<text x="925" y="706" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">3차 평가</text>
+<text x="925" y="738" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">3회 연속 확인</text>
 <text x="925" y="766" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">공개 ANOMALOUS</text>
 <line x1="1055" y1="728" x2="1137" y2="728" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
 <rect x="1145" y="675" width="260" height="105" rx="12" fill="#F3D7D1" stroke="#B64E38" stroke-width="2"/>
 <text x="1275" y="706" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">알림</text>
-<text x="1275" y="738" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">episode claim</text>
-<text x="1275" y="766" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">이메일 1회 시도</text>
-<text x="70" y="838" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="start" letter-spacing="0">Domain detector 결과: ANOMALOUS · decision function: -0.048242</text>
-<text x="1530" y="838" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="end" letter-spacing="0">score는 확률·위험도·중증도가 아님</text>
-<text x="70" y="872" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="start" letter-spacing="0">StandardScaler → Isolation Forest · 100 trees · contamination 0.1 · random state 42 · constant-feature shift guard 포함</text>
+<text x="1275" y="738" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">이상 상태 확정</text>
+<text x="1275" y="766" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">이메일 1회</text>
+<text x="70" y="850" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="start" letter-spacing="0">ANOMALOUS · decision function -0.048242</text>
+<text x="1530" y="850" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="end" letter-spacing="0">score는 확률·위험도 아님</text>
 </svg>

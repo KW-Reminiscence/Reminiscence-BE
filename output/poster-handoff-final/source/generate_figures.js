@@ -81,7 +81,13 @@ function line(x1, y1, x2, y2, options = {}) {
     dash = "",
     arrow = false,
   } = options;
-  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}"${dash ? ` stroke-dasharray="${dash}"` : ""}${arrow ? ' marker-end="url(#arrow)"' : ""}/>`;
+  const marker =
+    stroke === palette.line || stroke === palette.muted
+      ? "arrow-muted"
+      : stroke === palette.gold
+        ? "arrow-gold"
+        : "arrow";
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}"${dash ? ` stroke-dasharray="${dash}"` : ""}${arrow ? ` marker-end="url(#${marker})"` : ""}/>`;
 }
 
 function polyline(points, options = {}) {
@@ -93,7 +99,13 @@ function polyline(points, options = {}) {
     fill = "none",
   } = options;
   const encoded = points.map(([x, y]) => `${x},${y}`).join(" ");
-  return `<polyline points="${encoded}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round"${dash ? ` stroke-dasharray="${dash}"` : ""}${arrow ? ' marker-end="url(#arrow)"' : ""}/>`;
+  const marker =
+    stroke === palette.line || stroke === palette.muted
+      ? "arrow-muted"
+      : stroke === palette.gold
+        ? "arrow-gold"
+        : "arrow";
+  return `<polyline points="${encoded}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round"${dash ? ` stroke-dasharray="${dash}"` : ""}${arrow ? ` marker-end="url(#${marker})"` : ""}/>`;
 }
 
 function circle(cx, cy, radius, options = {}) {
@@ -126,8 +138,14 @@ function baseSvg(width, height, body) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,7 L8,3.5 z" fill="${palette.blueDark}"/>
+    <marker id="arrow" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="${palette.blueDark}"/>
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="${palette.line}"/>
+    </marker>
+    <marker id="arrow-gold" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="${palette.gold}"/>
     </marker>
   </defs>
   <rect width="${width}" height="${height}" fill="${palette.white}"/>
@@ -157,7 +175,7 @@ function figureSystemBoundary() {
     text(
       70,
       112,
-      "외부 전사는 일시 처리하고, 원본 대화 대신 축약 지표를 Raspberry Pi에 저장",
+      "WAV는 OpenAI API에서 일시 처리하고, 축약 지표만 Raspberry Pi에 저장",
       24,
       { fill: palette.muted },
     ),
@@ -174,7 +192,7 @@ function figureSystemBoundary() {
   );
   body.push(sectionLabel(75, 175, 295, "태블릿"));
   body.push(sectionLabel(470, 155, 680, "Raspberry Pi · Reminiscence API"));
-  body.push(sectionLabel(1255, 175, 270, "설정된 네트워크 서비스"));
+  body.push(sectionLabel(1255, 175, 270, "외부 서비스"));
 
   body.push(polyline([[355, 315], [480, 315]], {
     stroke: palette.blueDark,
@@ -247,7 +265,7 @@ function figureSystemBoundary() {
 
   body.push(rect(1270, 250, 240, 145, { fill: palette.goldLight, stroke: palette.gold, radius: 12 }));
   body.push(text(1390, 293, "OpenAI API", 26, { anchor: "middle", weight: 500 }));
-  body.push(multiline(1390, 334, ["POST /v1/audio/transcriptions", "model: gpt-4o-transcribe"], 17, {
+  body.push(multiline(1390, 334, ["/v1/audio/transcriptions", "gpt-4o-transcribe"], 17, {
     anchor: "middle",
     fill: palette.ink,
     lineHeight: 28,
@@ -265,19 +283,14 @@ function figureSystemBoundary() {
     anchor: "middle",
     fill: palette.blueDark,
   }));
-  body.push(text(1195, 342, "text", 17, { anchor: "middle", fill: palette.blueDark }));
-  body.push(text(1142, 500, "축약 지표", 17, { anchor: "end", fill: palette.blue }));
-  body.push(text(800, 487, "spoken text", 17, { anchor: "middle", fill: palette.blue }));
+  body.push(text(1195, 342, "전사 text", 17, { anchor: "middle", fill: palette.blueDark }));
   body.push(text(610, 570, "합성 WAV", 17, { anchor: "middle", fill: palette.blue }));
-  body.push(text(410, 674, "확인", 17, { anchor: "middle", fill: palette.blue }));
-  body.push(text(800, 674, "루틴 지표", 17, { anchor: "middle", fill: palette.blue }));
-  body.push(text(1195, 694, "확정 상태와 근거", 17, { anchor: "middle", fill: palette.blue }));
 
   body.push(line(70, 835, 165, 835, { stroke: palette.blue, strokeWidth: 4 }));
-  body.push(text(180, 842, "로컬 저장 또는 장치 내 처리", 19, { fill: palette.muted }));
+  body.push(text(180, 842, "실선 · 로컬 처리·저장", 19, { fill: palette.muted }));
   body.push(line(520, 835, 615, 835, { stroke: palette.blueDark, strokeWidth: 4, dash: "10 8" }));
-  body.push(text(630, 842, "네트워크·메모리에서 일시 처리", 19, { fill: palette.muted }));
-  body.push(text(1530, 842, "WAV·전사문은 Reminiscence 로컬 저장소에 비보존", 18, {
+  body.push(text(630, 842, "점선 · 네트워크 일시 처리", 19, { fill: palette.muted }));
+  body.push(text(1530, 842, "로컬 보존 · 축약 지표만", 18, {
     anchor: "end",
     fill: palette.gold,
   }));
@@ -292,7 +305,7 @@ function figureUserScenario() {
     text(
       70,
       112,
-      "루틴과 회상 대화가 끝나면 기본 화면으로 복귀하고, 누적 변화가 확정된 경우에만 보호자 흐름으로 분기",
+      "루틴·대화 종료 후 사진 화면으로 복귀 · 이상 후보 3회 연속 시 보호자 이메일",
       23,
       { fill: palette.muted },
     ),
@@ -303,6 +316,16 @@ function figureUserScenario() {
   body.push(text(800, 224, "날짜와 사진 표시 · 평상시 조작 요구 없음", 19, {
     anchor: "middle",
     fill: palette.muted,
+  }));
+  body.push(polyline([[720, 250], [720, 275], [395, 275], [395, 305]], {
+    stroke: palette.line,
+    strokeWidth: 2,
+    dash: "6 6",
+  }));
+  body.push(polyline([[880, 250], [880, 275], [1205, 275], [1205, 305]], {
+    stroke: palette.line,
+    strokeWidth: 2,
+    dash: "6 6",
   }));
 
   body.push(sectionLabel(70, 305, 650, "루틴 기록 흐름"));
@@ -332,7 +355,6 @@ function figureUserScenario() {
     stroke: palette.blueDark,
     arrow: true,
   }));
-  body.push(text(483, 384, "입력", 16, { anchor: "middle", fill: palette.blueDark }));
   body.push(polyline([[465, 448], [485, 448], [485, 510], [505, 510]], {
     stroke: palette.line,
     arrow: true,
@@ -340,7 +362,7 @@ function figureUserScenario() {
   body.push(text(480, 470, "미입력", 16, { anchor: "end", fill: palette.muted }));
   body.push(rect(290, 585, 415, 80, { fill: palette.soft, stroke: palette.line, radius: 12 }));
   body.push(text(497, 617, "종료 후 기본 화면 복귀", 22, { anchor: "middle" }));
-  body.push(text(497, 648, "NOT_ANSWERED도 추가 경고 없이 사진 화면으로 복귀", 17, {
+  body.push(text(497, 648, "미응답도 사진 화면으로 복귀", 17, {
     anchor: "middle",
     fill: palette.muted,
   }));
@@ -365,7 +387,7 @@ function figureUserScenario() {
   body.push(line(1300, 429, 1335, 429, { stroke: palette.blueDark, arrow: true }));
   body.push(rect(1010, 585, 410, 80, { fill: palette.soft, stroke: palette.line, radius: 12 }));
   body.push(text(1215, 617, "세션 요약 후 기본 화면 복귀", 22, { anchor: "middle" }));
-  body.push(text(1215, 648, "정시 권유 미참여 자체는 저장·이상 판정하지 않음", 17, {
+  body.push(text(1215, 648, "정시 권유 미참여는 기록하지 않음", 17, {
     anchor: "middle",
     fill: palette.muted,
   }));
@@ -377,22 +399,22 @@ function figureUserScenario() {
   body.push(rect(230, 735, 1140, 92, { fill: palette.goldLight, stroke: palette.gold, radius: 14 }));
   body.push(text(260, 772, "축약 지표 누적", 21, { fill: palette.ink }));
   body.push(line(410, 765, 520, 765, { stroke: palette.blueDark, arrow: true }));
-  body.push(text(545, 772, "개인 이력 기반 후보", 21));
+  body.push(text(545, 772, "개인 기준 평가", 21));
   body.push(line(755, 765, 865, 765, { stroke: palette.blueDark, arrow: true }));
-  body.push(text(890, 772, "3회 연속 평가", 21));
+  body.push(text(890, 772, "3회 연속 확인", 21));
   body.push(line(1040, 765, 1140, 765, { stroke: palette.blueDark, arrow: true }));
-  body.push(text(1170, 765, "보호자 이메일 1회 시도", 21));
-  body.push(text(800, 812, "관찰 근거만 전달 · 의료 진단과 응급 신고 기능 제외", 17, {
+  body.push(text(1170, 765, "보호자 이메일", 21));
+  body.push(text(800, 812, "관찰 근거 전달 · 의료 진단·응급 신고 제외", 17, {
     anchor: "middle",
     fill: palette.gold,
   }));
   body.push(polyline([[497, 665], [497, 705], [430, 705], [430, 735]], {
     stroke: palette.line,
-    arrow: true,
+    dash: "6 6",
   }));
   body.push(polyline([[1215, 665], [1215, 705], [1170, 705], [1170, 735]], {
     stroke: palette.line,
-    arrow: true,
+    dash: "6 6",
   }));
 
   return baseSvg(1600, 900, body.join("\n"));
@@ -405,7 +427,7 @@ function figureRoutineTimeline() {
     text(
       70,
       112,
-      "시연 설정 · 예정 09:00 · 유예 10분 · 재알림 간격 10분 · 최대 재알림 3회",
+      "시연 설정 · 09:00 시작 · 10분 간격 · 재알림 3회 · 09:40 마감",
       23,
       { fill: palette.muted },
     ),
@@ -440,7 +462,7 @@ function figureRoutineTimeline() {
     [365, 500, 210, 105, "재알림 1", ["버튼 미입력 시", "reminder count 1"]],
     [675, 175, 210, 105, "재알림 2", ["버튼 미입력 시", "reminder count 2"]],
     [985, 500, 210, 105, "재알림 3", ["버튼 미입력 시", "reminder count 3"]],
-    [1295, 175, 230, 105, "응답 기한", ["09:40부터", "NOT_ANSWERED"]],
+    [1295, 175, 230, 105, "응답 기한", ["09:40 도달", "NOT_ANSWERED"]],
   ];
   for (const [x, y, w, h, heading, lines] of cards) {
     const deadline = heading === "응답 기한";
@@ -460,29 +482,29 @@ function figureRoutineTimeline() {
       lineHeight: 24,
     }));
   }
-  body.push(line(160, 280, 160, 360, { stroke: palette.line, arrow: true }));
-  body.push(line(470, 392, 470, 500, { stroke: palette.line, arrow: true }));
-  body.push(line(780, 280, 780, 360, { stroke: palette.line, arrow: true }));
-  body.push(line(1090, 392, 1090, 500, { stroke: palette.line, arrow: true }));
-  body.push(line(1400, 280, 1400, 360, { stroke: palette.gold, arrow: true }));
+  body.push(line(160, 280, 160, 360, { stroke: palette.line }));
+  body.push(line(470, 392, 470, 500, { stroke: palette.line }));
+  body.push(line(780, 280, 780, 360, { stroke: palette.line }));
+  body.push(line(1090, 392, 1090, 500, { stroke: palette.line }));
+  body.push(line(1400, 280, 1400, 360, { stroke: palette.gold }));
 
   body.push(rect(230, 690, 500, 105, { fill: palette.blueLight, stroke: palette.blue, radius: 14 }));
   body.push(text(480, 730, "응답 가능 시간에 버튼 입력", 23, { anchor: "middle", weight: 500 }));
-  body.push(text(480, 768, "CONFIRMED · 이후 재알림 중단 · 확인 지연 저장", 19, {
+  body.push(text(480, 768, "CONFIRMED · 재알림 중단 · 확인 지연 저장", 19, {
     anchor: "middle",
     fill: palette.muted,
   }));
   body.push(rect(870, 690, 500, 105, { fill: palette.goldLight, stroke: palette.gold, radius: 14 }));
-  body.push(text(1120, 730, "09:40까지 입력 없음", 23, {
+  body.push(text(1120, 730, "09:40 도달 시 입력 없음", 23, {
     anchor: "middle",
     weight: 500,
     fill: palette.gold,
   }));
-  body.push(text(1120, 768, "NOT_ANSWERED · 이후 확인 입력 거부 · 사진 화면 복귀", 19, {
+  body.push(text(1120, 768, "NOT_ANSWERED · 사진 화면 복귀", 19, {
     anchor: "middle",
     fill: palette.muted,
   }));
-  body.push(polyline([[780, 420], [780, 645], [480, 645], [480, 690]], {
+  body.push(polyline([[625, 420], [625, 645], [480, 645], [480, 690]], {
     stroke: palette.blue,
     arrow: true,
   }));
@@ -490,7 +512,7 @@ function figureRoutineTimeline() {
     stroke: palette.gold,
     arrow: true,
   }));
-  body.push(text(800, 860, "최초 안내는 최대 재알림 횟수에 포함되지 않음 · 정책 값은 실행 시작 시 snapshot으로 보존", 18, {
+  body.push(text(800, 860, "최초 안내는 재알림 횟수에서 제외 · 정책 값은 실행 시작 시 고정", 18, {
     anchor: "middle",
     fill: palette.muted,
   }));
@@ -588,13 +610,13 @@ function figureSyntheticReplay() {
     text(
       70,
       105,
-      "20 baseline sessions + 1 current session · 요일 변화와 완만한 추세를 포함한 합성 replay",
+      "기준 세션 20회 + 현재 세션 1회 · 요일 변화와 완만한 추세를 포함한 합성 replay",
       22,
       { fill: palette.muted },
     ),
   );
   body.push(rect(70, 130, 1460, 54, { fill: palette.goldLight, stroke: "none", strokeWidth: 0, radius: 8 }));
-  body.push(text(800, 165, "합성 테스트 fixture · 사용자 및 임상 데이터 아님 · 모델 성능 평가가 아닌 동작 검증", 21, {
+  body.push(text(800, 165, "합성 데이터 · 동작 검증용 · 사용자·임상 자료 아님", 21, {
     anchor: "middle",
     fill: palette.gold,
     weight: 500,
@@ -650,10 +672,10 @@ function figureSyntheticReplay() {
   }));
 
   const strip = [
-    [95, "평가 1", "후보 1", "공개 NORMAL"],
-    [445, "평가 2", "후보 2", "공개 NORMAL"],
-    [795, "평가 3", "후보 3", "공개 ANOMALOUS"],
-    [1145, "알림", "episode claim", "이메일 1회 시도"],
+    [95, "1차 평가", "이상 후보 1", "공개 NORMAL"],
+    [445, "2차 평가", "이상 후보 2", "공개 NORMAL"],
+    [795, "3차 평가", "3회 연속 확인", "공개 ANOMALOUS"],
+    [1145, "알림", "이상 상태 확정", "이메일 1회"],
   ];
   for (let index = 0; index < strip.length; index += 1) {
     const [x, top, middle, bottom] = strip[index];
@@ -677,15 +699,12 @@ function figureSyntheticReplay() {
     }
   }
 
-  body.push(text(70, 838, "Domain detector 결과: ANOMALOUS · decision function: -0.048242", 19, {
+  body.push(text(70, 850, "ANOMALOUS · decision function -0.048242", 19, {
     fill: palette.blueDark,
   }));
-  body.push(text(1530, 838, "score는 확률·위험도·중증도가 아님", 19, {
+  body.push(text(1530, 850, "score는 확률·위험도 아님", 19, {
     anchor: "end",
     fill: palette.gold,
-  }));
-  body.push(text(70, 872, "StandardScaler → Isolation Forest · 100 trees · contamination 0.1 · random state 42 · constant-feature shift guard 포함", 17, {
-    fill: palette.muted,
   }));
 
   return baseSvg(1600, 900, body.join("\n"));

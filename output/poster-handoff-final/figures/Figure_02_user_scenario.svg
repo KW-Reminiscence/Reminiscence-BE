@@ -1,16 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,7 L8,3.5 z" fill="#651000"/>
+    <marker id="arrow" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="#651000"/>
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="#C8B8B4"/>
+    </marker>
+    <marker id="arrow-gold" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L0,11 L10,6 z" fill="#B64E38"/>
     </marker>
   </defs>
   <rect width="1600" height="900" fill="#FFFFFF"/>
   <text x="70" y="72" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="46" font-weight="500" text-anchor="start" letter-spacing="0">가족사진 화면을 중심으로 한 사용자 시나리오</text>
-<text x="70" y="112" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="23" font-weight="400" text-anchor="start" letter-spacing="0">루틴과 회상 대화가 끝나면 기본 화면으로 복귀하고, 누적 변화가 확정된 경우에만 보호자 흐름으로 분기</text>
+<text x="70" y="112" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="23" font-weight="400" text-anchor="start" letter-spacing="0">루틴·대화 종료 후 사진 화면으로 복귀 · 이상 후보 3회 연속 시 보호자 이메일</text>
 <rect x="585" y="150" width="430" height="100" rx="18" fill="#F3D7D1" stroke="#8A1601" stroke-width="2"/>
 <text x="800" y="191" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="29" font-weight="500" text-anchor="middle" letter-spacing="0">가족사진 기본 화면</text>
 <text x="800" y="224" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="middle" letter-spacing="0">날짜와 사진 표시 · 평상시 조작 요구 없음</text>
+<polyline points="720,250 720,275 395,275 395,305" fill="none" stroke="#C8B8B4" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 6"/>
+<polyline points="880,250 880,275 1205,275 1205,305" fill="none" stroke="#C8B8B4" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 6"/>
 <rect x="70" y="305" width="650" height="44" rx="8" fill="#F8EDEA" stroke="none" stroke-width="0"/><text x="86" y="335" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">루틴 기록 흐름</text>
 <rect x="880" y="305" width="650" height="44" rx="8" fill="#F8EDEA" stroke="none" stroke-width="0"/><text x="896" y="335" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">회상 대화 흐름</text>
 <rect x="75" y="380" width="175" height="98" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
@@ -27,14 +35,13 @@
 <text x="605" y="525" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle"><tspan x="605" dy="0">유예·간격 적용</tspan><tspan x="605" dy="24">기한 종료 시 미응답</tspan></text>
 <line x1="250" y1="429" x2="290" y2="429" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
 <polyline points="465,410 485,410 485,399 505,399" fill="none" stroke="#651000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<text x="483" y="384" fill="#651000" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="16" font-weight="400" text-anchor="middle" letter-spacing="0">입력</text>
-<polyline points="465,448 485,448 485,510 505,510" fill="none" stroke="#C8B8B4" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="465,448 485,448 485,510 505,510" fill="none" stroke="#C8B8B4" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-muted)"/>
 <text x="480" y="470" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="16" font-weight="400" text-anchor="end" letter-spacing="0">미입력</text>
 <rect x="290" y="585" width="415" height="80" rx="12" fill="#F6F3F2" stroke="#C8B8B4" stroke-width="2"/>
 <text x="497" y="617" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="400" text-anchor="middle" letter-spacing="0">종료 후 기본 화면 복귀</text>
-<text x="497" y="648" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">NOT_ANSWERED도 추가 경고 없이 사진 화면으로 복귀</text>
+<text x="497" y="648" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">미응답도 사진 화면으로 복귀</text>
 <line x1="605" y1="438" x2="605" y2="585" stroke="#8A1601" stroke-width="3" marker-end="url(#arrow)"/>
-<line x1="605" y1="557" x2="605" y2="585" stroke="#C8B8B4" stroke-width="3" marker-end="url(#arrow)"/>
+<line x1="605" y1="557" x2="605" y2="585" stroke="#C8B8B4" stroke-width="3" marker-end="url(#arrow-muted)"/>
 <rect x="885" y="380" width="190" height="98" rx="12" fill="#FFFFFF" stroke="#C8B8B4" stroke-width="2"/>
 <text x="980" y="412" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="500" text-anchor="middle" letter-spacing="0">대화 시작</text>
 <text x="980" y="440" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle"><tspan x="980" dy="0">정시 권유</tspan><tspan x="980" dy="24">또는 자발적 시작</tspan></text>
@@ -48,17 +55,17 @@
 <line x1="1300" y1="429" x2="1335" y2="429" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
 <rect x="1010" y="585" width="410" height="80" rx="12" fill="#F6F3F2" stroke="#C8B8B4" stroke-width="2"/>
 <text x="1215" y="617" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="400" text-anchor="middle" letter-spacing="0">세션 요약 후 기본 화면 복귀</text>
-<text x="1215" y="648" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">정시 권유 미참여 자체는 저장·이상 판정하지 않음</text>
+<text x="1215" y="648" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">정시 권유 미참여는 기록하지 않음</text>
 <polyline points="1430,478 1430,540 1215,540 1215,585" fill="none" stroke="#8A1601" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <rect x="230" y="735" width="1140" height="92" rx="14" fill="#F3D7D1" stroke="#B64E38" stroke-width="2"/>
 <text x="260" y="772" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="400" text-anchor="start" letter-spacing="0">축약 지표 누적</text>
 <line x1="410" y1="765" x2="520" y2="765" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
-<text x="545" y="772" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="400" text-anchor="start" letter-spacing="0">개인 이력 기반 후보</text>
+<text x="545" y="772" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="400" text-anchor="start" letter-spacing="0">개인 기준 평가</text>
 <line x1="755" y1="765" x2="865" y2="765" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
-<text x="890" y="772" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="400" text-anchor="start" letter-spacing="0">3회 연속 평가</text>
+<text x="890" y="772" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="400" text-anchor="start" letter-spacing="0">3회 연속 확인</text>
 <line x1="1040" y1="765" x2="1140" y2="765" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
-<text x="1170" y="765" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="400" text-anchor="start" letter-spacing="0">보호자 이메일 1회 시도</text>
-<text x="800" y="812" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">관찰 근거만 전달 · 의료 진단과 응급 신고 기능 제외</text>
-<polyline points="497,665 497,705 430,705 430,735" fill="none" stroke="#C8B8B4" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<polyline points="1215,665 1215,705 1170,705 1170,735" fill="none" stroke="#C8B8B4" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<text x="1170" y="765" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="400" text-anchor="start" letter-spacing="0">보호자 이메일</text>
+<text x="800" y="812" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">관찰 근거 전달 · 의료 진단·응급 신고 제외</text>
+<polyline points="497,665 497,705 430,705 430,735" fill="none" stroke="#C8B8B4" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 6"/>
+<polyline points="1215,665 1215,705 1170,705 1170,735" fill="none" stroke="#C8B8B4" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 6"/>
 </svg>
