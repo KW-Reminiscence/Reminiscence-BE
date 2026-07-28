@@ -20,8 +20,8 @@ from reminiscence.asr import (
     SpeechRecognizer,
 )
 from reminiscence.conversation.llm_questions import (
+    CodexLbFollowUpQuestionProvider,
     CodexLbQuestionConfig,
-    CodexLbQuestionProvider,
     QuestionGenerationUnavailableError,
 )
 from reminiscence.conversation.models import (
@@ -39,6 +39,7 @@ from reminiscence.conversation.photos import (
 from reminiscence.conversation.questions import (
     QuestionProvider,
     SpeechText,
+    TemplateOpeningQuestionProvider,
 )
 from reminiscence.conversation.service import (
     ConversationNotFoundError,
@@ -166,10 +167,14 @@ def get_speech_recognizer() -> SpeechRecognizer:
 
 @lru_cache(maxsize=1)
 def get_question_provider() -> QuestionProvider:
-    """Build the configured photo-aware codex-lb question provider."""
+    """Build a fixed opening with photo-aware codex-lb follow-up questions."""
 
     try:
-        return CodexLbQuestionProvider(CodexLbQuestionConfig.from_environment())
+        return TemplateOpeningQuestionProvider(
+            CodexLbFollowUpQuestionProvider(
+                CodexLbQuestionConfig.from_environment()
+            )
+        )
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

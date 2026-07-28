@@ -113,8 +113,8 @@ class CodexLbQuestionConfig:
         )
 
 
-class CodexLbQuestionProvider:
-    """Generate transient, photo-aware questions without retaining transcripts."""
+class CodexLbFollowUpQuestionProvider:
+    """Generate transient photo-aware follow-ups without retaining transcripts."""
 
     def __init__(
         self,
@@ -123,15 +123,6 @@ class CodexLbQuestionProvider:
     ) -> None:
         self._config = config
         self._http = http if http is not None else urllib3.PoolManager()
-
-    def initial_question(self, photo: PhotoMemory) -> SpeechText:
-        """Generate an opening question from the configured memory."""
-
-        prompt = (
-            "다음 사진과 가족 제공 정보를 바탕으로 회상 대화를 시작하는 질문을 만드세요.\n"
-            f"{self._photo_context(photo)}"
-        )
-        return self._generate(photo, prompt)
 
     def follow_up_question(
         self,

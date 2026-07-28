@@ -12,8 +12,8 @@ import urllib3
 
 from reminiscence.conversation.llm_questions import (
     DEFAULT_RESPONSE_MODEL,
+    CodexLbFollowUpQuestionProvider,
     CodexLbQuestionConfig,
-    CodexLbQuestionProvider,
     QuestionGenerationUnavailableError,
 )
 from reminiscence.conversation.photos import PhotoMemory
@@ -83,8 +83,8 @@ def config(**overrides: Any) -> CodexLbQuestionConfig:
     return CodexLbQuestionConfig(**values)
 
 
-def provider(http: FakeHttp) -> CodexLbQuestionProvider:
-    return CodexLbQuestionProvider(
+def provider(http: FakeHttp) -> CodexLbFollowUpQuestionProvider:
+    return CodexLbFollowUpQuestionProvider(
         config(),
         http=cast(urllib3.PoolManager, http),
     )
@@ -94,10 +94,14 @@ def request_payload(http: FakeHttp) -> dict[str, Any]:
     return cast(dict[str, Any], json.loads(http.requests[0]["body"]))
 
 
-def test_initial_question_sends_photo_and_family_context() -> None:
+def test_follow_up_sends_photo_and_family_context() -> None:
     http = FakeHttp(success_response())
 
-    result = provider(http).initial_question(photo())
+    result = provider(http).follow_up_question(
+        photo(),
+        "바람이 많이 불었지만 즐거웠어요.",
+        1,
+    )
 
     assert result.display_text == "이날 가장 즐거웠던 순간은 언제였나요?"
     assert result.spoken_text == result.display_text
@@ -169,12 +173,20 @@ def test_no_response_requests_a_low_pressure_question() -> None:
 )
 def test_invalid_response_is_rejected(payload: object, message: str) -> None:
     with pytest.raises(QuestionGenerationUnavailableError, match=message):
-        provider(FakeHttp(FakeResponse(200, payload))).initial_question(photo())
+        provider(FakeHttp(FakeResponse(200, payload))).follow_up_question(
+            photo(),
+            "즐거웠어요.",
+            1,
+        )
 
 
 def test_overlong_question_is_rejected() -> None:
     with pytest.raises(QuestionGenerationUnavailableError, match="exceeds"):
-        provider(FakeHttp(success_response("가" * 301))).initial_question(photo())
+        provider(FakeHttp(success_response("가" * 301))).follow_up_question(
+            photo(),
+            "즐거웠어요.",
+            1,
+        )
 
 
 def test_non_success_status_does_not_expose_response_body() -> None:
@@ -188,7 +200,7 @@ def test_non_success_status_does_not_expose_response_body() -> None:
     )
 
     with pytest.raises(QuestionGenerationUnavailableError, match="HTTP 401") as raised:
-        client.initial_question(photo())
+        client.follow_up_question(photo(), "즐거웠어요.", 1)
 
     assert "secret upstream detail" not in str(raised.value)
 
@@ -199,7 +211,7 @@ def test_transport_error_is_mapped_to_unavailable() -> None:
     )
 
     with pytest.raises(QuestionGenerationUnavailableError, match="request failed"):
-        client.initial_question(photo())
+        client.follow_up_question(photo(), "즐거웠어요.", 1)
 
 
 def test_environment_reads_response_settings(

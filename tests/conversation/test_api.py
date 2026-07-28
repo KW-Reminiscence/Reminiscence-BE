@@ -22,11 +22,13 @@ from reminiscence.conversation.api import (
     get_speech_recognizer,
 )
 from reminiscence.conversation.llm_questions import (
-    CodexLbQuestionProvider,
     QuestionGenerationUnavailableError,
 )
 from reminiscence.conversation.photos import PhotoMemory
-from reminiscence.conversation.questions import SpeechText
+from reminiscence.conversation.questions import (
+    SpeechText,
+    TemplateOpeningQuestionProvider,
+)
 from reminiscence.main import app
 from reminiscence.storage import JsonObjectStore
 
@@ -178,7 +180,7 @@ def test_default_question_provider_uses_codex_lb(
     finally:
         get_question_provider.cache_clear()
 
-    assert isinstance(provider, CodexLbQuestionProvider)
+    assert isinstance(provider, TemplateOpeningQuestionProvider)
 
 
 def test_start_returns_photo_and_synthesizable_question(tmp_path: Path) -> None:

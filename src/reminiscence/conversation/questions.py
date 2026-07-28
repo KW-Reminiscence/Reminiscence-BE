@@ -35,6 +35,20 @@ class QuestionProvider(Protocol):
         ...
 
 
+class FollowUpQuestionProvider(Protocol):
+    """Boundary for an AI-backed follow-up implementation."""
+
+    def follow_up_question(
+        self,
+        photo: PhotoMemory,
+        transcript: str,
+        turn_count: int,
+    ) -> SpeechText:
+        """Return a follow-up using the current transcript transiently."""
+
+        ...
+
+
 class SafeTemplateQuestionProvider:
     """Deterministic MVP fallback that never asserts facts about a photo."""
 
@@ -57,3 +71,32 @@ class SafeTemplateQuestionProvider:
         index = max(0, turn_count - 1) % len(self._FOLLOW_UPS)
         text = self._FOLLOW_UPS[index]
         return SpeechText(display_text=text, spoken_text=text)
+
+
+class TemplateOpeningQuestionProvider:
+    """Use a deterministic opening and delegate only follow-up turns to AI."""
+
+    _OPENING_TEXT = (
+        "이 사진을 천천히 보시고, 떠오르는 이야기가 있으면 들려주세요."
+    )
+
+    def __init__(self, follow_up_provider: FollowUpQuestionProvider) -> None:
+        self._follow_up_provider = follow_up_provider
+
+    def initial_question(self, photo: PhotoMemory) -> SpeechText:
+        return SpeechText(
+            display_text=self._OPENING_TEXT,
+            spoken_text=self._OPENING_TEXT,
+        )
+
+    def follow_up_question(
+        self,
+        photo: PhotoMemory,
+        transcript: str,
+        turn_count: int,
+    ) -> SpeechText:
+        return self._follow_up_provider.follow_up_question(
+            photo,
+            transcript,
+            turn_count,
+        )
