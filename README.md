@@ -81,9 +81,10 @@ URL이고 `CODEX_LB_API_KEY`에는 codex-lb proxy key를 설정합니다.
 
 회상 질문은 같은 codex-lb의 `POST /v1/responses`를 사용합니다. 기본
 `gpt-5.6-sol` 모델은 `CODEX_LB_RESPONSE_MODEL`로 바꿀 수 있습니다. 서버는
-base64 사진을 `input_image` data URL로, 위치·인물·사건·설명을 텍스트로 전달해
-첫 질문과 현재 사용자 답변에 대한 후속 질문을 생성합니다. 요청에는
-`store: false`를 사용하며 provider 응답 원문은 로컬 파일에 저장하지 않습니다.
+초기에는 고정형 열린 질문을 반환합니다. 사용자 답변 이후에는 base64 사진을
+`input_image` data URL로, 위치·인물·사건·설명과 현재 답변을 텍스트로 전달해
+LLM 후속 질문을 생성합니다. 요청에는 `store: false`를 사용하며 provider 응답
+원문은 로컬 파일에 저장하지 않습니다.
 
 codex-lb 응답의 `text`는 글자 수와 시간 지표로 즉시 축약하며,
 음성·transcript·provider 원문 응답은 파일에 저장하지 않습니다. WAV 요청은
@@ -191,7 +192,7 @@ export NOTIFICATION_CONFIG_PATH=/tmp/notification-config.json
 | `POST` | `/api/v1/routines/{execution_id}/confirm` | 태블릿 버튼으로 루틴 완료 기록 |
 | `GET` | `/api/v1/routines/history` | 루틴 수행 이력 반환 |
 | `GET` | `/api/v1/conversations/suggestion` | 당일 정시 회상 대화 권유 상태 반환 |
-| `POST` | `/api/v1/conversations/sessions` | base64 사진·회상 정보와 LLM 첫 질문 반환 |
+| `POST` | `/api/v1/conversations/sessions` | base64 사진·회상 정보와 고정형 첫 질문 반환 |
 | `POST` | `/api/v1/conversations/sessions/{session_id}/turns` | WAV 인식·지표 저장 후 LLM 후속 질문 반환 |
 | `POST` | `/api/v1/conversations/sessions/{session_id}/complete` | 세션 완료와 요약 반환 |
 | `POST` | `/api/v1/tts/speech` | `spoken_text`를 Supertonic 3 WAV로 합성 |
