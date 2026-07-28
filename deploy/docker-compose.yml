@@ -37,7 +37,7 @@ services:
           create_host_path: false
       - type: bind
         source: ${SUPERTONIC_MODEL_DIRECTORY:?SUPERTONIC_MODEL_DIRECTORY is required}
-        target: /models/supertonic-3
+        target: /models
         bind:
           create_host_path: false
     healthcheck:
