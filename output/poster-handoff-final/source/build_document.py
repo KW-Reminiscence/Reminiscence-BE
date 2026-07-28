@@ -173,17 +173,15 @@ def add_cover(document: Document) -> None:
     subtitle = document.add_paragraph()
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
     subtitle.paragraph_format.space_after = Pt(12)
-    run = subtitle.add_run(
-        "가족사진 기반 회상 대화와 개인별 생활 패턴 변화 알림을 위한 스마트 케어 액자"
-    )
+    run = subtitle.add_run("치매 환자를 위한 AI 대화형 스마트 케어 액자")
     set_run_font(run, size=15, color=INK)
 
     english = document.add_paragraph()
     english.alignment = WD_ALIGN_PARAGRAPH.CENTER
     english.paragraph_format.space_after = Pt(56)
     run = english.add_run(
-        "A Smart Care Frame for Photo-Elicited Conversation and "
-        "Personalized Routine Change Monitoring"
+        "An AI-Enabled Conversational Smart Care Frame for "
+        "People Living with Dementia"
     )
     set_run_font(run, size=11, color=MUTED)
 
