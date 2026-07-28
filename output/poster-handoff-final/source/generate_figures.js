@@ -11,7 +11,9 @@ const sharp = require(path.join(nodeModules, "sharp"));
 
 const ROOT = path.resolve(__dirname, "..");
 const FIGURE_DIR = path.join(ROOT, "figures");
+const FIGMA_DIR = path.join(FIGURE_DIR, "figma");
 fs.mkdirSync(FIGURE_DIR, { recursive: true });
+fs.mkdirSync(FIGMA_DIR, { recursive: true });
 
 const palette = {
   ink: "#2F2523",
@@ -28,12 +30,35 @@ const palette = {
   white: "#FFFFFF",
 };
 
+let elementSequence = 0;
+
 function esc(value) {
   return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+function resetElementSequence() {
+  elementSequence = 0;
+}
+
+function elementIdentity(kind, label = kind) {
+  elementSequence += 1;
+  const id = `${kind}_${String(elementSequence).padStart(3, "0")}`;
+  return {
+    id,
+    attributes: `id="${id}" data-name="${esc(label)}"`,
+  };
+}
+
+function groupStart(id, label) {
+  return `<g id="${id}" data-name="${esc(label)}">`;
+}
+
+function groupEnd() {
+  return "</g>";
 }
 
 function text(x, y, value, size = 24, options = {}) {
@@ -43,8 +68,10 @@ function text(x, y, value, size = 24, options = {}) {
     weight = 400,
     family = "Apple SD Gothic Neo, Arial Unicode MS, sans-serif",
     letterSpacing = 0,
+    name = `Text · ${String(value).slice(0, 48)}`,
   } = options;
-  return `<text x="${x}" y="${y}" fill="${fill}" font-family="${family}" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}" letter-spacing="${letterSpacing}">${esc(value)}</text>`;
+  const identity = elementIdentity("text", name);
+  return `<text ${identity.attributes} x="${x}" y="${y}" fill="${fill}" font-family="${family}" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}" letter-spacing="${letterSpacing}">${esc(value)}</text>`;
 }
 
 function multiline(x, y, lines, size = 24, options = {}) {
@@ -53,14 +80,16 @@ function multiline(x, y, lines, size = 24, options = {}) {
     anchor = "start",
     weight = 400,
     lineHeight = Math.round(size * 1.35),
+    name = `Text block · ${String(lines[0] ?? "").slice(0, 40)}`,
   } = options;
+  const identity = elementIdentity("text_block", name);
   const spans = lines
     .map(
       (line, index) =>
         `<tspan x="${x}" dy="${index === 0 ? 0 : lineHeight}">${esc(line)}</tspan>`,
     )
     .join("");
-  return `<text x="${x}" y="${y}" fill="${fill}" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}">${spans}</text>`;
+  return `<text ${identity.attributes} x="${x}" y="${y}" fill="${fill}" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}">${spans}</text>`;
 }
 
 function rect(x, y, width, height, options = {}) {
@@ -70,8 +99,10 @@ function rect(x, y, width, height, options = {}) {
     strokeWidth = 2,
     radius = 18,
     dash = "",
+    name = "Rectangle",
   } = options;
-  return `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`;
+  const identity = elementIdentity("rectangle", name);
+  return `<rect ${identity.attributes} x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`;
 }
 
 function line(x1, y1, x2, y2, options = {}) {
@@ -80,14 +111,16 @@ function line(x1, y1, x2, y2, options = {}) {
     strokeWidth = 3,
     dash = "",
     arrow = false,
+    name = "Connector",
   } = options;
-  const marker =
-    stroke === palette.line || stroke === palette.muted
-      ? "arrow-muted"
-      : stroke === palette.gold
-        ? "arrow-gold"
-        : "arrow";
-  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}"${dash ? ` stroke-dasharray="${dash}"` : ""}${arrow ? ` marker-end="url(#${marker})"` : ""}/>`;
+  const identity = elementIdentity("connector", name);
+  const children = [
+    `<line id="${identity.id}_stroke" data-name="Stroke" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`,
+  ];
+  if (arrow) {
+    children.push(arrowHead(identity.id, x1, y1, x2, y2, stroke));
+  }
+  return `<g ${identity.attributes}>${children.join("")}</g>`;
 }
 
 function polyline(points, options = {}) {
@@ -97,15 +130,19 @@ function polyline(points, options = {}) {
     dash = "",
     arrow = false,
     fill = "none",
+    name = "Connector",
   } = options;
   const encoded = points.map(([x, y]) => `${x},${y}`).join(" ");
-  const marker =
-    stroke === palette.line || stroke === palette.muted
-      ? "arrow-muted"
-      : stroke === palette.gold
-        ? "arrow-gold"
-        : "arrow";
-  return `<polyline points="${encoded}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round"${dash ? ` stroke-dasharray="${dash}"` : ""}${arrow ? ` marker-end="url(#${marker})"` : ""}/>`;
+  const identity = elementIdentity("connector", name);
+  const children = [
+    `<polyline id="${identity.id}_stroke" data-name="Stroke" points="${encoded}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`,
+  ];
+  if (arrow && points.length >= 2) {
+    const [x1, y1] = points.at(-2);
+    const [x2, y2] = points.at(-1);
+    children.push(arrowHead(identity.id, x1, y1, x2, y2, stroke));
+  }
+  return `<g ${identity.attributes}>${children.join("")}</g>`;
 }
 
 function circle(cx, cy, radius, options = {}) {
@@ -113,8 +150,10 @@ function circle(cx, cy, radius, options = {}) {
     fill = palette.white,
     stroke = palette.blue,
     strokeWidth = 3,
+    name = "Circle",
   } = options;
-  return `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>`;
+  const identity = elementIdentity("circle", name);
+  return `<circle ${identity.attributes} cx="${cx}" cy="${cy}" r="${radius}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>`;
 }
 
 function diamond(cx, cy, radius, options = {}) {
@@ -122,6 +161,7 @@ function diamond(cx, cy, radius, options = {}) {
     fill = palette.gold,
     stroke = palette.blueDark,
     strokeWidth = 2,
+    name = "Diamond",
   } = options;
   const points = [
     [cx, cy - radius],
@@ -131,25 +171,37 @@ function diamond(cx, cy, radius, options = {}) {
   ]
     .map(([x, y]) => `${x},${y}`)
     .join(" ");
-  return `<polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>`;
+  const identity = elementIdentity("diamond", name);
+  return `<polygon ${identity.attributes} points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>`;
 }
 
-function baseSvg(width, height, body) {
+function arrowHead(parentId, x1, y1, x2, y2, fill) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const length = Math.hypot(dx, dy) || 1;
+  const ux = dx / length;
+  const uy = dy / length;
+  const px = -uy;
+  const py = ux;
+  const depth = 12;
+  const halfWidth = 6;
+  const baseX = x2 - ux * depth;
+  const baseY = y2 - uy * depth;
+  const points = [
+    `${x2},${y2}`,
+    `${baseX + px * halfWidth},${baseY + py * halfWidth}`,
+    `${baseX - px * halfWidth},${baseY - py * halfWidth}`,
+  ].join(" ");
+  return `<polygon id="${parentId}_arrowhead" data-name="Arrowhead" points="${points}" fill="${fill}" stroke="none"/>`;
+}
+
+function baseSvg(width, height, body, figureName) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <defs>
-    <marker id="arrow" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,1 L0,11 L10,6 z" fill="${palette.blueDark}"/>
-    </marker>
-    <marker id="arrow-muted" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,1 L0,11 L10,6 z" fill="${palette.line}"/>
-    </marker>
-    <marker id="arrow-gold" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,1 L0,11 L10,6 z" fill="${palette.gold}"/>
-    </marker>
-  </defs>
-  <rect width="${width}" height="${height}" fill="${palette.white}"/>
-  ${body}
+  <rect id="canvas_background" data-name="Canvas background" width="${width}" height="${height}" fill="${palette.white}"/>
+  <g id="${figureName}" data-name="${figureName}">
+    ${body}
+  </g>
 </svg>`;
 }
 
@@ -169,7 +221,9 @@ function sectionLabel(x, y, width, label) {
 }
 
 function figureSystemBoundary() {
+  resetElementSequence();
   const body = [];
+  body.push(groupStart("01_header", "01 Header"));
   body.push(text(70, 72, "시스템과 데이터 경계", 46, { weight: 500 }));
   body.push(
     text(
@@ -180,7 +234,9 @@ function figureSystemBoundary() {
       { fill: palette.muted },
     ),
   );
+  body.push(groupEnd());
 
+  body.push(groupStart("02_system_regions", "02 System regions"));
   body.push(rect(55, 155, 335, 635, { fill: palette.soft, stroke: palette.line }));
   body.push(rect(450, 135, 720, 675, { fill: palette.blueOpen, stroke: palette.blue }));
   body.push(
@@ -193,7 +249,9 @@ function figureSystemBoundary() {
   body.push(sectionLabel(75, 175, 295, "태블릿"));
   body.push(sectionLabel(470, 155, 680, "Raspberry Pi · Reminiscence API"));
   body.push(sectionLabel(1255, 175, 270, "외부 서비스"));
+  body.push(groupEnd());
 
+  body.push(groupStart("03_data_flow_connectors", "03 Data flow connectors"));
   body.push(polyline([[355, 315], [480, 315]], {
     stroke: palette.blueDark,
     dash: "10 8",
@@ -233,7 +291,9 @@ function figureSystemBoundary() {
     stroke: palette.blue,
     arrow: true,
   }));
+  body.push(groupEnd());
 
+  body.push(groupStart("04_tablet_nodes", "04 Tablet nodes"));
   const tabletBoxes = [
     [90, 250, 265, 130, "마이크 입력", ["WAV ≤ 10 MiB", "회상 대화 턴"]],
     [90, 435, 265, 130, "화면 · 스피커", ["가족사진과 안내", "합성 WAV 재생"]],
@@ -248,7 +308,9 @@ function figureSystemBoundary() {
       lineHeight: 28,
     }));
   }
+  body.push(groupEnd());
 
+  body.push(groupStart("05_raspberry_pi_nodes", "05 Raspberry Pi nodes"));
   const piBoxes = [
     [480, 245, 280, 130, "WAV 검증·정규화", ["16 kHz · mono", "PCM 16-bit · 메모리 처리"]],
     [840, 245, 280, 130, "대화 지표 축약", ["text → 글자 수·시간", "무응답·ASR 처리 지표"]],
@@ -262,7 +324,9 @@ function figureSystemBoundary() {
     body.push(text(x + 18, y + 37, heading, 22, { fill: palette.blueDark, weight: 500 }));
     body.push(multiline(x + 18, y + 75, lines, 18, { fill: palette.muted, lineHeight: 28 }));
   }
+  body.push(groupEnd());
 
+  body.push(groupStart("06_external_services", "06 External services"));
   body.push(rect(1270, 250, 240, 145, { fill: palette.goldLight, stroke: palette.gold, radius: 12 }));
   body.push(text(1390, 293, "OpenAI API", 26, { anchor: "middle", weight: 500 }));
   body.push(multiline(1390, 334, ["/v1/audio/transcriptions", "gpt-4o-transcribe"], 17, {
@@ -277,7 +341,9 @@ function figureSystemBoundary() {
     fill: palette.muted,
     lineHeight: 28,
   }));
+  body.push(groupEnd());
 
+  body.push(groupStart("07_flow_labels", "07 Flow labels"));
   body.push(text(414, 300, "WAV", 17, { anchor: "middle", fill: palette.blueDark }));
   body.push(text(950, 203, "정규화 WAV · 일시 처리", 17, {
     anchor: "middle",
@@ -285,7 +351,9 @@ function figureSystemBoundary() {
   }));
   body.push(text(1195, 342, "전사 text", 17, { anchor: "middle", fill: palette.blueDark }));
   body.push(text(610, 570, "합성 WAV", 17, { anchor: "middle", fill: palette.blue }));
+  body.push(groupEnd());
 
+  body.push(groupStart("08_legend", "08 Legend"));
   body.push(line(70, 835, 165, 835, { stroke: palette.blue, strokeWidth: 4 }));
   body.push(text(180, 842, "실선 · 로컬 처리·저장", 19, { fill: palette.muted }));
   body.push(line(520, 835, 615, 835, { stroke: palette.blueDark, strokeWidth: 4, dash: "10 8" }));
@@ -294,12 +362,15 @@ function figureSystemBoundary() {
     anchor: "end",
     fill: palette.gold,
   }));
+  body.push(groupEnd());
 
-  return baseSvg(1600, 900, body.join("\n"));
+  return baseSvg(1600, 900, body.join("\n"), "Figure 01 · System and data boundary");
 }
 
 function figureUserScenario() {
+  resetElementSequence();
   const body = [];
+  body.push(groupStart("01_header", "01 Header"));
   body.push(text(70, 72, "가족사진 화면을 중심으로 한 사용자 시나리오", 46, { weight: 500 }));
   body.push(
     text(
@@ -310,7 +381,9 @@ function figureUserScenario() {
       { fill: palette.muted },
     ),
   );
+  body.push(groupEnd());
 
+  body.push(groupStart("02_home_screen", "02 Home screen"));
   body.push(rect(585, 150, 430, 100, { fill: palette.blueLight, stroke: palette.blue, radius: 18 }));
   body.push(text(800, 191, "가족사진 기본 화면", 29, { anchor: "middle", weight: 500 }));
   body.push(text(800, 224, "날짜와 사진 표시 · 평상시 조작 요구 없음", 19, {
@@ -327,10 +400,14 @@ function figureUserScenario() {
     strokeWidth: 2,
     dash: "6 6",
   }));
+  body.push(groupEnd());
 
+  body.push(groupStart("03_section_headers", "03 Section headers"));
   body.push(sectionLabel(70, 305, 650, "루틴 기록 흐름"));
   body.push(sectionLabel(880, 305, 650, "회상 대화 흐름"));
+  body.push(groupEnd());
 
+  body.push(groupStart("04_routine_flow", "04 Routine flow"));
   const routine = [
     [75, 380, 175, 98, "예정 시각", ["안내 음성", "큰 기록 버튼"]],
     [290, 380, 175, 98, "응답 확인", ["버튼 입력", "기한 검사"]],
@@ -368,7 +445,9 @@ function figureUserScenario() {
   }));
   body.push(line(605, 438, 605, 585, { stroke: palette.blue, arrow: true }));
   body.push(line(605, 557, 605, 585, { stroke: palette.line, arrow: true }));
+  body.push(groupEnd());
 
+  body.push(groupStart("05_conversation_flow", "05 Conversation flow"));
   const conversation = [
     [885, 380, 190, 98, "대화 시작", ["정시 권유", "또는 자발적 시작"]],
     [1110, 380, 190, 98, "열린 질문", ["안전 template", "Supertonic 3 WAV"]],
@@ -395,7 +474,9 @@ function figureUserScenario() {
     stroke: palette.blue,
     arrow: true,
   }));
+  body.push(groupEnd());
 
+  body.push(groupStart("06_anomaly_confirmation", "06 Anomaly confirmation"));
   body.push(rect(230, 735, 1140, 92, { fill: palette.goldLight, stroke: palette.gold, radius: 14 }));
   body.push(text(260, 772, "완료 지표 누적", 20, { fill: palette.ink }));
   body.push(line(420, 765, 505, 765, { stroke: palette.blueDark, arrow: true }));
@@ -416,12 +497,15 @@ function figureUserScenario() {
     stroke: palette.line,
     dash: "6 6",
   }));
+  body.push(groupEnd());
 
-  return baseSvg(1600, 900, body.join("\n"));
+  return baseSvg(1600, 900, body.join("\n"), "Figure 02 · User scenario");
 }
 
 function figureRoutineTimeline() {
+  resetElementSequence();
   const body = [];
+  body.push(groupStart("01_header", "01 Header"));
   body.push(text(70, 72, "루틴 상태 타임라인", 46, { weight: 500 }));
   body.push(
     text(
@@ -432,7 +516,9 @@ function figureRoutineTimeline() {
       { fill: palette.muted },
     ),
   );
+  body.push(groupEnd());
 
+  body.push(groupStart("02_timeline", "02 Timeline"));
   const xs = [160, 470, 780, 1090, 1400];
   const labels = ["09:00", "09:10", "09:20", "09:30", "09:40"];
   body.push(rect(160, 332, 1240, 88, { fill: palette.blueOpen, stroke: "none", strokeWidth: 0, radius: 10 }));
@@ -456,7 +542,9 @@ function figureRoutineTimeline() {
       fill: isDeadline ? palette.gold : palette.ink,
     }));
   }
+  body.push(groupEnd());
 
+  body.push(groupStart("03_reminder_cards", "03 Reminder cards"));
   const cards = [
     [75, 175, 210, 105, "최초 안내", ["REMINDING 시작", "재알림 수 0"]],
     [365, 500, 210, 105, "재알림 1", ["버튼 미입력 시", "reminder count 1"]],
@@ -487,7 +575,9 @@ function figureRoutineTimeline() {
   body.push(line(780, 280, 780, 360, { stroke: palette.line }));
   body.push(line(1090, 392, 1090, 500, { stroke: palette.line }));
   body.push(line(1400, 280, 1400, 360, { stroke: palette.gold }));
+  body.push(groupEnd());
 
+  body.push(groupStart("04_outcomes", "04 Outcomes"));
   body.push(rect(230, 690, 500, 105, { fill: palette.blueLight, stroke: palette.blue, radius: 14 }));
   body.push(text(480, 730, "응답 가능 시간에 버튼 입력", 23, { anchor: "middle", weight: 500 }));
   body.push(text(480, 768, "CONFIRMED · 재알림 중단 · 확인 지연 저장", 19, {
@@ -504,6 +594,8 @@ function figureRoutineTimeline() {
     anchor: "middle",
     fill: palette.muted,
   }));
+  body.push(groupEnd());
+  body.push(groupStart("05_outcome_connectors", "05 Outcome connectors"));
   body.push(polyline([[625, 420], [625, 645], [480, 645], [480, 690]], {
     stroke: palette.blue,
     arrow: true,
@@ -512,15 +604,19 @@ function figureRoutineTimeline() {
     stroke: palette.gold,
     arrow: true,
   }));
+  body.push(groupEnd());
+  body.push(groupStart("06_footnote", "06 Footnote"));
   body.push(text(800, 860, "최초 안내는 재알림 횟수에서 제외 · 정책·표시 정보는 실행 시작 시 고정", 18, {
     anchor: "middle",
     fill: palette.muted,
   }));
+  body.push(groupEnd());
 
-  return baseSvg(1600, 900, body.join("\n"));
+  return baseSvg(1600, 900, body.join("\n"), "Figure 03 · Routine timeline");
 }
 
 function panelPlot({
+  layerId,
   x,
   y,
   width,
@@ -546,8 +642,20 @@ function panelPlot({
   parts.push(rect(x, y, width, height, { fill: palette.white, stroke: palette.line, radius: 12 }));
   parts.push(text(x + 20, y + 34, panelTitle, 22, { fill: palette.blueDark, weight: 500 }));
   parts.push(text(x + width - 20, y + 34, unit, 17, { anchor: "end", fill: palette.muted }));
-  parts.push(`<rect x="${plotX}" y="${plotY}" width="${sx(20) - plotX + 8}" height="${plotHeight}" fill="${palette.blueOpen}" stroke="none"/>`);
-  parts.push(`<rect x="${sx(20) + 8}" y="${plotY}" width="${plotX + plotWidth - sx(20) - 8}" height="${plotHeight}" fill="${palette.goldLight}" stroke="none"/>`);
+  parts.push(rect(plotX, plotY, sx(20) - plotX + 8, plotHeight, {
+    fill: palette.blueOpen,
+    stroke: "none",
+    strokeWidth: 0,
+    radius: 0,
+    name: "Baseline area",
+  }));
+  parts.push(rect(sx(20) + 8, plotY, plotX + plotWidth - sx(20) - 8, plotHeight, {
+    fill: palette.goldLight,
+    stroke: "none",
+    strokeWidth: 0,
+    radius: 0,
+    name: "Current session area",
+  }));
 
   for (const tick of ticks) {
     const yy = sy(tick);
@@ -600,10 +708,11 @@ function panelPlot({
     fill: palette.blue,
   }));
 
-  return parts.join("\n");
+  return `${groupStart(layerId, panelTitle)}\n${parts.join("\n")}\n${groupEnd()}`;
 }
 
 function figureSyntheticReplay() {
+  resetElementSequence();
   const body = [];
   const replayResult = JSON.parse(
     fs.readFileSync(
@@ -613,6 +722,7 @@ function figureSyntheticReplay() {
   );
   const domainResult = replayResult.domain_result;
   const serviceReplay = replayResult.service_replay;
+  body.push(groupStart("01_header", "01 Header"));
   body.push(text(70, 65, "합성 입력에 대한 이상 탐지 동작 예시", 44, { weight: 500 }));
   body.push(
     text(
@@ -623,12 +733,15 @@ function figureSyntheticReplay() {
       { fill: palette.muted },
     ),
   );
+  body.push(groupEnd());
+  body.push(groupStart("02_synthetic_data_notice", "02 Synthetic data notice"));
   body.push(rect(70, 130, 1460, 54, { fill: palette.goldLight, stroke: "none", strokeWidth: 0, radius: 8 }));
   body.push(text(800, 165, "합성 데이터 · 동작 검증용 · 사용자·임상 자료 아님", 21, {
     anchor: "middle",
     fill: palette.gold,
     weight: 500,
   }));
+  body.push(groupEnd());
 
   const fixture = JSON.parse(
     fs.readFileSync(
@@ -645,7 +758,9 @@ function figureSyntheticReplay() {
   });
   const chars = fixture.map((row) => row.total_utterance_chars);
   const noResponse = fixture.map((row) => row.no_response_count);
+  body.push(groupStart("03_plot_panels", "03 Plot panels"));
   body.push(panelPlot({
+    layerId: "03_01_recent_turns",
     x: 60,
     y: 220,
     width: 465,
@@ -657,6 +772,7 @@ function figureSyntheticReplay() {
     ticks: [0, 10, 20, 30, 40],
   }));
   body.push(panelPlot({
+    layerId: "03_02_total_characters",
     x: 568,
     y: 220,
     width: 465,
@@ -668,6 +784,7 @@ function figureSyntheticReplay() {
     ticks: [0, 50, 100, 150],
   }));
   body.push(panelPlot({
+    layerId: "03_03_no_response",
     x: 1076,
     y: 220,
     width: 465,
@@ -678,7 +795,9 @@ function figureSyntheticReplay() {
     maxValue: 4,
     ticks: [0, 1, 2, 3, 4],
   }));
+  body.push(groupEnd());
 
+  body.push(groupStart("04_service_replay", "04 Service replay"));
   body.push(text(
     800,
     650,
@@ -714,7 +833,9 @@ function figureSyntheticReplay() {
       body.push(line(x + 260, 728, x + 342, 728, { stroke: palette.blueDark, arrow: true }));
     }
   }
+  body.push(groupEnd());
 
+  body.push(groupStart("05_footer_notes", "05 Footer notes"));
   body.push(text(
     70,
     850,
@@ -728,8 +849,9 @@ function figureSyntheticReplay() {
     anchor: "end",
     fill: palette.gold,
   }));
+  body.push(groupEnd());
 
-  return baseSvg(1600, 900, body.join("\n"));
+  return baseSvg(1600, 900, body.join("\n"), "Figure 04 · Synthetic anomaly replay");
 }
 
 const figures = [
@@ -742,8 +864,10 @@ const figures = [
 async function main() {
   for (const [name, svg] of figures) {
     const svgPath = path.join(FIGURE_DIR, `${name}.svg`);
+    const figmaSvgPath = path.join(FIGMA_DIR, `${name}.svg`);
     const pngPath = path.join(FIGURE_DIR, `${name}.png`);
     fs.writeFileSync(svgPath, svg, "utf8");
+    fs.writeFileSync(figmaSvgPath, svg, "utf8");
     await sharp(Buffer.from(svg), { density: 240 })
       .resize({ width: 3200 })
       .flatten({ background: palette.white })
