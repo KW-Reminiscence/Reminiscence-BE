@@ -2,7 +2,12 @@
   "photos": [
     {
       "id": "family-photo-1",
-      "image_url": "https://example.com/family-photo-1.jpg"
+      "image_base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "image_media_type": "image/png",
+      "location": "제주도 성산일출봉",
+      "people": ["딸 영희", "손자 민준"],
+      "event": "2022년 봄 가족여행",
+      "description": "성산일출봉에 오르기 전에 함께 찍은 사진"
     }
   ],
   "conversation": {

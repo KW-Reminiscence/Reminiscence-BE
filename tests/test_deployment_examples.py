@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from reminiscence.conversation.photos import parse_photos
 from reminiscence.routine.storage import JsonRoutineStore
+from reminiscence.storage import JsonObjectStore
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,6 +25,8 @@ def test_runtime_environment_example_covers_validated_settings() -> None:
         "CODEX_LB_BASE_URL",
         "CODEX_LB_CONNECT_TIMEOUT_SECONDS",
         "CODEX_LB_READ_TIMEOUT_SECONDS",
+        "CODEX_LB_RESPONSE_MODEL",
+        "CODEX_LB_RESPONSE_READ_TIMEOUT_SECONDS",
         "REMINISCENCE_ANOMALY_CONFIRMATION_COUNT",
         "REMINISCENCE_ROUTINE_TICK_SECONDS",
         "REMINISCENCE_EVALUATION_SECONDS",
@@ -45,3 +49,16 @@ def test_configuration_example_is_accepted_by_routine_store(
 
     assert len(definitions) == 2
     assert all(definition.active for definition in definitions)
+
+
+def test_configuration_example_contains_valid_photo_memories() -> None:
+    configuration = JsonObjectStore(
+        PROJECT_ROOT / "deploy/configuration.example.json"
+    ).read()
+
+    photos = parse_photos(configuration["photos"])
+
+    assert len(photos) == 1
+    assert photos[0].photo_id == "family-photo-1"
+    assert photos[0].location == "제주도 성산일출봉"
+    assert photos[0].people == ("딸 영희", "손자 민준")

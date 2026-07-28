@@ -45,7 +45,7 @@ uv run uvicorn reminiscence.main:app --reload --env-file .env
 ### 로컬 데이터와 음성 설정
 
 `deploy/configuration.example.json`을 `data/configuration.json`으로 복사하고
-사진 URL과 루틴을 수정합니다. 다음 환경변수로 데이터 경로와 시간대를 바꿀 수
+base64 사진, 회상 정보와 루틴을 수정합니다. 다음 환경변수로 데이터 경로와 시간대를 바꿀 수
 있습니다.
 
 ```bash
@@ -61,6 +61,12 @@ export REMINISCENCE_ANOMALY_CONFIRMATION_COUNT=3
 시작한 대화가 없을 때만 권유하며, 권유를 무시한 사실 자체는 저장하거나 이상으로
 판정하지 않습니다.
 
+각 `photos` 항목에는 `image_base64`, `image_media_type`, `location`, `people`,
+`event`, `description`을 설정합니다. `image_base64`에는 data URL 접두사 없이
+base64 payload만 넣습니다. JPEG, PNG, WebP를 지원하고 디코딩한 사진 한 장은
+최대 10 MiB입니다. 서버는 실제 이미지 시그니처가 `image_media_type`과
+일치하는지도 확인합니다.
+
 각 routine의 `active`가 `false`이면 새 실행을 만들지 않습니다. 이미 시작된
 실행은 시작 당시의 유예시간·재알림 간격·횟수를 저장하므로 설정을 바꾸거나
 routine을 삭제해도 기존 응답 창은 변하지 않습니다. 같은 요일에 활성 routine의
@@ -73,6 +79,12 @@ codex-lb의 OpenAI 호환 `POST /v1/audio/transcriptions`에 정규화한 WAV와
 model `gpt-4o-transcribe`를 전송합니다. `CODEX_LB_BASE_URL`은 `/v1`까지 포함한
 URL이고 `CODEX_LB_API_KEY`에는 codex-lb proxy key를 설정합니다.
 
+회상 질문은 같은 codex-lb의 `POST /v1/responses`를 사용합니다. 기본
+`gpt-5.6-sol` 모델은 `CODEX_LB_RESPONSE_MODEL`로 바꿀 수 있습니다. 서버는
+base64 사진을 `input_image` data URL로, 위치·인물·사건·설명을 텍스트로 전달해
+첫 질문과 현재 사용자 답변에 대한 후속 질문을 생성합니다. 요청에는
+`store: false`를 사용하며 provider 응답 원문은 로컬 파일에 저장하지 않습니다.
+
 codex-lb 응답의 `text`는 글자 수와 시간 지표로 즉시 축약하며,
 음성·transcript·provider 원문 응답은 파일에 저장하지 않습니다. WAV 요청은
 최대 10 MiB이며 초과한 본문은 FastAPI가 메모리에 적재하거나 codex-lb를
@@ -81,6 +93,9 @@ codex-lb 응답의 `text`는 글자 수와 시간 지표로 즉시 축약하며,
 사용하지 않습니다.
 
 서버는 질문마다 `display_text`와 `spoken_text`를 함께 반환합니다.
+대화 시작 응답의 `photo`에는 base64 사진과 회상 정보가 함께 들어가므로
+태블릿은 해당 응답으로 사진과 첫 질문을 한 번에 갱신합니다. 각 WAV 턴 응답의
+`next_question`으로 표시 문구와 TTS 문구를 다시 갱신합니다.
 태블릿은 `spoken_text`를 `POST /api/v1/tts/speech`에 전송하고 응답받은
 44.1kHz PCM WAV를 재생합니다. 음성은 Raspberry Pi에서 Supertonic 3 ONNX
 모델로 생성하며 저장하거나 캐시하지 않습니다. 웹앱을 Raspberry Pi 정적 파일
@@ -176,8 +191,8 @@ export NOTIFICATION_CONFIG_PATH=/tmp/notification-config.json
 | `POST` | `/api/v1/routines/{execution_id}/confirm` | 태블릿 버튼으로 루틴 완료 기록 |
 | `GET` | `/api/v1/routines/history` | 루틴 수행 이력 반환 |
 | `GET` | `/api/v1/conversations/suggestion` | 당일 정시 회상 대화 권유 상태 반환 |
-| `POST` | `/api/v1/conversations/sessions` | 사진 회상 대화 시작과 TTS 질문 반환 |
-| `POST` | `/api/v1/conversations/sessions/{session_id}/turns` | WAV 인식 후 지표만 저장 |
+| `POST` | `/api/v1/conversations/sessions` | base64 사진·회상 정보와 LLM 첫 질문 반환 |
+| `POST` | `/api/v1/conversations/sessions/{session_id}/turns` | WAV 인식·지표 저장 후 LLM 후속 질문 반환 |
 | `POST` | `/api/v1/conversations/sessions/{session_id}/complete` | 세션 완료와 요약 반환 |
 | `POST` | `/api/v1/tts/speech` | `spoken_text`를 Supertonic 3 WAV로 합성 |
 | `POST` | `/api/v1/anomaly/evaluate` | 개인별 루틴·대화 모델 평가 |
