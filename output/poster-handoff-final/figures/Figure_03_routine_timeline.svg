@@ -54,6 +54,6 @@
 <text x="1120" y="730" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="23" font-weight="500" text-anchor="middle" letter-spacing="0">09:40 도달 시 입력 없음</text>
 <text x="1120" y="768" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="middle" letter-spacing="0">NOT_ANSWERED · 사진 화면 복귀</text>
 <polyline points="625,420 625,645 480,645 480,690" fill="none" stroke="#8A1601" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<polyline points="1400,420 1400,645 1120,645 1120,690" fill="none" stroke="#B64E38" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-gold)"/>
-<text x="800" y="860" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">최초 안내는 재알림 횟수에서 제외 · 정책 값은 실행 시작 시 고정</text>
+<polyline points="1400,420 1480,420 1480,645 1120,645 1120,690" fill="none" stroke="#B64E38" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-gold)"/>
+<text x="800" y="860" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">최초 안내는 재알림 횟수에서 제외 · 정책·표시 정보는 실행 시작 시 고정</text>
 </svg>

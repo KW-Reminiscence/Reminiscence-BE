@@ -1,8 +1,8 @@
 구성,현재 구현
-사용자 단말,"태블릿 웹앱, 화면·마이크·스피커·WAV 재생"
+사용자 단말,"태블릿 클라이언트, 화면·마이크·스피커·WAV 재생"
 엣지 서버,"Raspberry Pi, Python 3.12, FastAPI, ASGI"
 전사,"OpenAI API, gpt-4o-transcribe"
 음성 출력,"Supertonic 3, 한국어, F1, speed 0.9, 8 steps"
-로컬 저장,"잠금·fsync·원자적 교체를 사용하는 JSON file store"
-이상 평가,"StandardScaler, Isolation Forest, 영역별 평가"
-알림,"SMTP STARTTLS, 이상 에피소드당 한 번의 시도"
+로컬 저장,"프로세스 내 경로 잠금·임시 파일 fsync·원자적 os.replace"
+이상 평가,"초기 규칙과 영역별 StandardScaler·Isolation Forest, 연속 이상 평가 기본 3회"
+알림,"SMTP STARTTLS, 이상 에피소드당 최대 한 번의 시도"

@@ -8,3 +8,4 @@
 합성 요청 text와 WAV,"Raspberry Pi Supertonic 3, 태블릿",TTS 계층에서 보존하지 않음
 알림 시도 표식,Raspberry Pi notification coordinator,notification_state.json
 이메일 본문,"Raspberry Pi, SMTP, 보호자",발송 이력으로 보존하지 않음
+운영 자격증명·보호자 연락처,별도 secret·환경변수,application JSON과 분리

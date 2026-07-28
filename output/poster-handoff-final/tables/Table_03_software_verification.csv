@@ -1,6 +1,6 @@
 검사,확인 결과,해석 범위
-pytest,"274 passed, 1 skipped, 1 warning",단위·통합 테스트와 test double 기반 계약 검증
+pytest,"274 passed, 1 skipped, 1 warning",저장소 전체 단위·통합 테스트와 test double 기반 계약 검증
 Ruff,전체 검사 통과,현재 Python source의 lint 검사
 mypy,44 source files 오류 없음,현재 type annotation의 정적 검사
-OpenAPI,12 paths,구현된 API surface 확인
-합성 anomaly replay,"ANOMALOUS, score -0.048242",변동을 포함한 결정적 동작 예시이며 성능 평가가 아님
+OpenAPI,"12 paths, 13 operations",구현된 API surface 확인
+합성 anomaly replay,"대화 domain 후보 ANOMALOUS, decision function -0.048242",detector와 4회 service 상태 전이의 결정적 동작 예시

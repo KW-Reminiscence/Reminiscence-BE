@@ -195,7 +195,7 @@ def add_cover(document: Document) -> None:
 
     date = document.add_paragraph()
     date.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = date.add_run("2026-07-27")
+    run = date.add_run("2026-07-28")
     set_run_font(run, size=9.5, color=MUTED)
 
     page_break = document.add_paragraph()
@@ -328,15 +328,13 @@ def add_table(document: Document, rows: list[list[str]]) -> None:
 
 
 def add_heading(document: Document, level: int, value: str) -> None:
-    if level == 1 and document.paragraphs:
-        if value in {
-            "A1 기술 및 시연 포스터 원고",
-            "Figure 캡션 원고",
-            "참고문헌",
-        }:
-            page_break = document.add_paragraph()
-            page_break.add_run().add_break(WD_BREAK.PAGE)
     p = document.add_paragraph(style=f"Heading {min(level, 3)}")
+    if level == 1 and value in {
+        "A1 기술 및 시연 포스터 원고",
+        "Figure 캡션 원고",
+        "참고문헌",
+    }:
+        p.paragraph_format.page_break_before = True
     p.paragraph_format.space_before = Pt({1: 18, 2: 18, 3: 10}.get(level, 6))
     p.paragraph_format.space_after = Pt({1: 10, 2: 6, 3: 4}.get(level, 4))
     p.paragraph_format.keep_with_next = True

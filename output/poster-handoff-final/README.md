@@ -20,9 +20,9 @@ A1에는 OpenAI API 기반 gpt-4o-transcribe 전사 경계, Supertonic 3 로컬 
 
 ## 학술적 표기
 
-ETRI는 현재 runtime 전사 경로가 아니므로 본문과 시스템 도표에서 제외했다. 음성 전사는 OpenAI API의 /v1/audio/transcriptions를 사용하며 모델 식별자는 gpt-4o-transcribe이다. WAV와 전사문은 Reminiscence 로컬 저장소에 보존하지 않으며 OpenAI API의 서버 측 데이터 처리는 운영 시 별도로 확인한다.
+Runtime 음성 전사는 OpenAI API의 /v1/audio/transcriptions를 사용하며 모델 식별자는 gpt-4o-transcribe이다. WAV와 전사문은 Reminiscence 로컬 저장소에 보존하지 않으며 OpenAI API의 서버 측 데이터 처리는 운영 시 별도로 확인한다.
 
-합성 이상 탐지 plot은 handoff용으로 작성한 결정적 fixture를 현재 detector와 동일한 feature 계산에 입력한 동작 예시이다. 기준 세션에는 요일 변화와 완만한 감소를 모사한 값이 포함되며 관측 자료로 해석할 수 없다. score는 위험 확률이 아니며 accuracy, sensitivity, specificity 또는 임상적 위험도로 표현할 수 없다. 회상요법 문헌은 설계 배경이며 이 프로토타입의 치매 예방·치료 효과를 입증하지 않는다.
+합성 이상 탐지 plot은 handoff용 결정적 fixture를 현재 detector, anomaly service와 notification coordinator에 입력한 동작 예시이다. Figure 4는 다섯 개 대화 feature 중 세 개를 표시하고, 대화 domain 후보와 저장 상태를 구분한다. `evidence/synthetic_anomaly_result.json`에는 detector 결과와 60초 간격의 네 차례 service replay가 기록되어 있다. 기준 세션에는 요일 변화와 완만한 감소를 모사한 값이 포함되며 관측 자료로 해석할 수 없다. decision function은 위험 확률이 아니며 accuracy, sensitivity, specificity 또는 임상적 위험도로 표현할 수 없다. 회상요법 문헌은 설계 배경이며 이 프로토타입의 치매 예방·치료 효과를 입증하지 않는다.
 
 ## 편집 전 확인
 

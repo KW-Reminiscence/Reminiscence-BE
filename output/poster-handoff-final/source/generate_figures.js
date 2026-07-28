@@ -255,7 +255,7 @@ function figureSystemBoundary() {
     [480, 435, 280, 130, "안전한 고정형 질문", ["사진 사실을 단정하지 않는", "열린 질문 template"]],
     [840, 435, 280, 130, "Supertonic 3", ["한국어 · F1 · speed 0.9", "로컬 PCM 16-bit WAV"]],
     [480, 620, 280, 130, "루틴 상태 머신", ["REMINDING · CONFIRMED", "NOT_ANSWERED"]],
-    [840, 600, 280, 170, "로컬 JSON·변화 평가", ["설정·활동 지표·최신 상태", "루틴·대화 별도 모델", "3회 연속 후보 확인"]],
+    [840, 600, 280, 170, "로컬 JSON·변화 평가", ["설정·활동 지표·최신 상태", "루틴·대화 영역별 후보", "연속 이상 평가 기본 3회"]],
   ];
   for (const [x, y, w, h, heading, lines] of piBoxes) {
     body.push(rect(x, y, w, h, { fill: palette.white, stroke: palette.line, radius: 12 }));
@@ -272,7 +272,7 @@ function figureSystemBoundary() {
   }));
   body.push(rect(1270, 640, 240, 130, { fill: palette.white, stroke: palette.line, radius: 12 }));
   body.push(text(1390, 682, "SMTP", 26, { anchor: "middle" }));
-  body.push(multiline(1390, 720, ["관찰 근거 이메일", "episode당 1회 시도"], 18, {
+  body.push(multiline(1390, 720, ["관찰 근거 이메일", "episode당 최대 1회 시도"], 18, {
     anchor: "middle",
     fill: palette.muted,
     lineHeight: 28,
@@ -305,7 +305,7 @@ function figureUserScenario() {
     text(
       70,
       112,
-      "루틴·대화 종료 후 사진 화면으로 복귀 · 이상 후보 3회 연속 시 보호자 이메일",
+      "루틴·대화 종료 후 사진 화면으로 복귀 · 연속 이상 평가 기본 3회 후 상태 전환",
       23,
       { fill: palette.muted },
     ),
@@ -397,14 +397,14 @@ function figureUserScenario() {
   }));
 
   body.push(rect(230, 735, 1140, 92, { fill: palette.goldLight, stroke: palette.gold, radius: 14 }));
-  body.push(text(260, 772, "축약 지표 누적", 21, { fill: palette.ink }));
-  body.push(line(410, 765, 520, 765, { stroke: palette.blueDark, arrow: true }));
-  body.push(text(545, 772, "개인 기준 평가", 21));
-  body.push(line(755, 765, 865, 765, { stroke: palette.blueDark, arrow: true }));
-  body.push(text(890, 772, "3회 연속 확인", 21));
-  body.push(line(1040, 765, 1140, 765, { stroke: palette.blueDark, arrow: true }));
-  body.push(text(1170, 765, "보호자 이메일", 21));
-  body.push(text(800, 812, "관찰 근거 전달 · 의료 진단·응급 신고 제외", 17, {
+  body.push(text(260, 772, "완료 지표 누적", 20, { fill: palette.ink }));
+  body.push(line(420, 765, 505, 765, { stroke: palette.blueDark, arrow: true }));
+  body.push(text(530, 772, "domain별 평가·OR", 20));
+  body.push(line(720, 765, 805, 765, { stroke: palette.blueDark, arrow: true }));
+  body.push(text(830, 772, "연속 이상 count 3/3", 20));
+  body.push(line(1050, 765, 1135, 765, { stroke: palette.blueDark, arrow: true }));
+  body.push(text(1160, 772, "SMTP 1회 시도", 20));
+  body.push(text(800, 812, "저장 상태 ANOMALOUS 전환 · episode당 최대 1회 시도 · 의료 진단·응급 신고 제외", 17, {
     anchor: "middle",
     fill: palette.gold,
   }));
@@ -508,11 +508,11 @@ function figureRoutineTimeline() {
     stroke: palette.blue,
     arrow: true,
   }));
-  body.push(polyline([[1400, 420], [1400, 645], [1120, 645], [1120, 690]], {
+  body.push(polyline([[1400, 420], [1480, 420], [1480, 645], [1120, 645], [1120, 690]], {
     stroke: palette.gold,
     arrow: true,
   }));
-  body.push(text(800, 860, "최초 안내는 재알림 횟수에서 제외 · 정책 값은 실행 시작 시 고정", 18, {
+  body.push(text(800, 860, "최초 안내는 재알림 횟수에서 제외 · 정책·표시 정보는 실행 시작 시 고정", 18, {
     anchor: "middle",
     fill: palette.muted,
   }));
@@ -605,12 +605,20 @@ function panelPlot({
 
 function figureSyntheticReplay() {
   const body = [];
+  const replayResult = JSON.parse(
+    fs.readFileSync(
+      path.join(ROOT, "evidence", "synthetic_anomaly_result.json"),
+      "utf8",
+    ),
+  );
+  const domainResult = replayResult.domain_result;
+  const serviceReplay = replayResult.service_replay;
   body.push(text(70, 65, "합성 입력에 대한 이상 탐지 동작 예시", 44, { weight: 500 }));
   body.push(
     text(
       70,
       105,
-      "기준 세션 20회 + 현재 세션 1회 · 요일 변화와 완만한 추세를 포함한 합성 replay",
+      "대화 feature 5개 중 3개 표시 · 기준 완료 세션 20건 + 현재 세션 1건",
       22,
       { fill: palette.muted },
     ),
@@ -671,15 +679,23 @@ function figureSyntheticReplay() {
     ticks: [0, 1, 2, 3, 4],
   }));
 
-  const strip = [
-    [95, "1차 평가", "이상 후보 1", "공개 NORMAL"],
-    [445, "2차 평가", "이상 후보 2", "공개 NORMAL"],
-    [795, "3차 평가", "3회 연속 확인", "공개 ANOMALOUS"],
-    [1145, "알림", "이상 상태 확정", "이메일 1회"],
-  ];
+  body.push(text(
+    800,
+    650,
+    `동일 최신 지표의 service replay · ${serviceReplay.interval_seconds}초 간격 · 확인 횟수 ${serviceReplay.confirmation_count}`,
+    18,
+    { anchor: "middle", fill: palette.muted },
+  ));
+
+  const strip = serviceReplay.evaluations.map((evaluation, index) => [
+    95 + index * 350,
+    `주기 평가 ${evaluation.evaluation}`,
+    `후보 ${evaluation.candidate_status}`,
+    `count ${evaluation.consecutive_count}/${serviceReplay.confirmation_count} · ${evaluation.stored_status} · ${evaluation.notification_status}`,
+    evaluation.stored_status === "ANOMALOUS",
+  ]);
   for (let index = 0; index < strip.length; index += 1) {
-    const [x, top, middle, bottom] = strip[index];
-    const confirmed = index >= 2;
+    const [x, top, middle, bottom, confirmed] = strip[index];
     body.push(rect(x, 675, 260, 105, {
       fill: confirmed ? palette.goldLight : palette.soft,
       stroke: confirmed ? palette.gold : palette.line,
@@ -690,7 +706,7 @@ function figureSyntheticReplay() {
       fill: confirmed ? palette.gold : palette.muted,
     }));
     body.push(text(x + 130, 738, middle, 21, { anchor: "middle", weight: 500 }));
-    body.push(text(x + 130, 766, bottom, 17, {
+    body.push(text(x + 130, 766, bottom, 14, {
       anchor: "middle",
       fill: palette.muted,
     }));
@@ -699,10 +715,16 @@ function figureSyntheticReplay() {
     }
   }
 
-  body.push(text(70, 850, "ANOMALOUS · decision function -0.048242", 19, {
+  body.push(text(
+    70,
+    850,
+    `대화 domain 후보 ${domainResult.status} · decision function ${domainResult.decision_function.toFixed(6)}`,
+    19,
+    {
     fill: palette.blueDark,
-  }));
-  body.push(text(1530, 850, "score는 확률·위험도 아님", 19, {
+    },
+  ));
+  body.push(text(1530, 850, "점수는 확률 아님 · SMTP는 episode당 최대 1회 시도", 19, {
     anchor: "end",
     fill: palette.gold,
   }));

@@ -13,7 +13,7 @@
   </defs>
   <rect width="1600" height="900" fill="#FFFFFF"/>
   <text x="70" y="72" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="46" font-weight="500" text-anchor="start" letter-spacing="0">가족사진 화면을 중심으로 한 사용자 시나리오</text>
-<text x="70" y="112" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="23" font-weight="400" text-anchor="start" letter-spacing="0">루틴·대화 종료 후 사진 화면으로 복귀 · 이상 후보 3회 연속 시 보호자 이메일</text>
+<text x="70" y="112" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="23" font-weight="400" text-anchor="start" letter-spacing="0">루틴·대화 종료 후 사진 화면으로 복귀 · 연속 이상 평가 기본 3회 후 상태 전환</text>
 <rect x="585" y="150" width="430" height="100" rx="18" fill="#F3D7D1" stroke="#8A1601" stroke-width="2"/>
 <text x="800" y="191" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="29" font-weight="500" text-anchor="middle" letter-spacing="0">가족사진 기본 화면</text>
 <text x="800" y="224" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="19" font-weight="400" text-anchor="middle" letter-spacing="0">날짜와 사진 표시 · 평상시 조작 요구 없음</text>
@@ -58,14 +58,14 @@
 <text x="1215" y="648" fill="#6F625F" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">정시 권유 미참여는 기록하지 않음</text>
 <polyline points="1430,478 1430,540 1215,540 1215,585" fill="none" stroke="#8A1601" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <rect x="230" y="735" width="1140" height="92" rx="14" fill="#F3D7D1" stroke="#B64E38" stroke-width="2"/>
-<text x="260" y="772" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="400" text-anchor="start" letter-spacing="0">축약 지표 누적</text>
-<line x1="410" y1="765" x2="520" y2="765" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
-<text x="545" y="772" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="400" text-anchor="start" letter-spacing="0">개인 기준 평가</text>
-<line x1="755" y1="765" x2="865" y2="765" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
-<text x="890" y="772" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="400" text-anchor="start" letter-spacing="0">3회 연속 확인</text>
-<line x1="1040" y1="765" x2="1140" y2="765" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
-<text x="1170" y="765" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="400" text-anchor="start" letter-spacing="0">보호자 이메일</text>
-<text x="800" y="812" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">관찰 근거 전달 · 의료 진단·응급 신고 제외</text>
+<text x="260" y="772" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="20" font-weight="400" text-anchor="start" letter-spacing="0">완료 지표 누적</text>
+<line x1="420" y1="765" x2="505" y2="765" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="530" y="772" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="20" font-weight="400" text-anchor="start" letter-spacing="0">domain별 평가·OR</text>
+<line x1="720" y1="765" x2="805" y2="765" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="830" y="772" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="20" font-weight="400" text-anchor="start" letter-spacing="0">연속 이상 count 3/3</text>
+<line x1="1050" y1="765" x2="1135" y2="765" stroke="#651000" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="1160" y="772" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="20" font-weight="400" text-anchor="start" letter-spacing="0">SMTP 1회 시도</text>
+<text x="800" y="812" fill="#B64E38" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">저장 상태 ANOMALOUS 전환 · episode당 최대 1회 시도 · 의료 진단·응급 신고 제외</text>
 <polyline points="497,665 497,705 430,705 430,735" fill="none" stroke="#C8B8B4" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 6"/>
 <polyline points="1215,665 1215,705 1170,705 1170,735" fill="none" stroke="#C8B8B4" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 6"/>
 </svg>

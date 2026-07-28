@@ -1,0 +1,57 @@
+{
+  "fixture": {
+    "baseline_sessions": 20,
+    "current_session": 21,
+    "displayed_features": 3,
+    "model_features": 5
+  },
+  "domain_result": {
+    "status": "ANOMALOUS",
+    "mode": "ISOLATION_FOREST",
+    "decision_function": -0.048242,
+    "reasons": [
+      "최근 7일 회상 대화 사용자 턴 수가 개인 기준선보다 감소",
+      "회상 대화 글자 수가 개인 기준선보다 감소",
+      "회상 대화 무응답 횟수가 개인 기준선보다 증가"
+    ]
+  },
+  "service_replay": {
+    "interval_seconds": 60,
+    "confirmation_count": 3,
+    "evaluations": [
+      {
+        "evaluation": 1,
+        "candidate_status": "ANOMALOUS",
+        "stored_status": "NORMAL",
+        "consecutive_count": 1,
+        "became_anomalous": false,
+        "notification_status": "SKIPPED"
+      },
+      {
+        "evaluation": 2,
+        "candidate_status": "ANOMALOUS",
+        "stored_status": "NORMAL",
+        "consecutive_count": 2,
+        "became_anomalous": false,
+        "notification_status": "SKIPPED"
+      },
+      {
+        "evaluation": 3,
+        "candidate_status": "ANOMALOUS",
+        "stored_status": "ANOMALOUS",
+        "consecutive_count": 3,
+        "became_anomalous": true,
+        "notification_status": "SENT"
+      },
+      {
+        "evaluation": 4,
+        "candidate_status": "ANOMALOUS",
+        "stored_status": "ANOMALOUS",
+        "consecutive_count": 3,
+        "became_anomalous": false,
+        "notification_status": "SKIPPED"
+      }
+    ],
+    "smtp_attempts": 1
+  }
+}
