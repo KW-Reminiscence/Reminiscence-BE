@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="figure_09_title figure_09_desc">
+  <title id="figure_09_title">개인 기준선과 모델 활성화 시점</title>
+  <desc id="figure_09_desc">루틴 모델은 초기 28일 후, 대화 품질 모델은 초기 20세션 후 활성화되며 참여량은 초기 28일의 7일 구간 평균과 비교하는 이중 타임라인.</desc>
+  <rect id="canvas_background" data-name="Canvas background" width="1600" height="900" fill="#FFFFFF"/>
+  <g id="figure_09" data-name="개인 기준선과 모델 활성화 시점">
+    <g id="01_header" data-name="01 Header">
+<text id="text_001" data-name="Text · 개인 기준선과 모델 활성화 시점" x="70" y="72" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="46" font-weight="600" text-anchor="start" letter-spacing="0">개인 기준선과 모델 활성화 시점</text>
+<text id="text_002" data-name="Text · 루틴과 회상 대화의 관측 단위가 달라 기준선 형성 조건을 분리" x="70" y="112" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="23" font-weight="400" text-anchor="start" letter-spacing="0">루틴과 회상 대화의 관측 단위가 달라 기준선 형성 조건을 분리</text>
+</g>
+<rect id="rect_003" data-name="Section band · 루틴 · 일 단위" x="70" y="175" width="1460" height="44" rx="8" fill="#F8EAE7" stroke="none" stroke-width="0"/><text id="text_004" data-name="Section title · 루틴 · 일 단위" x="86" y="205" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="600" text-anchor="start" letter-spacing="0">루틴 · 일 단위</text>
+<rect id="rect_005" data-name="Rectangle" x="120" y="270" width="560" height="92" rx="12" fill="#F8EAE7" stroke="#B34A36" stroke-width="2"/>
+<text id="text_006" data-name="Text · 초기 28일" x="400" y="307" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="600" text-anchor="middle" letter-spacing="0">초기 28일</text>
+<text id="text_007" data-name="Text · 동일 루틴 3회 연속 미응답 규칙" x="400" y="340" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">동일 루틴 3회 연속 미응답 규칙</text>
+<rect id="rect_008" data-name="Rectangle" x="680" y="270" width="800" height="92" rx="12" fill="#FCF5F3" stroke="#8A1601" stroke-width="2"/>
+<text id="text_009" data-name="Text · 29번째 관측일부터" x="1080" y="307" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="600" text-anchor="middle" letter-spacing="0">29번째 관측일부터</text>
+<text id="text_010" data-name="Text · 하루 벡터 기반 개인별 루틴 Isolation Forest" x="1080" y="340" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">하루 벡터 기반 개인별 루틴 Isolation Forest</text>
+<g id="connector_011" data-name="Connector"><line id="connector_011_stroke" data-name="Connector · Stroke" x1="120" y1="395" x2="1480" y2="395" stroke="#5E0F00" stroke-width="4" stroke-linecap="round"/></g>
+<circle id="circle_012" data-name="Circle" cx="120" cy="395" r="9" fill="#FFFFFF" stroke="#8A1601" stroke-width="3"/>
+<polygon id="polygon_013" data-name="Polygon" points="680,383 692,395 680,407 668,395" fill="#8A1601" stroke="#5E0F00" stroke-width="2"/>
+<text id="text_014" data-name="Text · 1일" x="120" y="430" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="16" font-weight="400" text-anchor="middle" letter-spacing="0">1일</text>
+<text id="text_015" data-name="Text · 28일 완료" x="680" y="430" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="16" font-weight="400" text-anchor="middle" letter-spacing="0">28일 완료</text>
+<rect id="rect_016" data-name="Section band · 회상 대화 · 세션과 최근 7일 참여량" x="70" y="500" width="1460" height="44" rx="8" fill="#F8EAE7" stroke="none" stroke-width="0"/><text id="text_017" data-name="Section title · 회상 대화 · 세션과 최근 7일 참여량" x="86" y="530" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="21" font-weight="600" text-anchor="start" letter-spacing="0">회상 대화 · 세션과 최근 7일 참여량</text>
+<rect id="rect_018" data-name="Rectangle" x="120" y="595" width="560" height="92" rx="12" fill="#F8EAE7" stroke="#B34A36" stroke-width="2"/>
+<text id="text_019" data-name="Text · 초기 20세션" x="400" y="632" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="600" text-anchor="middle" letter-spacing="0">초기 20세션</text>
+<text id="text_020" data-name="Text · 대화 품질 기준 세션 축적" x="400" y="665" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">대화 품질 기준 세션 축적</text>
+<rect id="rect_021" data-name="Rectangle" x="680" y="595" width="800" height="92" rx="12" fill="#FCF5F3" stroke="#8A1601" stroke-width="2"/>
+<text id="text_022" data-name="Text · 21번째 세션부터" x="1080" y="632" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="600" text-anchor="middle" letter-spacing="0">21번째 세션부터</text>
+<text id="text_023" data-name="Text · 세션 품질 Isolation Forest · 최근 3세션 중 2세션 지속 확인" x="1080" y="665" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="17" font-weight="400" text-anchor="middle" letter-spacing="0">세션 품질 Isolation Forest · 최근 3세션 중 2세션 지속 확인</text>
+<g id="connector_024" data-name="Connector"><line id="connector_024_stroke" data-name="Connector · Stroke" x1="120" y1="720" x2="1480" y2="720" stroke="#5E0F00" stroke-width="4" stroke-linecap="round"/></g>
+<circle id="circle_025" data-name="Circle" cx="120" cy="720" r="9" fill="#FFFFFF" stroke="#8A1601" stroke-width="3"/>
+<polygon id="polygon_026" data-name="Polygon" points="680,708 692,720 680,732 668,720" fill="#8A1601" stroke="#5E0F00" stroke-width="2"/>
+<text id="text_027" data-name="Text · 1세션" x="120" y="755" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="16" font-weight="400" text-anchor="middle" letter-spacing="0">1세션</text>
+<text id="text_028" data-name="Text · 20세션 완료" x="680" y="755" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="16" font-weight="400" text-anchor="middle" letter-spacing="0">20세션 완료</text>
+<rect id="rect_029" data-name="Rectangle" x="250" y="805" width="1100" height="48" rx="12" fill="#F8F5F4" stroke="#D5C0BB" stroke-width="2"/>
+<text id="text_030" data-name="Text · 참여량 기준 · 초기 28일의 네 개 7일 구간 평균 → 최근 7일 턴 수와 비" x="800" y="837" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="middle" letter-spacing="0">참여량 기준 · 초기 28일의 네 개 7일 구간 평균 → 최근 7일 턴 수와 비교</text>
+  </g>
+</svg>

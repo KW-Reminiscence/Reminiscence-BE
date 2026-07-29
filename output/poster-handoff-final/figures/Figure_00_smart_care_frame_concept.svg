@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="figure_00_title figure_00_desc">
+  <title id="figure_00_title">일상 속 AI 대화형 스마트 케어 액자</title>
+  <desc id="figure_00_desc">가족사진 화면을 중심으로 회상 대화, 루틴 기록, 개인별 변화 관찰 기능을 배치한 스마트 액자 개념도.</desc>
+  <rect id="canvas_background" data-name="Canvas background" width="1600" height="900" fill="#FFFFFF"/>
+  <g id="figure_00" data-name="일상 속 AI 대화형 스마트 케어 액자">
+    <g id="01_header" data-name="01 Header">
+<text id="text_001" data-name="Text · 일상 속 AI 대화형 스마트 케어 액자" x="70" y="72" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="46" font-weight="600" text-anchor="start" letter-spacing="0">일상 속 AI 대화형 스마트 케어 액자</text>
+<text id="text_002" data-name="Text · 가족사진을 중심으로 회상 대화·루틴 기록·보호자 연결을 하나의 장치에 통합" x="70" y="112" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="23" font-weight="400" text-anchor="start" letter-spacing="0">가족사진을 중심으로 회상 대화·루틴 기록·보호자 연결을 하나의 장치에 통합</text>
+</g>
+<g id="02_device" data-name="02 Smart frame device">
+<rect id="rect_003" data-name="Smart frame outer body" x="85" y="165" width="825" height="610" rx="28" fill="#5E0F00" stroke="#5E0F00" stroke-width="4"/>
+<rect id="rect_004" data-name="Smart frame screen" x="118" y="198" width="759" height="544" rx="18" fill="#FCF5F3" stroke="#D98D7E" stroke-width="2"/>
+<text id="text_005" data-name="Text · 2026년 7월 29일" x="155" y="246" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="400" text-anchor="start" letter-spacing="0">2026년 7월 29일</text>
+<text id="text_006" data-name="Text · 오후 2:00" x="840" y="246" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="400" text-anchor="end" letter-spacing="0">오후 2:00</text>
+<rect id="rect_007" data-name="Family photo area" x="155" y="275" width="685" height="300" rx="18" fill="#EFCBC4" stroke="#D98D7E" stroke-width="2"/>
+<circle id="circle_008" data-name="Family person 1 head" cx="385" cy="392" r="48" fill="#D98D7E" stroke="#B34A36" stroke-width="2"/>
+<ellipse id="ellipse_009" data-name="Family person 1 body" cx="385" cy="510" rx="92" ry="105" fill="#F8EAE7" stroke="#B34A36" stroke-width="2"/>
+<circle id="circle_010" data-name="Family person 2 head" cx="510" cy="365" r="55" fill="#B34A36" stroke="#5E0F00" stroke-width="2"/>
+<ellipse id="ellipse_011" data-name="Family person 2 body" cx="510" cy="495" rx="105" ry="118" fill="#FFFFFF" stroke="#5E0F00" stroke-width="2"/>
+<circle id="circle_012" data-name="Family person 3 head" cx="645" cy="405" r="44" fill="#D98D7E" stroke="#B34A36" stroke-width="2"/>
+<ellipse id="ellipse_013" data-name="Family person 3 body" cx="645" cy="515" rx="82" ry="96" fill="#FCF5F3" stroke="#B34A36" stroke-width="2"/>
+<text id="text_014" data-name="Text · 가족사진" x="498" y="558" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="20" font-weight="600" text-anchor="middle" letter-spacing="0">가족사진</text>
+<rect id="rect_015" data-name="Conversation bubble" x="155" y="600" width="475" height="102" rx="18" fill="#FFFFFF" stroke="#D98D7E" stroke-width="2"/>
+<text id="text_block_016" data-name="Conversation sample" x="182" y="638" fill="#2F2523" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="20" font-weight="400" text-anchor="start"><tspan x="182" dy="0">“이 사진을 보니 어떤 이야기가</tspan><tspan x="182" dy="29">떠오르시나요?”</tspan></text>
+<rect id="rect_017" data-name="Routine action button" x="655" y="600" width="185" height="102" rx="18" fill="#8A1601" stroke="#5E0F00" stroke-width="2"/>
+<text id="text_018" data-name="Text · 기록하기" x="748" y="661" fill="#FFFFFF" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="25" font-weight="600" text-anchor="middle" letter-spacing="0">기록하기</text>
+</g>
+<g id="03_capabilities" data-name="03 Capability cards">
+<g id="node_019" data-name="Node · 회상 대화"><rect id="rect_020" data-name="Node · 회상 대화 · Card" x="975" y="175" width="530" height="165" rx="14" fill="#FCF5F3" stroke="#D98D7E" stroke-width="2"/><text id="text_021" data-name="Node · 회상 대화 · Title" x="995" y="213" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="600" text-anchor="start" letter-spacing="0">회상 대화</text><text id="text_block_022" data-name="Node · 회상 대화 · Body" x="995" y="247" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="995" dy="0">고정형 시작 문구</tspan><tspan x="995" dy="26">사용자 응답 기반 LLM 후속 질문</tspan><tspan x="995" dy="26">Supertonic 3 음성 출력</tspan></text></g>
+<g id="node_023" data-name="Node · 식사·복약 루틴"><rect id="rect_024" data-name="Node · 식사·복약 루틴 · Card" x="975" y="365" width="530" height="165" rx="14" fill="#FFFFFF" stroke="#D5C0BB" stroke-width="2"/><text id="text_025" data-name="Node · 식사·복약 루틴 · Title" x="995" y="403" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="600" text-anchor="start" letter-spacing="0">식사·복약 루틴</text><text id="text_block_026" data-name="Node · 식사·복약 루틴 · Body" x="995" y="437" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="995" dy="0">예정 시각 음성 안내</tspan><tspan x="995" dy="26">큰 버튼으로 수행 기록</tspan><tspan x="995" dy="26">미응답 시 설정된 재알림</tspan></text></g>
+<g id="node_027" data-name="Node · 개인별 변화 관찰"><rect id="rect_028" data-name="Node · 개인별 변화 관찰 · Card" x="975" y="555" width="530" height="165" rx="14" fill="#F8EAE7" stroke="#B34A36" stroke-width="2"/><text id="text_029" data-name="Node · 개인별 변화 관찰 · Title" x="995" y="593" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="600" text-anchor="start" letter-spacing="0">개인별 변화 관찰</text><text id="text_block_030" data-name="Node · 개인별 변화 관찰 · Body" x="995" y="627" fill="#6B5B57" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="18" font-weight="400" text-anchor="start"><tspan x="995" dy="0">루틴과 대화 지표 분리</tspan><tspan x="995" dy="26">개인 기준 이상 탐지</tspan><tspan x="995" dy="26">관찰 근거를 보호자 이메일로 전달</tspan></text></g>
+</g>
+<g id="04_footer" data-name="04 Footer">
+<text id="text_031" data-name="Text · 평상시에는 가족사진 · 필요한 순간에는 음성 안내와 큰 버튼" x="800" y="835" fill="#5E0F00" font-family="Apple SD Gothic Neo, Arial Unicode MS, sans-serif" font-size="22" font-weight="600" text-anchor="middle" letter-spacing="0">평상시에는 가족사진 · 필요한 순간에는 음성 안내와 큰 버튼</text>
+</g>
+  </g>
+</svg>

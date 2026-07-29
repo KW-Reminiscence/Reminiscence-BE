@@ -14,7 +14,9 @@ A1에는 OpenAI API 기반 gpt-4o-transcribe 전사 경계, Supertonic 3 로컬 
 
 ## figure 사용
 
-각 figure는 편집 가능한 SVG와 3200 px 폭의 PNG로 제공한다. PNG는 PowerPoint와 일반 편집 도구에 바로 삽입할 수 있고 SVG는 글자와 색, 간격을 수정할 때 사용한다. `figures/figma`에는 Figma 캔버스에 드래그해 가져올 수 있는 SVG 사본이 있다. 패널, 노드, 연결선, 라벨은 이름이 있는 group으로 구분했고 text element를 유지했으며 화살표는 marker 대신 편집 가능한 선과 삼각형으로 구성했다. 네 figure의 비중립 색상은 #8A1601을 중심으로 한 단일 계열이며 상태는 색상과 선, 마커, 직접 라벨을 함께 사용해 구분한다. Figure 4의 합성 자료 표시는 제목, plot 내부 주석과 캡션에서 유지해야 한다.
+각 figure는 편집 가능한 SVG와 3200 px 폭의 PNG로 제공한다. PNG는 PowerPoint와 일반 편집 도구에 바로 삽입할 수 있고 SVG는 글자와 색, 간격을 수정할 때 사용한다. `figures/figma`에는 Figma 캔버스에 드래그해 가져올 수 있는 SVG 사본이 있다. 패널, 노드, 연결선, 라벨은 이름이 있는 group으로 구분했고 text element를 유지했으며 화살표는 marker 대신 편집 가능한 선과 삼각형으로 구성했다. 열 개 figure의 비중립 색상은 #8A1601을 중심으로 한 단일 계열이며 상태는 색상과 선, 마커, 직접 라벨을 함께 사용해 구분한다. Figure 4의 합성 자료 표시와 최종 이상 미확정 문구는 제목, plot 내부 주석과 캡션에서 유지해야 한다.
+
+`figures/FIGURE_CATALOG.md`에는 Figure별 시각화 역할, 권장 배치, 해석 범위와 대체 설명을 정리했다. `source/generate_all_figures.js`를 실행하면 열 개 SVG·PNG, Figma용 SVG 사본과 검수용 contact sheet를 다시 생성한다.
 
 실제 사용자 UI와 실물 장치 사진은 현재 백엔드 저장소에 없다. assets의 FastAPI 화면은 실제 실행 화면이며, repository QR은 저장소 연결용이다. 프런트엔드 캡처나 실물 사진을 추가할 때에는 생성 시안과 실제 구현 화면을 구분해야 한다.
 
