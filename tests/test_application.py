@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -19,6 +20,7 @@ def test_openapi_document_describes_the_application() -> None:
 
 def test_application_lifespan_starts_and_stops_background_runtime(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     routine_scheduler = object()
     notification_coordinator = object()
@@ -47,6 +49,7 @@ def test_application_lifespan_starts_and_stops_background_runtime(
         lambda: notification_coordinator,
     )
     monkeypatch.setattr(main, "build_background_runtime", build_runtime)
+    monkeypatch.setenv("REMINISCENCE_DATA_DIR", str(tmp_path))
 
     application = create_app()
     with TestClient(application) as client:
