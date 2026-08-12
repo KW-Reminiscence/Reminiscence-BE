@@ -1,24 +1,67 @@
+map $request_uri $reminiscence_cache_control {
+    default "";
+    ~^/api/ "no-store";
+}
+
+limit_req_zone $binary_remote_addr zone=reminiscence_auth:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=reminiscence_turn:10m rate=30r/m;
+limit_req_zone $binary_remote_addr zone=reminiscence_tts:10m rate=60r/m;
+
 server {
     listen 80;
     listen [::]:80;
-    server_name reminiscence-api.leehyowon14.dev;
+    server_name reminiscence.leehyowon14.dev;
 
     client_max_body_size 1m;
     client_body_timeout 30s;
+    server_tokens off;
+
     proxy_http_version 1.1;
-    proxy_read_timeout 300s;
-    proxy_send_timeout 60s;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto https;
 
+    add_header Cache-Control $reminiscence_cache_control always;
+    add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'" always;
+    add_header Permissions-Policy "camera=(), geolocation=(), microphone=(self)" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+
+    limit_req_status 429;
+
+    location ~ ^/api/v1/auth/(guardian/login|tablet/pair)$ {
+        limit_req zone=reminiscence_auth burst=5 nodelay;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_pass http://127.0.0.1:3010;
+    }
+
     location ~ ^/api/v1/conversations/sessions/[^/]+/turns$ {
         client_max_body_size 10m;
+        limit_req zone=reminiscence_turn burst=10 nodelay;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 60s;
+        proxy_pass http://127.0.0.1:3010;
+    }
+
+    location = /api/v1/tts/speech {
+        limit_req zone=reminiscence_tts burst=10 nodelay;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 60s;
+        proxy_pass http://127.0.0.1:3010;
+    }
+
+    location /api/ {
+        proxy_read_timeout 300s;
+        proxy_send_timeout 60s;
         proxy_pass http://127.0.0.1:3010;
     }
 
     location / {
-        proxy_pass http://127.0.0.1:3010;
+        proxy_read_timeout 30s;
+        proxy_send_timeout 30s;
+        proxy_pass http://127.0.0.1:3011;
     }
 }
