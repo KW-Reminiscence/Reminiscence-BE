@@ -1,7 +1,7 @@
 services:
   api:
-    image: ${IMAGE_NAME:?IMAGE_NAME is required}:${IMAGE_TAG:?IMAGE_TAG is required}
-    container_name: ${CONTAINER_NAME:?CONTAINER_NAME is required}
+    image: ${API_IMAGE_REFERENCE:?API_IMAGE_REFERENCE is required}
+    container_name: ${API_CONTAINER_NAME:?API_CONTAINER_NAME is required}
     restart: unless-stopped
     network_mode: host
     command:
@@ -13,10 +13,12 @@ services:
       - --host
       - 127.0.0.1
       - --port
-      - "${HOST_PORT:?HOST_PORT is required}"
+      - "${API_HOST_PORT:?API_HOST_PORT is required}"
       - --proxy-headers
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     read_only: true
     environment:
       REMINISCENCE_DATA_DIR: /data
@@ -47,9 +49,35 @@ services:
         - -c
         - >-
           from urllib.request import urlopen; assert
-          urlopen('http://127.0.0.1:${HOST_PORT}/api/health/ready', timeout=8).status == 200
+          urlopen('http://127.0.0.1:${API_HOST_PORT}/api/health/ready', timeout=8).status == 200
       interval: 15s
       timeout: 10s
       start_period: 120s
       retries: 3
     stop_grace_period: 20s
+
+  web:
+    image: ${WEB_IMAGE_REFERENCE:?WEB_IMAGE_REFERENCE is required}
+    container_name: ${WEB_CONTAINER_NAME:?WEB_CONTAINER_NAME is required}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT:?WEB_HOST_PORT is required}:8080"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --quiet
+        - --spider
+        - http://127.0.0.1:8080/healthz
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    stop_grace_period: 10s
