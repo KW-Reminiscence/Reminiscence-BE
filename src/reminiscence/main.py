@@ -82,11 +82,11 @@ def parse_cors_origins(value: str | None) -> tuple[str, ...]:
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     """Start and stop periodic appliance jobs with the API process."""
 
     data_directory = Path(os.environ.get("REMINISCENCE_DATA_DIR", "data"))
-    with SingleInstanceLock(data_directory):
+    with SingleInstanceLock(data_directory) as instance_lock:
         validate_data_directory(data_directory)
         runtime = build_background_runtime(
             get_routine_scheduler(),
@@ -94,10 +94,14 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
             get_current_time,
         )
         runtime.start()
+        application.state.instance_lock = instance_lock
+        application.state.background_runtime = runtime
         try:
             yield
         finally:
             await runtime.stop()
+            del application.state.background_runtime
+            del application.state.instance_lock
 
 
 def create_app(cors_origins: tuple[str, ...] | None = None) -> FastAPI:

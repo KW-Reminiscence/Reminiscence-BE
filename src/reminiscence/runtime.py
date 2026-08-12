@@ -71,6 +71,12 @@ class BackgroundRuntime:
         self._stop_event = asyncio.Event()
         self._tasks: tuple[asyncio.Task[None], ...] = ()
 
+    @property
+    def is_running(self) -> bool:
+        """Return whether both periodic tasks are active."""
+
+        return len(self._tasks) == 2 and all(not task.done() for task in self._tasks)
+
     def start(self) -> None:
         """Start both periodic jobs once."""
 

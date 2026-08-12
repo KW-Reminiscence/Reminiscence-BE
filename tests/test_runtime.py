@@ -55,9 +55,12 @@ def test_runtime_runs_both_jobs_and_stops_cleanly() -> None:
             routine_interval_seconds=0.01,
             evaluation_interval_seconds=0.01,
         )
+        assert runtime.is_running is False
         runtime.start()
+        assert runtime.is_running is True
         await run_until(lambda: len(routine.calls) >= 2 and len(notification.calls) >= 2)
         await runtime.stop()
+        assert runtime.is_running is False
         counts_after_stop = (len(routine.calls), len(notification.calls))
         await asyncio.sleep(0.02)
         assert (len(routine.calls), len(notification.calls)) == counts_after_stop

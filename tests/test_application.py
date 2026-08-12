@@ -29,6 +29,8 @@ def test_application_lifespan_starts_and_stops_background_runtime(
     received: list[tuple[object, object, Callable[[], datetime]]] = []
 
     class FakeRuntime:
+        is_running = True
+
         def start(self) -> None:
             events.append("started")
 
@@ -57,8 +59,12 @@ def test_application_lifespan_starts_and_stops_background_runtime(
     with TestClient(application) as client:
         assert client.get("/health").status_code == 200
         assert events == ["started"]
+        assert application.state.instance_lock.acquired is True
+        assert application.state.background_runtime.is_running is True
 
     assert events == ["started", "stopped"]
+    assert not hasattr(application.state, "instance_lock")
+    assert not hasattr(application.state, "background_runtime")
     assert len(received) == 1
     assert received[0][0] is routine_scheduler
     assert received[0][1] is notification_coordinator
