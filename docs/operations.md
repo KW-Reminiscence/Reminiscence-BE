@@ -51,7 +51,8 @@ secret은 `600`, production과 data directory는 `750`이어야 합니다.
 offline 전환합니다. 정상 배포 snapshot은 strict current schema만 받으므로,
 legacy 원본은 별도 directory에 그대로 보존해야 합니다.
 
-1. `APPLY_JSON_MIGRATIONS=1`로 일반 digest 배포를 시작합니다.
+1. GitHub Actions의 `CI/CD` workflow를 수동 실행하고
+   `apply_json_migrations`를 승인합니다.
 2. script가 maintenance에 진입하고 기존 API를 중지합니다.
 3. schema와 무관한 `legacy_snapshot`이 모든 JSON 원본, 정확한 파일 목록과
    SHA-256을 atomic directory로 보존합니다.
@@ -90,13 +91,21 @@ Tablet cookie 흐름을 차단하므로 사용하지 않습니다.
 
 FE `main` workflow가 먼저 성공해
 `ghcr.io/kw-reminiscence/reminiscence-fe:main` ARM64 manifest를 게시해야 합니다.
-그 뒤 BE `main` workflow가 다음을 수행합니다.
+그 뒤 BE `main` workflow가 다음을 수행합니다. `ENABLE_PRODUCTION_DEPLOY` repository
+variable이 `true`가 되기 전까지 push는 검증과 image 게시까지만 수행하며 production
+deploy는 시작하지 않습니다.
 
 1. GitHub-hosted runner에서 pytest, Ruff, mypy와 OpenAPI 검증
 2. API ARM64 image build·SBOM·provenance 게시
 3. FE `main`의 정확한 commit을 현재 BE OpenAPI로 다시 typecheck·build
 4. 해당 FE commit SHA tag와 API image를 immutable digest로 해석
 5. rpi5의 `reminiscence` label runner에서 두 digest 통합 배포
+
+최초 legacy 전환은 BE image가 게시된 뒤 Actions의 `CI/CD`에서 **Run workflow**를
+선택하고 `apply_json_migrations`를 켜서 한 번만 실행합니다. 실제 HTTPS 인수가
+끝난 뒤 repository variable `ENABLE_PRODUCTION_DEPLOY=true`를 설정하면 이후 BE
+`main` push부터 자동 production deploy가 활성화됩니다. 이 순서를 뒤집어 최초
+push가 legacy data에 일반 배포를 시도하게 해서는 안 됩니다.
 
 rpi5 runner는 image pull, snapshot, migration, Compose와 smoke만 수행합니다.
 runner 상태는 다음처럼 확인합니다.
