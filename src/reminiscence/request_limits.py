@@ -38,6 +38,7 @@ DEFAULT_RATE_LIMIT_RULES = (
     RateLimitRule(_CONVERSATION_TURN_PATH, 30, 60),
     RateLimitRule(re.compile(r"^/api/v1/tts/speech$"), 60, 60),
 )
+DEFAULT_RATE_LIMIT_MAXIMUM_KEYS = 10_000
 
 
 class RequestRateLimitMiddleware:
@@ -49,10 +50,14 @@ class RequestRateLimitMiddleware:
         *,
         rules: tuple[RateLimitRule, ...] = DEFAULT_RATE_LIMIT_RULES,
         clock: Callable[[], float] = time.monotonic,
+        maximum_keys: int = DEFAULT_RATE_LIMIT_MAXIMUM_KEYS,
     ) -> None:
+        if maximum_keys <= 0:
+            raise ValueError("maximum_keys must be positive")
         self._app = app
         self._rules = rules
         self._clock = clock
+        self._maximum_keys = maximum_keys
         self._lock = threading.Lock()
         self._windows: dict[tuple[str, str], tuple[float, int]] = {}
 
@@ -66,6 +71,13 @@ class RequestRateLimitMiddleware:
         now = self._clock()
         key = (address, rule.pattern.pattern)
         with self._lock:
+            self._prune_expired(now)
+            if key not in self._windows and len(self._windows) >= self._maximum_keys:
+                oldest_key = min(
+                    self._windows,
+                    key=lambda item: self._windows[item][0],
+                )
+                del self._windows[oldest_key]
             started_at, count = self._windows.get(key, (now, 0))
             if now - started_at >= rule.window_seconds:
                 started_at, count = now, 0
@@ -80,6 +92,19 @@ class RequestRateLimitMiddleware:
             await self._send_limited(send, retry_after)
             return
         await self._app(scope, receive, send)
+
+    def _prune_expired(self, now: float) -> None:
+        longest_window = max(
+            (rule.window_seconds for rule in self._rules),
+            default=0,
+        )
+        expired = [
+            key
+            for key, (started_at, _) in self._windows.items()
+            if now - started_at >= longest_window
+        ]
+        for key in expired:
+            del self._windows[key]
 
     def _rule(self, scope: Scope) -> RateLimitRule | None:
         if scope["type"] != "http" or scope.get("method") != "POST":

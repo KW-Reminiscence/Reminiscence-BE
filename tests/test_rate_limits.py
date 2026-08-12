@@ -52,3 +52,34 @@ def test_get_and_unmatched_post_do_not_consume_budget() -> None:
     assert client.get("/limited").status_code == 200
     assert client.post("/limited").status_code == 200
     assert client.post("/limited").status_code == 200
+
+
+def test_expired_client_keys_are_pruned_and_key_count_is_bounded() -> None:
+    now = [100.0]
+    downstream = FastAPI()
+
+    @downstream.post("/limited")
+    async def limited() -> dict[str, bool]:
+        return {"ok": True}
+
+    middleware = RequestRateLimitMiddleware(
+        downstream,
+        rules=(RateLimitRule(re.compile(r"^/limited$"), 1, 60),),
+        clock=lambda: now[0],
+        maximum_keys=2,
+    )
+    app = FastAPI()
+    app.mount("/", middleware)
+
+    first = TestClient(app, client=("192.0.2.1", 50000))
+    second = TestClient(app, client=("192.0.2.2", 50000))
+    third = TestClient(app, client=("192.0.2.3", 50000))
+    assert first.post("/limited").status_code == 200
+    assert second.post("/limited").status_code == 200
+    assert len(middleware._windows) == 2
+    assert third.post("/limited").status_code == 200
+    assert len(middleware._windows) == 2
+
+    now[0] += 60
+    assert first.post("/limited").status_code == 200
+    assert len(middleware._windows) == 1
