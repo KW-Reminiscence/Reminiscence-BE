@@ -302,3 +302,48 @@ def test_strict_validation_rejects_semantically_invalid_observations(
 
     with pytest.raises(JsonMigrationError, match=message):
         validate_data_directory(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("baseline_root", "message"),
+    [
+        (
+            {"routine_vectors": [[2, 0, 0, 0, 1, 0]] * 28},
+            "ratios",
+        ),
+        (
+            {"routine_vectors": [[0, 0, -1, 0, 1, 0]] * 28},
+            "delays",
+        ),
+        (
+            {"routine_vectors": [[0, 0, 0, 0, 1, 1.5]] * 28},
+            "streak",
+        ),
+        (
+            {"conversation_quality_vectors": [[-1, 0, 0, 0, 0]] * 20},
+            "negative",
+        ),
+        (
+            {"conversation_quality_vectors": [[1.5, 0, 0, 0, 0]] * 20},
+            "integers",
+        ),
+        (
+            {"participation_weekly_turn_mean": 20},
+            "model settings",
+        ),
+    ],
+)
+def test_strict_validation_rejects_semantically_invalid_baselines(
+    tmp_path: Path,
+    baseline_root: dict[str, object],
+    message: str,
+) -> None:
+    migrate_data_directory(tmp_path, apply=True)
+    path = tmp_path / "anomaly_baseline.json"
+    path.write_text(
+        json.dumps({"schema_version": 1, **baseline_root}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(JsonMigrationError, match=message):
+        validate_data_directory(tmp_path)

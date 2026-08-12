@@ -183,6 +183,10 @@ def _validate_anomaly_baseline(root: dict[str, Any]) -> None:
         raise JsonDocumentValidationError(
             "conversation_quality_vectors must contain 20 rows"
         )
+    for index, vector in enumerate(routine):
+        _validate_routine_baseline_vector(vector, index)
+    for index, vector in enumerate(quality):
+        _validate_quality_baseline_vector(vector, index)
     participation = root.get("participation_weekly_turn_mean")
     if participation is not None and _number(
         participation,
@@ -192,6 +196,10 @@ def _validate_anomaly_baseline(root: dict[str, Any]) -> None:
             "participation_weekly_turn_mean must not be negative"
         )
     model = root.get("model")
+    if (routine or quality or participation is not None) and model is None:
+        raise JsonDocumentValidationError(
+            "anomaly model settings are required when a baseline exists"
+        )
     if model is not None and model != {
         "algorithm": "IsolationForest",
         "random_state": 42,
@@ -199,6 +207,38 @@ def _validate_anomaly_baseline(root: dict[str, Any]) -> None:
         "contamination": 0.1,
     }:
         raise JsonDocumentValidationError("anomaly model settings are invalid")
+
+
+def _validate_routine_baseline_vector(
+    vector: tuple[float, ...],
+    index: int,
+) -> None:
+    if any(vector[position] < 0 or vector[position] > 1 for position in (0, 1, 4)):
+        raise JsonDocumentValidationError(
+            f"routine_vectors[{index}] ratios must be between 0 and 1"
+        )
+    if vector[2] < 0 or vector[3] < 0:
+        raise JsonDocumentValidationError(
+            f"routine_vectors[{index}] delays must not be negative"
+        )
+    if vector[5] < 0 or not vector[5].is_integer():
+        raise JsonDocumentValidationError(
+            f"routine_vectors[{index}] streak must be a non-negative integer"
+        )
+
+
+def _validate_quality_baseline_vector(
+    vector: tuple[float, ...],
+    index: int,
+) -> None:
+    if any(value < 0 for value in vector):
+        raise JsonDocumentValidationError(
+            f"conversation_quality_vectors[{index}] values must not be negative"
+        )
+    if any(not vector[position].is_integer() for position in (0, 1, 4)):
+        raise JsonDocumentValidationError(
+            f"conversation_quality_vectors[{index}] counts must be integers"
+        )
 
 
 def _validate_personal_state(root: dict[str, Any]) -> None:

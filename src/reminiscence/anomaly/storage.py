@@ -251,16 +251,11 @@ class ActivityObservationStore:
             stored_routines = self._stored_routines(root)
             stored_quality = self._stored_quality(root)
             stored_participation = self._stored_participation(root)
-            active_session_date = self._earliest_active_session_date(
-                conversations_raw,
-                evaluated_at,
-            )
             observation_started_on = self._observation_started_on(
                 root,
                 routines,
                 conversations,
                 evaluated_at,
-                active_session_date,
             )
             self._reject_date_reversal(
                 evaluated_at.date(), stored_routines, stored_participation
@@ -292,7 +287,6 @@ class ActivityObservationStore:
                 conversations,
                 evaluated_at,
                 observation_started_on,
-                active_session_date,
             )
             merged_routines = tuple(
                 sorted(
@@ -384,7 +378,6 @@ class ActivityObservationStore:
         routines: tuple[RoutineMetric, ...],
         conversations: tuple[ConversationMetric, ...],
         evaluated_at: datetime,
-        active_session_date: date | None,
     ) -> date:
         stored = root.get("anomaly_observation_started_on")
         if stored is not None:
@@ -398,28 +391,9 @@ class ActivityObservationStore:
             item.started_at.astimezone(evaluated_at.tzinfo).date()
             for item in conversations
         )
-        if active_session_date is not None:
-            historical_dates.append(active_session_date)
         started_on = min(historical_dates, default=evaluated_at.date())
         root["anomaly_observation_started_on"] = started_on.isoformat()
         return started_on
-
-    @staticmethod
-    def _earliest_active_session_date(
-        values: list[Any],
-        evaluated_at: datetime,
-    ) -> date | None:
-        active_dates: list[date] = []
-        for value in values:
-            if not isinstance(value, dict):
-                raise AnomalyStorageError("each conversation session must be an object")
-            if value.get("status") == "ACTIVE":
-                started_at = _aware_datetime(value.get("started_at"), "started_at")
-                if started_at <= evaluated_at:
-                    active_dates.append(
-                        started_at.astimezone(evaluated_at.tzinfo).date()
-                    )
-        return min(active_dates, default=None)
 
     @staticmethod
     def _stored_routines(root: dict[str, Any]) -> tuple[RoutineObservation, ...]:
@@ -572,13 +546,10 @@ class ActivityObservationStore:
         conversations: tuple[ConversationMetric, ...],
         evaluated_at: datetime,
         observation_started_on: date,
-        active_session_date: date | None,
     ) -> tuple[ParticipationObservation, ...]:
         del routines
         start = observation_started_on
         end = evaluated_at.date() - timedelta(days=1)
-        if active_session_date is not None:
-            end = min(end, active_session_date - timedelta(days=1))
         if end < start:
             return ()
         observations: list[ParticipationObservation] = []
@@ -589,7 +560,7 @@ class ActivityObservationStore:
                 item.user_turn_count
                 for item in conversations
                 if window_start
-                <= item.started_at.astimezone(evaluated_at.tzinfo).date()
+                <= item.completed_at.astimezone(evaluated_at.tzinfo).date()
                 <= current
             )
             observations.append(ParticipationObservation(current, turns))

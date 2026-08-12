@@ -175,6 +175,7 @@ def test_confirmation_clears_previous_three_miss_feature(tmp_path: Path) -> None
     )
 
     service.evaluate(NOW)
+    service.evaluate(NOW + timedelta(days=1))
     activity = json.loads(activity_path.read_text(encoding="utf-8"))
 
     assert [item["values"][5] for item in activity["routine_observations"]] == [
@@ -396,7 +397,7 @@ def test_participation_does_not_freeze_incomplete_current_date(tmp_path: Path) -
     ] == 5
 
 
-def test_active_session_blocks_previous_day_participation_until_completion(
+def test_active_session_does_not_block_later_zero_participation_days(
     tmp_path: Path,
 ) -> None:
     service, activity_path, _, _ = build_service(tmp_path)
@@ -417,20 +418,37 @@ def test_active_session_blocks_previous_day_participation_until_completion(
     )
 
     service.evaluate(NOW)
-    activity = json.loads(activity_path.read_text(encoding="utf-8"))
-    assert activity["participation_observations"] == []
-
-    completed = completed_session(29, turns=5)
-    completed["session_id"] = "overnight"
-    completed["started_at"] = started_at.isoformat()
-    activity["conversation_sessions"] = [completed]
-    activity_path.write_text(json.dumps(activity), encoding="utf-8")
     service.evaluate(NOW + timedelta(days=1))
+    activity = json.loads(activity_path.read_text(encoding="utf-8"))
+    assert activity["participation_observations"] == [
+        {
+            "target_date": NOW.date().isoformat(),
+            "recent_7_day_user_turn_count": 0,
+        }
+    ]
 
-    updated = json.loads(activity_path.read_text(encoding="utf-8"))
-    assert updated["participation_observations"][0][
-        "recent_7_day_user_turn_count"
-    ] == 5
+
+def test_overnight_session_is_counted_on_completion_date(tmp_path: Path) -> None:
+    service, activity_path, _, _ = build_service(tmp_path)
+    seed = routine_execution(2, "CONFIRMED")
+    overnight = completed_session(29, turns=5)
+    overnight["started_at"] = (NOW - timedelta(days=1, hours=-5)).isoformat()
+    overnight["completed_at"] = (NOW + timedelta(hours=1)).isoformat()
+    write_activity(
+        activity_path,
+        routine_executions=[seed],
+        conversation_sessions=[overnight],
+    )
+
+    service.evaluate(NOW + timedelta(days=1))
+    activity = json.loads(activity_path.read_text(encoding="utf-8"))
+
+    by_date = {
+        item["target_date"]: item["recent_7_day_user_turn_count"]
+        for item in activity["participation_observations"]
+    }
+    assert by_date[(NOW.date() - timedelta(days=1)).isoformat()] == 0
+    assert by_date[NOW.date().isoformat()] == 5
 
 
 def test_date_reversal_is_rejected(tmp_path: Path) -> None:
