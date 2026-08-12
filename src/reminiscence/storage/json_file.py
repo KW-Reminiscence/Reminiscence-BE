@@ -51,10 +51,20 @@ class JsonObjectStore:
 
         return self.path.with_name(f".{self.path.name}.lock")
 
+    @property
+    def snapshot_lock_path(self) -> Path:
+        """Return the data-directory lock shared with snapshot operations."""
+
+        return self.path.parent / ".snapshot.lock"
+
     def read(self) -> dict[str, Any]:
         """Return a detached JSON object."""
 
-        with self._lock, self._file_lock(exclusive=False):
+        with (
+            self._lock,
+            self._snapshot_lock(exclusive=False),
+            self._file_lock(exclusive=False),
+        ):
             return self._read_unlocked()
 
     def update(
@@ -63,7 +73,11 @@ class JsonObjectStore:
     ) -> dict[str, Any]:
         """Mutate and atomically persist an object while holding the path lock."""
 
-        with self._lock, self._file_lock(exclusive=True):
+        with (
+            self._lock,
+            self._snapshot_lock(exclusive=False),
+            self._file_lock(exclusive=True),
+        ):
             value = self._read_unlocked()
             mutator(value)
             self._apply_schema_version(value)
@@ -74,7 +88,11 @@ class JsonObjectStore:
         """Replace the complete JSON object under an exclusive file lock."""
 
         replacement = deepcopy(dict(value))
-        with self._lock, self._file_lock(exclusive=True):
+        with (
+            self._lock,
+            self._snapshot_lock(exclusive=False),
+            self._file_lock(exclusive=True),
+        ):
             self._apply_schema_version(replacement)
             self._write_unlocked(replacement)
             return deepcopy(replacement)
@@ -92,6 +110,21 @@ class JsonObjectStore:
         except OSError as exc:
             raise JsonStorageError(
                 f"failed to lock JSON object at {self.path}"
+            ) from exc
+
+    @contextmanager
+    def _snapshot_lock(self, *, exclusive: bool) -> Iterator[None]:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with self.snapshot_lock_path.open("a+b") as lock_file:
+                self._acquire_file_lock(lock_file, exclusive=exclusive)
+                try:
+                    yield
+                finally:
+                    flock(lock_file.fileno(), LOCK_UN)
+        except OSError as exc:
+            raise JsonStorageError(
+                f"failed to lock JSON snapshot directory at {self.path.parent}"
             ) from exc
 
     @staticmethod
