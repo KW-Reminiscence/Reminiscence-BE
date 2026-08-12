@@ -110,8 +110,18 @@ jobs:
           OPENAPI_SCHEMA_PATH: ../openapi.json
         run: |
           pnpm api:check
+          pnpm test
+          pnpm lint
           pnpm typecheck
           pnpm build
+
+      - name: Install Playwright Chromium for exact web commit
+        working-directory: frontend-release
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Verify exact web commit browser flows
+        working-directory: frontend-release
+        run: pnpm test:e2e
 
       - name: Capture OpenAPI contract hash
         id: contract
@@ -156,7 +166,9 @@ jobs:
           tags: |
             ${{ env.WEB_IMAGE_NAME }}:${{ steps.web-source.outputs.commit }}
             ${{ env.WEB_IMAGE_NAME }}:main
-          labels: org.opencontainers.image.source=https://github.com/KW-Reminiscence/Reminiscence-FE
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ steps.web-source.outputs.commit }}
           cache-from: type=gha,scope=web-release
           cache-to: type=gha,mode=max,scope=web-release
           provenance: mode=max

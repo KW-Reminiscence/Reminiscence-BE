@@ -54,9 +54,18 @@ def test_workflow_deploys_api_and_web_by_immutable_digest() -> None:
     assert "git -C frontend-release rev-parse HEAD" in workflow
     assert "OPENAPI_SCHEMA_PATH: ../openapi.json" in workflow
     assert "pnpm api:check" in workflow
+    assert "pnpm test" in workflow
+    assert "pnpm lint" in workflow
     assert "pnpm typecheck" in workflow
     assert "pnpm build" in workflow
+    assert "pnpm exec playwright install --with-deps chromium" in workflow
+    assert "pnpm test:e2e" in workflow
     assert "context: frontend-release" in workflow
     assert "reminiscence-web-release" in workflow
     assert "WEB_IMAGE_NAME }}:${{ steps.web-source.outputs.commit }}" in workflow
+    assert (
+        "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}"
+        in workflow
+    )
+    assert "org.opencontainers.image.revision=${{ steps.web-source.outputs.commit }}" in workflow
     assert "sha256sum openapi.json" in workflow
