@@ -1,0 +1,191 @@
+# Reminiscence rpi5 운영 절차
+
+대상은 `rpi5-server`의 production 단일 instance입니다. 외부 주소는
+`https://reminiscence.leehyowon14.dev`, host loopback port는 API `3010`, web
+`3011`입니다. rpi5에서는 source build를 하지 않고 GHCR ARM64 digest image만
+pull합니다.
+
+## 1. Host directory와 비밀값
+
+```text
+/home/ubuntu/apps/reminiscence/production/
+  application-secrets.json  # 0600, Git 제외
+  data/                     # 0750, versioned JSON
+  supertonic3/              # model assets
+  backups/                  # checksummed JSON snapshots
+  docker-compose.yml
+  .env                      # image/path bootstrap only
+  release.json              # 현재 FE·API digest와 snapshot
+```
+
+다음 파일을 example에서 시작해 host에서 직접 작성합니다.
+
+```bash
+install -d -m 0750 /home/ubuntu/apps/reminiscence/production/data
+install -m 0600 deploy/application-secrets.example.json \
+  /home/ubuntu/apps/reminiscence/production/application-secrets.json
+install -m 0640 deploy/configuration.example.json \
+  /home/ubuntu/apps/reminiscence/production/data/configuration.json
+```
+
+`application-secrets.json`에는 Guardian 평문 비밀번호, Tablet pairing code,
+codex-lb key와 SMTP credential을 입력합니다. 이 값은 채팅, Git, CI log와
+snapshot에 넣지 않습니다. `configuration.json`의 사진·이름·일정은 실제
+사용자용 값으로 바꾸고 `runtime.public_origin`은 production URL과 정확히
+일치시킵니다.
+
+배포 전 권한을 확인합니다.
+
+```bash
+stat -c '%a %U:%G %n' \
+  /home/ubuntu/apps/reminiscence/production \
+  /home/ubuntu/apps/reminiscence/production/data \
+  /home/ubuntu/apps/reminiscence/production/application-secrets.json
+```
+
+secret은 `600`, production과 data directory는 `750`이어야 합니다.
+
+## 2. 최초 legacy JSON 전환
+
+현재 data가 `schema_version` 없는 demo 형식이면 일반 배포보다 먼저 한 번만
+offline 전환합니다. 정상 배포 snapshot은 strict current schema만 받으므로,
+legacy 원본은 별도 directory에 그대로 보존해야 합니다.
+
+1. maintenance flag를 만들고 기존 API를 중지합니다.
+2. `data` 전체를 timestamp가 붙은 `legacy-pre-migration-*` directory에
+   파일 속성을 보존해 복사합니다.
+3. candidate API digest image의 migration CLI를 `--apply`로 명시 실행합니다.
+4. `configuration.json`에 production `runtime`과 실제 사진·일정이 있는지
+   확인합니다.
+5. candidate preflight가 성공한 뒤 일반 digest 배포를 실행합니다.
+
+중간 실패 시 새 API를 시작하지 말고 legacy directory를 이용해 수동 복구한 뒤
+기존 API를 재기동합니다. 손상된 JSON을 기본값으로 덮어써서는 안 됩니다.
+
+## 3. Host Nginx와 Cloudflare
+
+```bash
+sudo install -m 0644 deploy/nginx/reminiscence \
+  /etc/nginx/sites-available/reminiscence
+sudo ln -sfn /etc/nginx/sites-available/reminiscence \
+  /etc/nginx/sites-enabled/reminiscence
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+기존 Nginx 파일에 같은 `server_name`이 있다면 먼저 백업하고 해당 server block을
+제거합니다. `sudo nginx -T` 결과에서
+`reminiscence.leehyowon14.dev` server가 정확히 하나인지 확인합니다. API와 web
+container port는 `127.0.0.1`에만 열고 host firewall이나 router에 직접
+publish하지 않습니다.
+
+Cloudflare Tunnel은 host Nginx의 port 80으로 전달하고 HTTPS를 강제합니다.
+`/api/*` cache는 우회해야 합니다. domain 전체 Cloudflare Access는 무인
+Tablet cookie 흐름을 차단하므로 사용하지 않습니다.
+
+## 4. CI/CD release
+
+FE `main` workflow가 먼저 성공해
+`ghcr.io/kw-reminiscence/reminiscence-fe:main` ARM64 manifest를 게시해야 합니다.
+그 뒤 BE `main` workflow가 다음을 수행합니다.
+
+1. GitHub-hosted runner에서 pytest, Ruff, mypy와 OpenAPI 검증
+2. API ARM64 image build·SBOM·provenance 게시
+3. FE `main` manifest와 API image를 immutable digest로 해석
+4. rpi5의 `reminiscence` label runner에서 두 digest 통합 배포
+
+rpi5 runner는 image pull, snapshot, migration, Compose와 smoke만 수행합니다.
+runner 상태는 다음처럼 확인합니다.
+
+```bash
+systemctl status \
+  actions.runner.KW-Reminiscence-Reminiscence-BE.rpi5-server.service
+```
+
+수동 배포도 tag가 아닌 두 digest를 모두 전달해야 합니다.
+
+```bash
+./scripts/deploy.sh production \
+  ghcr.io/kw-reminiscence/reminiscence-be@sha256:<64-hex> \
+  ghcr.io/kw-reminiscence/reminiscence-fe@sha256:<64-hex>
+```
+
+schema 변경을 검토하고 승인한 release에서만
+`APPLY_JSON_MIGRATIONS=1`을 같은 명령 앞에 둡니다. script는 candidate pull,
+web `nginx -t`, API preflight·TTS smoke를 먼저 수행한 뒤 maintenance, API stop,
+predeploy snapshot, migration, 두 container 기동과 loopback/public smoke 순서로
+진행합니다.
+
+현재 상태는 `release.json`, 이전 상태는 `release.previous.json`,
+`.env.previous`, `docker-compose.previous.yml`에 남습니다. release 파일에는
+비밀값이 없고 FE·API digest와 predeploy snapshot 경로만 있습니다.
+
+## 5. 자동 backup과 복구 훈련
+
+```bash
+sudo install -m 0755 scripts/backup.sh /usr/local/bin/reminiscence-backup
+sudo install -m 0755 scripts/restore-drill.sh \
+  /usr/local/bin/reminiscence-restore-drill
+sudo install -m 0644 deploy/systemd/reminiscence-backup.service \
+  deploy/systemd/reminiscence-backup.timer \
+  deploy/systemd/reminiscence-restore-drill.service \
+  deploy/systemd/reminiscence-restore-drill.timer \
+  /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now \
+  reminiscence-backup.timer reminiscence-restore-drill.timer
+systemctl list-timers 'reminiscence-*'
+```
+
+backup은 KST 03:15에 실행하며 daily 7개, weekly 4개, monthly 6개를 유지합니다.
+삭제 전 각 snapshot의 manifest, SHA-256과 JSON schema를 검증합니다. secret과
+auth session은 backup에 포함하지 않습니다.
+
+복구 훈련은 매월 1일 KST 04:30에 최신 daily snapshot을 격리 임시 directory로
+복구합니다. 제외된 auth JSON은 빈 상태로 migration하고 strict preflight와 실제
+Supertonic WAV smoke를 통과한 뒤 임시 directory를 제거합니다. live data는
+변경하지 않습니다.
+
+```bash
+journalctl -u reminiscence-backup.service -n 100 --no-pager
+journalctl -u reminiscence-restore-drill.service -n 100 --no-pager
+```
+
+## 6. 장애와 rollback
+
+배포 중 오류가 나면 maintenance를 유지하고 다음 원칙을 적용합니다.
+
+- migration 전 또는 public traffic 전: candidate를 내리고 predeploy snapshot과
+  이전 FE·API Compose를 함께 복구
+- migration 뒤 public traffic 유입 후: 새 기록 유실 위험 때문에 data와 image를
+  자동 rollback하지 않고 maintenance 상태에서 수동 판단
+- snapshot restore 자체가 실패: 이전 app을 임의로 시작하지 않고 maintenance
+  유지
+
+수동 조사 시 먼저 현재 파일과 container를 보존한 채 다음을 확인합니다.
+
+```bash
+docker compose --project-name reminiscence-production \
+  --env-file /home/ubuntu/apps/reminiscence/production/.env \
+  --file /home/ubuntu/apps/reminiscence/production/docker-compose.yml ps
+curl --fail http://127.0.0.1:3010/api/health/ready
+curl --fail http://127.0.0.1:3011/healthz
+cat /home/ubuntu/apps/reminiscence/production/release.json
+```
+
+`application-secrets.json`과 사진 base64는 terminal 출력에 포함하지 않습니다.
+
+## 7. 인수 smoke와 비밀값 교체
+
+실제 HTTPS에서 다음을 확인합니다.
+
+- Tablet pairing → 사진 홈 → 루틴 확인 → 사진 홈
+- 정시·자발 대화 → 마이크 녹음 → TTS → 완료 → 사진 홈
+- Guardian 오입력·login·새로고침·logout·session 만료
+- Guardian 월별 기록과 이상 근거
+- `/api/health/live`, `/api/health/ready`
+- SMTP 실제 수신
+
+평문 Guardian 비밀번호나 pairing code 변경 시 기존 session이 revoke되는지
+확인합니다. host나 log에 노출 가능성이 있었던 API key·Cloudflare credential은
+별도 관리 화면에서 rotate하고 새 값을 mode 0600 JSON에 반영한 뒤 재배포합니다.

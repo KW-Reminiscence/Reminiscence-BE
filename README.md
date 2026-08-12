@@ -96,12 +96,11 @@ codex-lb 응답의 `text`는 글자 수와 시간 지표로 즉시 축약하며,
 ### Supertonic 3 TTS
 
 로컬 개발에서는 첫 TTS 요청이 약 400MB의 모델을 기본 cache에 내려받습니다.
-운영 배포는 `scripts/deploy.sh`가 모델을
-`/home/ubuntu/apps/reminiscence/<environment>/supertonic3`에 먼저 내려받고,
-컨테이너의 `/models`에 영속 mount합니다. SDK가 `/models/supertonic-3`와
-다운로드용 임시 경로를 같은 writable volume에 생성하고, Hugging Face cache도
-`/models/.cache/huggingface`에 저장합니다. 이후 음성 합성에는 외부 TTS API나
-인터넷 연결이 필요하지 않습니다.
+운영에서는 검증된 Supertonic model asset을
+`/home/ubuntu/apps/reminiscence/<environment>/supertonic3`에 미리 배치하고,
+컨테이너의 `/models`에 영속 mount합니다. `scripts/deploy.sh`는 새 image로
+전환하기 전에 해당 asset으로 실제 한국어 WAV를 합성합니다. 이후 음성 합성에는
+외부 TTS API나 인터넷 연결이 필요하지 않습니다.
 
 기본 설정은 한국어, `F1` voice, 0.9배속, 8 inference steps이며
 `configuration.json`의 `runtime.supertonic`으로 조정할 수 있습니다.
@@ -181,6 +180,9 @@ export REMINISCENCE_SECRETS_PATH=/tmp/application-secrets.json
 
 ## Raspberry Pi 배포 파일
 
+초기 설정, same-origin Nginx, digest release, JSON backup·복구 훈련과 rollback의
+전체 절차는 [docs/operations.md](./docs/operations.md)를 따릅니다.
+
 배포 환경별 디렉터리에 다음 파일을 미리 준비합니다.
 
 ```text
@@ -203,6 +205,7 @@ timeout은 300초입니다. production API는
 same-origin `https://reminiscence.leehyowon14.dev/api/`에서 제공합니다.
 
 `.github/workflows/ci-cd.yml`은 `main` 대상 pull request에서 테스트, lint,
-type check를 수행합니다. `main` push에서는 같은 검증을 통과한 ARM64 image를
-GHCR에 게시한 뒤 production Docker Compose 배포를 수행합니다. 다른 branch의
+type check와 OpenAPI 계약 검증을 수행합니다. `main` push에서는 같은 검증을
+통과한 API ARM64 image와 FE workflow가 검증한 web ARM64 image를 immutable
+digest로 묶어 production Docker Compose release를 수행합니다. 다른 branch의
 push는 image build나 배포를 시작하지 않습니다.
