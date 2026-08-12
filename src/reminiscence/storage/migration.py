@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from reminiscence.storage.documents import (
+    DOCUMENT_SPECS,
+    DocumentSpec,
+    JsonDocumentValidationError,
+)
 from reminiscence.storage.json_file import JsonStorageError
 from reminiscence.storage.schema import CURRENT_SCHEMA_VERSION
 from reminiscence.storage.snapshot import (
@@ -20,93 +25,6 @@ from reminiscence.storage.snapshot import (
 
 class JsonMigrationError(JsonStorageError):
     """Raised when a document cannot be migrated without data loss."""
-
-
-@dataclass(frozen=True, slots=True)
-class DocumentSpec:
-    """One known JSON document and its root-level structural validation."""
-
-    filename: str
-    defaults: dict[str, Any]
-    validate: Callable[[dict[str, Any]], None]
-
-
-def _require_list(root: dict[str, Any], key: str) -> None:
-    value = root.get(key)
-    if not isinstance(value, list):
-        raise JsonMigrationError(f"{key} must be an array")
-
-
-def _validate_configuration(root: dict[str, Any]) -> None:
-    _require_list(root, "routines")
-    _require_list(root, "photos")
-    conversation = root.get("conversation")
-    if not isinstance(conversation, dict):
-        raise JsonMigrationError("conversation must be an object")
-
-
-def _validate_activity(root: dict[str, Any]) -> None:
-    _require_list(root, "routine_executions")
-    _require_list(root, "conversation_sessions")
-
-
-def _validate_object(root: dict[str, Any]) -> None:
-    if not isinstance(root, dict):
-        raise JsonMigrationError("JSON root must be an object")
-
-
-def _validate_personal_state(root: dict[str, Any]) -> None:
-    keys = set(root) - {"schema_version"}
-    if not keys:
-        return
-    required = {"status", "evaluated_at", "routine", "conversation"}
-    missing = required - keys
-    if missing:
-        raise JsonMigrationError(
-            "personal_state is missing fields: " + ", ".join(sorted(missing))
-        )
-    if not isinstance(root["status"], str) or not isinstance(root["evaluated_at"], str):
-        raise JsonMigrationError("personal_state status and evaluated_at must be strings")
-    if not isinstance(root["routine"], dict) or not isinstance(
-        root["conversation"], dict
-    ):
-        raise JsonMigrationError("personal_state domains must be objects")
-
-
-def _validate_notification_state(root: dict[str, Any]) -> None:
-    attempted = root.get("anomaly_notification_attempted", False)
-    if not isinstance(attempted, bool):
-        raise JsonMigrationError("anomaly_notification_attempted must be a boolean")
-    updated_at = root.get("updated_at")
-    if updated_at is not None and not isinstance(updated_at, str):
-        raise JsonMigrationError("notification updated_at must be a string or null")
-
-
-def _validate_auth_sessions(root: dict[str, Any]) -> None:
-    _require_list(root, "sessions")
-
-
-def _validate_auth_attempts(root: dict[str, Any]) -> None:
-    _require_list(root, "attempts")
-
-
-DOCUMENT_SPECS = (
-    DocumentSpec(
-        "configuration.json",
-        {"routines": [], "photos": [], "conversation": {}},
-        _validate_configuration,
-    ),
-    DocumentSpec(
-        "activity_metrics.json",
-        {"routine_executions": [], "conversation_sessions": []},
-        _validate_activity,
-    ),
-    DocumentSpec("anomaly_baseline.json", {}, _validate_object),
-    DocumentSpec("personal_state.json", {}, _validate_personal_state),
-    DocumentSpec("notification_state.json", {}, _validate_notification_state),
-    DocumentSpec("auth_sessions.json", {"sessions": []}, _validate_auth_sessions),
-    DocumentSpec("auth_attempts.json", {"attempts": []}, _validate_auth_attempts),
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,7 +61,10 @@ def plan_document_migration(data_directory: Path, spec: DocumentSpec) -> Migrati
             f"unsupported schema_version for {path}: {existing_version!r}"
         )
     merged = {**spec.defaults, **root}
-    spec.validate(merged)
+    try:
+        spec.validate(merged)
+    except (JsonDocumentValidationError, RuntimeError, ValueError) as exc:
+        raise JsonMigrationError(f"invalid document {path}: {exc}") from exc
     return MigrationResult(
         path=path,
         changed=created or existing_version is None,
@@ -162,7 +83,10 @@ def _prepared_document(data_directory: Path, spec: DocumentSpec) -> tuple[Migrat
             f"unsupported schema_version for {path}: {existing_version!r}"
         )
     merged = {**spec.defaults, **root, "schema_version": CURRENT_SCHEMA_VERSION}
-    spec.validate(merged)
+    try:
+        spec.validate(merged)
+    except (JsonDocumentValidationError, RuntimeError, ValueError) as exc:
+        raise JsonMigrationError(f"invalid document {path}: {exc}") from exc
     return (
         MigrationResult(
             path=path,

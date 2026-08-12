@@ -15,6 +15,10 @@ from fcntl import LOCK_EX, LOCK_UN, flock
 from pathlib import Path
 from typing import Any
 
+from reminiscence.storage.documents import (
+    DOCUMENT_SPECS_BY_FILENAME,
+    JsonDocumentValidationError,
+)
 from reminiscence.storage.schema import CURRENT_SCHEMA_VERSION, ensure_data_directory
 
 SNAPSHOT_SCHEMA_VERSION = 1
@@ -47,6 +51,13 @@ def _validate_document(path: Path, data: bytes) -> None:
         raise JsonSnapshotError(
             f"unsupported schema_version in {path}: {version!r}"
         )
+    spec = DOCUMENT_SPECS_BY_FILENAME.get(path.name)
+    if spec is None:
+        raise JsonSnapshotError(f"unknown JSON document: {path.name}")
+    try:
+        spec.validate(value)
+    except (JsonDocumentValidationError, RuntimeError, ValueError) as exc:
+        raise JsonSnapshotError(f"invalid JSON document {path}: {exc}") from exc
 
 
 @contextmanager

@@ -135,3 +135,49 @@ def test_strict_validation_requires_migration_and_known_shapes(tmp_path: Path) -
 
     with pytest.raises(JsonMigrationError, match="sessions must be an array"):
         validate_data_directory(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("filename", "invalid_root", "message"),
+    [
+        (
+            "configuration.json",
+            {
+                "schema_version": 1,
+                "routines": [None],
+                "photos": [],
+                "conversation": {},
+            },
+            "each routine must be an object",
+        ),
+        (
+            "activity_metrics.json",
+            {
+                "schema_version": 1,
+                "routine_executions": [None],
+                "conversation_sessions": [],
+            },
+            "each routine execution must be an object",
+        ),
+        (
+            "notification_state.json",
+            {
+                "schema_version": 1,
+                "anomaly_notification_attempted": False,
+                "updated_at": "2026-08-13T12:00:00",
+            },
+            "timezone-aware",
+        ),
+    ],
+)
+def test_strict_validation_rejects_invalid_nested_domain_values(
+    tmp_path: Path,
+    filename: str,
+    invalid_root: dict[str, object],
+    message: str,
+) -> None:
+    migrate_data_directory(tmp_path, apply=True)
+    (tmp_path / filename).write_text(json.dumps(invalid_root), encoding="utf-8")
+
+    with pytest.raises(JsonMigrationError, match=message):
+        validate_data_directory(tmp_path)

@@ -28,26 +28,28 @@ def test_snapshot_excludes_auth_state_and_restores_domain_documents(
     tmp_path: Path,
 ) -> None:
     data_directory = _initialized_data_directory(tmp_path)
-    activity_path = data_directory / "activity_metrics.json"
-    activity = json.loads(activity_path.read_text(encoding="utf-8"))
-    activity["routine_executions"].append({"execution_id": "before"})
-    activity_path.write_text(json.dumps(activity), encoding="utf-8")
+    notification_path = data_directory / "notification_state.json"
+    notification = json.loads(notification_path.read_text(encoding="utf-8"))
+    notification["anomaly_notification_attempted"] = True
+    notification["updated_at"] = "2026-08-13T09:00:00+09:00"
+    notification_path.write_text(json.dumps(notification), encoding="utf-8")
 
     snapshot = create_snapshot(
         data_directory,
         tmp_path / "backups",
         snapshot_id="before-change",
     )
-    activity["routine_executions"] = [{"execution_id": "after"}]
-    activity_path.write_text(json.dumps(activity), encoding="utf-8")
+    notification["anomaly_notification_attempted"] = False
+    notification["updated_at"] = "2026-08-13T10:00:00+09:00"
+    notification_path.write_text(json.dumps(notification), encoding="utf-8")
 
     documents = verify_snapshot(snapshot)
     restore_snapshot(snapshot, data_directory)
 
     assert set(documents) == set(BACKUP_FILENAMES)
     assert "auth_sessions.json" not in documents
-    restored = json.loads(activity_path.read_text(encoding="utf-8"))
-    assert restored["routine_executions"] == [{"execution_id": "before"}]
+    restored = json.loads(notification_path.read_text(encoding="utf-8"))
+    assert restored["anomaly_notification_attempted"] is True
 
 
 def test_snapshot_rejects_missing_required_document(tmp_path: Path) -> None:
@@ -89,10 +91,10 @@ def test_restore_rolls_back_every_document_after_midway_write_failure(
         filename: (data_directory / filename).read_bytes()
         for filename in BACKUP_FILENAMES
     }
-    for filename in BACKUP_FILENAMES:
-        root = json.loads((data_directory / filename).read_text(encoding="utf-8"))
-        root["current_marker"] = filename
-        (data_directory / filename).write_text(json.dumps(root), encoding="utf-8")
+    configuration_path = data_directory / "configuration.json"
+    configuration = json.loads(configuration_path.read_text(encoding="utf-8"))
+    configuration["conversation"]["suggestion_time"] = "15:00"
+    configuration_path.write_text(json.dumps(configuration), encoding="utf-8")
     before_restore = {
         filename: (data_directory / filename).read_bytes()
         for filename in BACKUP_FILENAMES
