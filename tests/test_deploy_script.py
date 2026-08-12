@@ -153,3 +153,11 @@ def test_container_start_uses_strict_preflight_and_readiness() -> None:
     assert "      - reminiscence.preflight" in compose
     assert "/api/health/ready" in dockerfile
     assert "/api/health/ready" in compose
+
+
+def test_api_image_uses_host_ubuntu_uid_for_read_only_secret() -> None:
+    dockerfile = (PROJECT_ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "groupadd --gid 1000 app" in dockerfile
+    assert "useradd --uid 1000 --gid app" in dockerfile
+    assert "USER app" in dockerfile

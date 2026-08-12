@@ -15,7 +15,8 @@ RUN uv sync --locked --no-dev --no-install-project
 COPY src ./src
 RUN uv sync --locked --no-dev
 
-RUN useradd --create-home --shell /usr/sbin/nologin app
+RUN groupadd --gid 1000 app \
+    && useradd --uid 1000 --gid app --create-home --shell /usr/sbin/nologin app
 USER app
 
 EXPOSE 8000
