@@ -313,6 +313,9 @@ def _validate_auth_sessions(root: dict[str, Any]) -> None:
     hashes = [session["token_hash"] for session in sessions]
     if len(hashes) != len(set(hashes)):
         raise JsonDocumentValidationError("auth session token hashes must be unique")
+    tablet_sessions = [session for session in sessions if session["role"].value == "TABLET"]
+    if len(tablet_sessions) > 1:
+        raise JsonDocumentValidationError("at most one Tablet session is allowed")
 
 
 def _validate_auth_attempts(root: dict[str, Any]) -> None:

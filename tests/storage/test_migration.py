@@ -347,3 +347,27 @@ def test_strict_validation_rejects_semantically_invalid_baselines(
 
     with pytest.raises(JsonMigrationError, match=message):
         validate_data_directory(tmp_path)
+
+
+def test_strict_validation_rejects_multiple_tablet_sessions(tmp_path: Path) -> None:
+    migrate_data_directory(tmp_path, apply=True)
+    path = tmp_path / "auth_sessions.json"
+    session = {
+        "token_hash": "a" * 64,
+        "credential_fingerprint": "b" * 64,
+        "role": "TABLET",
+        "created_at": "2026-08-13T12:00:00+09:00",
+        "expires_at": "2026-09-13T12:00:00+09:00",
+    }
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "sessions": [session, {**session, "token_hash": "c" * 64}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(JsonMigrationError, match="one Tablet"):
+        validate_data_directory(tmp_path)
