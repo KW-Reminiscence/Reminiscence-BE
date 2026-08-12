@@ -394,7 +394,7 @@
       ],
       "backend_test_metric": [
         {
-          "passed": 438,
+          "passed": 439,
           "skipped": 1
         }
       ],
@@ -535,7 +535,7 @@
           "order": 1,
           "scope": "Backend",
           "gate": "pytest",
-          "result": "438 passed, 1 skipped",
+          "result": "439 passed, 1 skipped",
           "note": "skip은 production Supertonic runtime 설정 대기"
         },
         {
@@ -659,7 +659,7 @@
           "openapi.json"
         ],
         "metric_definitions": [
-          "통과 테스트 수는 pytest 전체 collection 439건 중 skip 1건을 제외한 438건"
+          "통과 테스트 수는 pytest 전체 collection 440건 중 skip 1건을 제외한 439건"
         ]
       }
     },

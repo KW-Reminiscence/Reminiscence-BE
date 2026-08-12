@@ -4,7 +4,7 @@
 WITH reviewed_rows(dataset, row_json) AS (
     VALUES
         ('stage_metric', '{"value":7}'),
-        ('backend_test_metric', '{"passed":438,"skipped":1}'),
+        ('backend_test_metric', '{"passed":439,"skipped":1}'),
         ('frontend_test_metric', '{"unit_passed":79,"e2e_passed":8}'),
         ('stage_completion', '{"stage_label":"1. Storage","completion_rate":1,"p0_p1_remaining":0}'),
         ('stage_completion', '{"stage_label":"2. Anomaly","completion_rate":1,"p0_p1_remaining":0}'),
@@ -26,7 +26,7 @@ WITH reviewed_rows(dataset, row_json) AS (
         ('before_after', '{"priority":4,"area":"Security"}'),
         ('before_after', '{"priority":5,"area":"Persistence"}'),
         ('before_after', '{"priority":6,"area":"Release"}'),
-        ('quality_gates', '{"order":1,"scope":"Backend","gate":"pytest","result":"438 passed, 1 skipped"}'),
+        ('quality_gates', '{"order":1,"scope":"Backend","gate":"pytest","result":"439 passed, 1 skipped"}'),
         ('quality_gates', '{"order":2,"scope":"Backend","gate":"Ruff · mypy · OpenAPI","result":"통과"}'),
         ('quality_gates', '{"order":3,"scope":"Frontend","gate":"Vitest · ESLint · TypeScript","result":"79 passed · clean"}'),
         ('quality_gates', '{"order":4,"scope":"Frontend","gate":"production · demo build","result":"통과"}'),

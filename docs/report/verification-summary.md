@@ -23,7 +23,7 @@ python -m reminiscence.openapi_contract --check openapi.json
 
 결과:
 
-- pytest collection 439건: 438 passed, 1 skipped
+- pytest collection 440건: 439 passed, 1 skipped
 - skip 사유: production `configuration.json` runtime 설정과 `RUN_SUPERTONIC_SMOKE=1`이 필요한 real Supertonic smoke
 - Ruff: clean
 - mypy: 64 source files, clean
