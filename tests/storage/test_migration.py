@@ -7,11 +7,14 @@ from pathlib import Path
 
 import pytest
 
+from reminiscence.storage import migration
 from reminiscence.storage.migration import (
     CURRENT_SCHEMA_VERSION,
     JsonMigrationError,
     migrate_data_directory,
+    validate_data_directory,
 )
+from reminiscence.storage.snapshot import JsonSnapshotError
 
 
 def _legacy_configuration() -> dict[str, object]:
@@ -93,3 +96,42 @@ def test_migration_rejects_invalid_known_sections(tmp_path: Path) -> None:
 
     with pytest.raises(JsonMigrationError, match="routine_executions"):
         migrate_data_directory(tmp_path, apply=False)
+
+
+def test_apply_rolls_back_every_document_after_midway_write_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configuration_path = tmp_path / "configuration.json"
+    original = json.dumps(_legacy_configuration()).encode("utf-8")
+    configuration_path.write_bytes(original)
+    real_write = migration.atomic_write_bytes
+    calls = 0
+
+    def fail_second_write(path: Path, data: bytes) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise JsonSnapshotError("simulated disk failure")
+        real_write(path, data)
+
+    monkeypatch.setattr(migration, "atomic_write_bytes", fail_second_write)
+
+    with pytest.raises(JsonMigrationError, match="original data restored"):
+        migrate_data_directory(tmp_path, apply=True)
+
+    assert configuration_path.read_bytes() == original
+    assert not (tmp_path / "activity_metrics.json").exists()
+
+
+def test_strict_validation_requires_migration_and_known_shapes(tmp_path: Path) -> None:
+    migrate_data_directory(tmp_path, apply=True)
+    validate_data_directory(tmp_path)
+    auth_path = tmp_path / "auth_sessions.json"
+    auth_path.write_text(
+        json.dumps({"schema_version": 1, "sessions": {}}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(JsonMigrationError, match="sessions must be an array"):
+        validate_data_directory(tmp_path)

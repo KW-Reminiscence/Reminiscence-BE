@@ -179,7 +179,12 @@ def test_read_only_store_reads_without_creating_locks_and_rejects_writes(
 ) -> None:
     path = tmp_path / "configuration.json"
     path.write_text('{"schema_version": 1}', encoding="utf-8")
-    store = JsonObjectStore(path, schema_version=1, read_only=True)
+    store = JsonObjectStore(
+        path,
+        schema_version=1,
+        read_only=True,
+        locking=False,
+    )
 
     assert store.read() == {"schema_version": 1}
     assert not store.lock_path.exists()

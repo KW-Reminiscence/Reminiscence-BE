@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from reminiscence.storage import snapshot as snapshot_module
 from reminiscence.storage.migration import migrate_data_directory
 from reminiscence.storage.snapshot import (
     BACKUP_FILENAMES,
@@ -72,6 +73,50 @@ def test_verify_rejects_tampered_document_without_restoring(tmp_path: Path) -> N
         restore_snapshot(snapshot, data_directory)
 
     assert target_path.read_bytes() == original
+
+
+def test_restore_rolls_back_every_document_after_midway_write_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    data_directory = _initialized_data_directory(tmp_path)
+    snapshot = create_snapshot(
+        data_directory,
+        tmp_path / "backups",
+        snapshot_id="rollback",
+    )
+    originals = {
+        filename: (data_directory / filename).read_bytes()
+        for filename in BACKUP_FILENAMES
+    }
+    for filename in BACKUP_FILENAMES:
+        root = json.loads((data_directory / filename).read_text(encoding="utf-8"))
+        root["current_marker"] = filename
+        (data_directory / filename).write_text(json.dumps(root), encoding="utf-8")
+    before_restore = {
+        filename: (data_directory / filename).read_bytes()
+        for filename in BACKUP_FILENAMES
+    }
+    assert before_restore != originals
+    real_write = snapshot_module.atomic_write_bytes
+    calls = 0
+
+    def fail_second_write(path: Path, data: bytes) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise JsonSnapshotError("simulated disk failure")
+        real_write(path, data)
+
+    monkeypatch.setattr(snapshot_module, "atomic_write_bytes", fail_second_write)
+
+    with pytest.raises(JsonSnapshotError, match="original data restored"):
+        restore_snapshot(snapshot, data_directory)
+
+    assert {
+        filename: (data_directory / filename).read_bytes()
+        for filename in BACKUP_FILENAMES
+    } == before_restore
 
 
 @pytest.mark.parametrize("snapshot_id", ["", ".", "..", "nested/path"])

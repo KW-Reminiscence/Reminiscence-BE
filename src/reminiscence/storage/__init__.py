@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from reminiscence.storage.json_file import JsonObjectStore, JsonStorageError
-from reminiscence.storage.migration import CURRENT_SCHEMA_VERSION
+from reminiscence.storage.schema import CURRENT_SCHEMA_VERSION
 
 
 def open_versioned_store(
@@ -13,6 +13,7 @@ def open_versioned_store(
     *,
     missing_default: Mapping[str, Any] | None = None,
     read_only: bool = False,
+    locking: bool = True,
 ) -> JsonObjectStore:
     """Open one application JSON document at the current schema version."""
 
@@ -21,6 +22,7 @@ def open_versioned_store(
         missing_default=missing_default,
         schema_version=CURRENT_SCHEMA_VERSION,
         read_only=read_only,
+        locking=locking,
     )
 
 

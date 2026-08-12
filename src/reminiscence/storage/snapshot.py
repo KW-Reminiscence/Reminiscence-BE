@@ -15,7 +15,7 @@ from fcntl import LOCK_EX, LOCK_UN, flock
 from pathlib import Path
 from typing import Any
 
-from reminiscence.storage.migration import CURRENT_SCHEMA_VERSION
+from reminiscence.storage.schema import CURRENT_SCHEMA_VERSION, ensure_data_directory
 
 SNAPSHOT_SCHEMA_VERSION = 1
 BACKUP_FILENAMES = (
@@ -50,8 +50,10 @@ def _validate_document(path: Path, data: bytes) -> None:
 
 
 @contextmanager
-def _exclusive_snapshot_lock(data_directory: Path) -> Iterator[None]:
-    data_directory.mkdir(parents=True, exist_ok=True)
+def exclusive_snapshot_lock(data_directory: Path) -> Iterator[None]:
+    """Block every cooperating application JSON read and write."""
+
+    ensure_data_directory(data_directory)
     lock_path = data_directory / ".snapshot.lock"
     try:
         with lock_path.open("a+b") as lock_file:
@@ -75,8 +77,10 @@ def _fsync_directory(path: Path) -> None:
         os.close(descriptor)
 
 
-def _atomic_write(path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+def atomic_write_bytes(path: Path, data: bytes) -> None:
+    """Durably replace one file whose directory-level lock is already held."""
+
+    ensure_data_directory(path.parent)
     descriptor, temporary_name = tempfile.mkstemp(
         dir=path.parent,
         prefix=f".{path.name}.",
@@ -131,7 +135,7 @@ def create_snapshot(
         tempfile.mkdtemp(dir=backup_directory, prefix=f".{identifier}.", suffix=".tmp")
     )
     try:
-        with _exclusive_snapshot_lock(data_directory):
+        with exclusive_snapshot_lock(data_directory):
             documents = _read_snapshot_documents(data_directory)
         files: list[dict[str, Any]] = []
         for filename, data in documents.items():
@@ -217,9 +221,34 @@ def restore_snapshot(snapshot_directory: Path, data_directory: Path) -> None:
     """Verify and atomically restore all backed-up JSON documents."""
 
     documents = verify_snapshot(snapshot_directory)
-    with _exclusive_snapshot_lock(data_directory):
-        for filename, data in documents.items():
-            _atomic_write(data_directory / filename, data)
+    with exclusive_snapshot_lock(data_directory):
+        originals: dict[str, bytes | None] = {}
+        for filename in documents:
+            path = data_directory / filename
+            originals[filename] = path.read_bytes() if path.exists() else None
+        applied: list[str] = []
+        try:
+            for filename, data in documents.items():
+                atomic_write_bytes(data_directory / filename, data)
+                applied.append(filename)
+        except (OSError, JsonSnapshotError) as exc:
+            rollback_errors: list[str] = []
+            for filename in reversed(applied):
+                path = data_directory / filename
+                original = originals[filename]
+                try:
+                    if original is None:
+                        path.unlink(missing_ok=True)
+                    else:
+                        atomic_write_bytes(path, original)
+                except (OSError, JsonSnapshotError) as rollback_exc:
+                    rollback_errors.append(f"{filename}: {rollback_exc}")
+            if rollback_errors:
+                raise JsonSnapshotError(
+                    "snapshot restore failed and rollback was incomplete: "
+                    + "; ".join(rollback_errors)
+                ) from exc
+            raise JsonSnapshotError("snapshot restore failed; original data restored") from exc
 
 
 def main(argv: Sequence[str] | None = None) -> int:

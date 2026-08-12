@@ -9,6 +9,8 @@ from fcntl import LOCK_EX, LOCK_NB, LOCK_UN, flock
 from pathlib import Path
 from typing import BinaryIO
 
+from reminiscence.storage.schema import ensure_data_directory
+
 
 class InstanceLockError(RuntimeError):
     """Raised when another API process owns the JSON data directory."""
@@ -32,7 +34,7 @@ class SingleInstanceLock:
 
         if self._file is not None:
             raise InstanceLockError("instance lock is already acquired")
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_data_directory(self.path.parent)
         try:
             lock_file = self.path.open("a+b")
             try:
@@ -42,19 +44,24 @@ class SingleInstanceLock:
                 raise InstanceLockError(
                     f"another process owns data directory: {self.path.parent}"
                 ) from exc
-            metadata = json.dumps(
-                {
-                    "pid": os.getpid(),
-                    "acquired_at": datetime.now(UTC).isoformat(),
-                },
-                ensure_ascii=False,
-            ).encode("utf-8")
-            lock_file.seek(0)
-            lock_file.truncate()
-            lock_file.write(metadata + b"\n")
-            lock_file.flush()
-            os.fsync(lock_file.fileno())
-            self._file = lock_file
+            try:
+                metadata = json.dumps(
+                    {
+                        "pid": os.getpid(),
+                        "acquired_at": datetime.now(UTC).isoformat(),
+                    },
+                    ensure_ascii=False,
+                ).encode("utf-8")
+                lock_file.seek(0)
+                lock_file.truncate()
+                lock_file.write(metadata + b"\n")
+                lock_file.flush()
+                os.fsync(lock_file.fileno())
+                self._file = lock_file
+            except OSError:
+                flock(lock_file.fileno(), LOCK_UN)
+                lock_file.close()
+                raise
         except InstanceLockError:
             raise
         except OSError as exc:

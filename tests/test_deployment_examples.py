@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from reminiscence.conversation.photos import parse_photos
@@ -42,8 +43,13 @@ def test_runtime_environment_example_covers_validated_settings() -> None:
 def test_configuration_example_is_accepted_by_routine_store(
     tmp_path: Path,
 ) -> None:
-    definitions = JsonRoutineStore(
+    configuration_path = tmp_path / "configuration.json"
+    shutil.copyfile(
         PROJECT_ROOT / "deploy/configuration.example.json",
+        configuration_path,
+    )
+    definitions = JsonRoutineStore(
+        configuration_path,
         tmp_path / "activity_metrics.json",
     ).load_definitions()
 
@@ -56,6 +62,7 @@ def test_configuration_example_contains_valid_photo_memories() -> None:
         PROJECT_ROOT / "deploy/configuration.example.json",
         schema_version=1,
         read_only=True,
+        locking=False,
     ).read()
 
     photos = parse_photos(configuration["photos"])

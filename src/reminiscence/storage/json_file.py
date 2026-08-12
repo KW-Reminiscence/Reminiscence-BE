@@ -13,6 +13,8 @@ from fcntl import LOCK_EX, LOCK_SH, LOCK_UN, flock
 from pathlib import Path
 from typing import Any, BinaryIO
 
+from reminiscence.storage.schema import ensure_data_directory
+
 
 class JsonStorageError(RuntimeError):
     """Raised when a JSON object cannot be read or atomically replaced."""
@@ -38,6 +40,7 @@ class JsonObjectStore:
         missing_default: Mapping[str, Any] | None = None,
         schema_version: int | None = None,
         read_only: bool = False,
+        locking: bool = True,
     ) -> None:
         if schema_version is not None and schema_version < 1:
             raise ValueError("schema_version must be a positive integer")
@@ -45,6 +48,7 @@ class JsonObjectStore:
         self._missing_default = dict(missing_default or {})
         self._schema_version = schema_version
         self._read_only = read_only
+        self._locking = locking
         self._lock = _shared_lock(path)
 
     @property
@@ -63,7 +67,7 @@ class JsonObjectStore:
         """Return a detached JSON object."""
 
         with self._lock:
-            if self._read_only:
+            if not self._locking:
                 return self._read_unlocked()
             with self._snapshot_lock(exclusive=False), self._file_lock(exclusive=False):
                 return self._read_unlocked()
@@ -76,6 +80,8 @@ class JsonObjectStore:
 
         if self._read_only:
             raise JsonStorageError(f"JSON object is read-only: {self.path}")
+        if not self._locking:
+            raise JsonStorageError(f"unlocked JSON object is read-only: {self.path}")
         with (
             self._lock,
             self._snapshot_lock(exclusive=False),
@@ -92,6 +98,8 @@ class JsonObjectStore:
 
         if self._read_only:
             raise JsonStorageError(f"JSON object is read-only: {self.path}")
+        if not self._locking:
+            raise JsonStorageError(f"unlocked JSON object is read-only: {self.path}")
         replacement = deepcopy(dict(value))
         with (
             self._lock,
@@ -104,7 +112,7 @@ class JsonObjectStore:
 
     @contextmanager
     def _file_lock(self, *, exclusive: bool) -> Iterator[None]:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_data_directory(self.path.parent)
         try:
             with self.lock_path.open("a+b") as lock_file:
                 self._acquire_file_lock(lock_file, exclusive=exclusive)
@@ -119,7 +127,7 @@ class JsonObjectStore:
 
     @contextmanager
     def _snapshot_lock(self, *, exclusive: bool) -> Iterator[None]:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_data_directory(self.path.parent)
         try:
             with self.snapshot_lock_path.open("a+b") as lock_file:
                 self._acquire_file_lock(lock_file, exclusive=exclusive)
@@ -165,7 +173,7 @@ class JsonObjectStore:
             value["schema_version"] = self._schema_version
 
     def _write_unlocked(self, value: Mapping[str, Any]) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_data_directory(self.path.parent)
         descriptor, temporary_name = tempfile.mkstemp(
             dir=self.path.parent,
             prefix=f".{self.path.name}.",
