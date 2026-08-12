@@ -7,95 +7,84 @@ from zoneinfo import ZoneInfo
 
 from reminiscence.anomaly import (
     AnomalyMode,
+    AnomalyObservations,
     AnomalyStatus,
-    ConversationMetric,
+    BaselineState,
+    ConversationQualityObservation,
     PersonalAnomalyDetector,
 )
 
 SEOUL = ZoneInfo("Asia/Seoul")
 START = datetime(2026, 1, 1, 14, 0, tzinfo=SEOUL)
+NORMAL = (5.0, 100.0, 20.0, 8.0, 0.0)
+CHANGED = (0.0, 0.0, 0.0, 0.0, 10.0)
 
 
-def conversation(
-    index: int,
-    *,
-    turns: int = 5,
-    chars: int = 100,
-    average_chars: float = 20,
-    duration: float = 8,
-    no_response: int = 0,
-) -> ConversationMetric:
-    return ConversationMetric(
-        session_id=f"session-{index}",
-        started_at=START + timedelta(days=index),
-        user_turn_count=turns,
-        total_utterance_chars=chars,
-        average_utterance_chars=average_chars,
-        average_turn_duration_seconds=duration,
-        no_response_count=no_response,
+def quality(index: int, values: tuple[float, ...] = NORMAL) -> ConversationQualityObservation:
+    return ConversationQualityObservation(
+        f"session-{index}",
+        START + timedelta(days=index),
+        values,  # type: ignore[arg-type]
+    )
+
+
+def evaluate(
+    sessions: tuple[ConversationQualityObservation, ...],
+    baseline: BaselineState,
+):  # type: ignore[no-untyped-def]
+    return PersonalAnomalyDetector().evaluate_conversations(
+        AnomalyObservations((), sessions, ()),
+        baseline,
     )
 
 
 def test_insufficient_history_defers_model_decision() -> None:
-    result = PersonalAnomalyDetector().evaluate_conversations(
-        tuple(conversation(index) for index in range(20))
-    )
+    result = evaluate(tuple(quality(index) for index in range(20)), BaselineState())
 
     assert result.mode is AnomalyMode.INSUFFICIENT_DATA
     assert result.status is AnomalyStatus.NORMAL
     assert result.score is None
 
 
-def test_constant_baseline_still_flags_sudden_change() -> None:
-    baseline = tuple(conversation(index) for index in range(20))
+def test_constant_baseline_flags_candidates_and_requires_persistence() -> None:
+    baseline = BaselineState(
+        conversation_quality_vectors=tuple(NORMAL for _ in range(20))
+    )
+    sessions = tuple(quality(index) for index in range(20))
 
-    result = PersonalAnomalyDetector().evaluate_conversations(
-        (
-            *baseline,
-            conversation(
-                20,
-                turns=0,
-                chars=0,
-                average_chars=0,
-                duration=0,
-                no_response=50,
-            ),
-        )
+    first = evaluate((*sessions, quality(20, CHANGED)), baseline)
+    second = evaluate(
+        (*sessions, quality(20, CHANGED), quality(21, CHANGED)),
+        baseline,
     )
 
-    assert result.status is AnomalyStatus.ANOMALOUS
-    assert result.mode is AnomalyMode.ISOLATION_FOREST
+    assert first.isolation_forest_signal is True
+    assert first.status is AnomalyStatus.NORMAL
+    assert second.status is AnomalyStatus.ANOMALOUS
+    assert second.mode is AnomalyMode.ISOLATION_FOREST
 
 
-def test_explanation_names_the_largest_observable_changes() -> None:
-    baseline = tuple(conversation(index) for index in range(20))
-
-    result = PersonalAnomalyDetector().evaluate_conversations(
-        (
-            *baseline,
-            conversation(
-                20,
-                turns=0,
-                chars=0,
-                average_chars=0,
-                duration=0,
-                no_response=10,
-            ),
-        )
+def test_explanation_names_largest_observable_changes() -> None:
+    baseline = BaselineState(
+        conversation_quality_vectors=tuple(NORMAL for _ in range(20))
     )
+    sessions = tuple(quality(index) for index in range(20)) + (
+        quality(20, CHANGED),
+        quality(21, CHANGED),
+    )
+
+    result = evaluate(sessions, baseline)
 
     assert any("사용자 턴 수" in reason for reason in result.reasons)
     assert any("글자 수" in reason for reason in result.reasons)
-    assert any("무응답" in reason for reason in result.reasons)
 
 
 def test_evaluation_is_deterministic_with_fixed_model_seed() -> None:
-    metrics = (
-        *(conversation(index) for index in range(20)),
-        conversation(20, turns=0, chars=0, duration=0, no_response=5),
+    baseline = BaselineState(
+        conversation_quality_vectors=tuple(NORMAL for _ in range(20))
     )
-    detector = PersonalAnomalyDetector()
+    sessions = tuple(quality(index) for index in range(20)) + (
+        quality(20, CHANGED),
+    )
 
-    assert detector.evaluate_conversations(metrics) == detector.evaluate_conversations(
-        metrics
-    )
+    assert evaluate(sessions, baseline) == evaluate(sessions, baseline)

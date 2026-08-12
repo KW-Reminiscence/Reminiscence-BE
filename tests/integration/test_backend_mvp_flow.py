@@ -9,7 +9,11 @@ from zoneinfo import ZoneInfo
 
 from reminiscence.anomaly.models import AnomalyStatus, PersonalEvaluation
 from reminiscence.anomaly.service import AnomalyService
-from reminiscence.anomaly.storage import ActivityMetricReader, PersonalStateStore
+from reminiscence.anomaly.storage import (
+    ActivityObservationStore,
+    BaselineStore,
+    PersonalStateStore,
+)
 from reminiscence.asr import RecognitionResult
 from reminiscence.conversation import (
     ConversationService,
@@ -127,7 +131,8 @@ def test_missed_routines_trigger_one_notification_without_losing_conversation(
         )
 
     anomaly_service = AnomalyService(
-        ActivityMetricReader(JsonObjectStore(activity_path)),
+        ActivityObservationStore(JsonObjectStore(activity_path)),
+        BaselineStore(JsonObjectStore(tmp_path / "anomaly_baseline.json")),
         PersonalStateStore(JsonObjectStore(tmp_path / "personal_state.json")),
     )
     sender = RecordingEmailSender()
@@ -142,19 +147,13 @@ def test_missed_routines_trigger_one_notification_without_losing_conversation(
         notification_config,
         sender,
     )
-    evaluated_at = datetime(2026, 7, 29, 18, 0, tzinfo=SEOUL)
+    evaluated_at = datetime(2026, 7, 30, 18, 0, tzinfo=SEOUL)
 
-    pending_one = coordinator.evaluate_and_notify(evaluated_at)
-    pending_two = coordinator.evaluate_and_notify(evaluated_at)
     first = coordinator.evaluate_and_notify(evaluated_at)
     second = coordinator.evaluate_and_notify(evaluated_at)
     persisted = activity_path.read_text(encoding="utf-8")
     activity = json.loads(persisted)
 
-    assert pending_one.anomaly.evaluation.status is AnomalyStatus.NORMAL
-    assert pending_one.notification_status is NotificationDeliveryStatus.SKIPPED
-    assert pending_two.anomaly.evaluation.status is AnomalyStatus.NORMAL
-    assert pending_two.notification_status is NotificationDeliveryStatus.SKIPPED
     assert first.anomaly.evaluation.status is AnomalyStatus.ANOMALOUS
     assert first.notification_status is NotificationDeliveryStatus.SENT
     assert second.notification_status is NotificationDeliveryStatus.SKIPPED

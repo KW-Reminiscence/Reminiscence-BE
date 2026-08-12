@@ -107,13 +107,23 @@ def _validate_configuration(root: dict[str, Any]) -> None:
 
 
 def _validate_activity(root: dict[str, Any]) -> None:
-    from reminiscence.anomaly.storage import _parse_conversation_metric
+    from reminiscence.anomaly.storage import (
+        _parse_conversation_metric,
+        _parse_participation_observation,
+        _parse_quality_observation,
+        _parse_routine_observation,
+    )
     from reminiscence.conversation.storage import _parse_session
     from reminiscence.routine.storage import _parse_execution
 
     _require_exact_keys(
         root,
         required={"routine_executions", "conversation_sessions"},
+        optional={
+            "routine_observations",
+            "conversation_quality_observations",
+            "participation_observations",
+        },
     )
     executions = _require_list(root, "routine_executions")
     sessions = _require_list(root, "conversation_sessions")
@@ -127,10 +137,62 @@ def _validate_activity(root: dict[str, Any]) -> None:
         raise JsonDocumentValidationError("conversation session ids must be unique")
     for value in sessions:
         _parse_conversation_metric(value)
+    observation_specs = (
+        ("routine_observations", _parse_routine_observation),
+        ("conversation_quality_observations", _parse_quality_observation),
+        ("participation_observations", _parse_participation_observation),
+    )
+    for key, parser in observation_specs:
+        values = root.get(key, [])
+        if not isinstance(values, list):
+            raise JsonDocumentValidationError(f"{key} must be an array")
+        parsed = tuple(parser(value) for value in values)
+        keys = [item.key for item in parsed]
+        if len(keys) != len(set(keys)):
+            raise JsonDocumentValidationError(f"{key} keys must be unique")
 
 
 def _validate_anomaly_baseline(root: dict[str, Any]) -> None:
-    _require_exact_keys(root, required=set())
+    from reminiscence.anomaly.storage import BaselineStore, _number
+
+    _require_exact_keys(
+        root,
+        required=set(),
+        optional={
+            "routine_vectors",
+            "conversation_quality_vectors",
+            "participation_weekly_turn_mean",
+            "model",
+        },
+    )
+    routine = BaselineStore._vectors(root.get("routine_vectors"), 6, "routine_vectors")
+    quality = BaselineStore._vectors(
+        root.get("conversation_quality_vectors"),
+        5,
+        "conversation_quality_vectors",
+    )
+    if routine and len(routine) != 28:
+        raise JsonDocumentValidationError("routine_vectors must contain 28 rows")
+    if quality and len(quality) != 20:
+        raise JsonDocumentValidationError(
+            "conversation_quality_vectors must contain 20 rows"
+        )
+    participation = root.get("participation_weekly_turn_mean")
+    if participation is not None and _number(
+        participation,
+        "participation_weekly_turn_mean",
+    ) < 0:
+        raise JsonDocumentValidationError(
+            "participation_weekly_turn_mean must not be negative"
+        )
+    model = root.get("model")
+    if model is not None and model != {
+        "algorithm": "IsolationForest",
+        "random_state": 42,
+        "n_estimators": 100,
+        "contamination": 0.1,
+    }:
+        raise JsonDocumentValidationError("anomaly model settings are invalid")
 
 
 def _validate_personal_state(root: dict[str, Any]) -> None:
@@ -166,13 +228,18 @@ def _validate_personal_state(root: dict[str, Any]) -> None:
     metadata = root["model_metadata"]
     if not isinstance(metadata, dict):
         raise JsonDocumentValidationError("model_metadata must be an object")
-    expected_metadata = {
+    legacy_metadata = {
         "algorithm": "IsolationForest",
         "random_state": 42,
         "routine_baseline_days": 28,
         "conversation_baseline_sessions": 20,
     }
-    if metadata != expected_metadata:
+    current_metadata = {
+        **legacy_metadata,
+        "participation_baseline_days": 28,
+        "consensus_required_signals": 2,
+    }
+    if metadata != legacy_metadata and metadata != current_metadata:
         raise JsonDocumentValidationError("model_metadata is invalid")
 
 

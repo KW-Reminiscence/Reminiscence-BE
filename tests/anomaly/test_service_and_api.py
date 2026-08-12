@@ -1,4 +1,4 @@
-"""Activity parsing, state persistence, and anomaly API tests."""
+"""Observation persistence, fixed baseline, service and anomaly API tests."""
 
 from __future__ import annotations
 
@@ -12,13 +12,14 @@ from zoneinfo import ZoneInfo
 import pytest
 from fastapi.testclient import TestClient
 
-from reminiscence.anomaly.api import (
-    _confirmation_count_from_environment,
-    get_anomaly_service,
-    get_current_time,
-)
+from reminiscence.anomaly.api import get_anomaly_service, get_current_time
 from reminiscence.anomaly.service import AnomalyService
-from reminiscence.anomaly.storage import ActivityMetricReader, PersonalStateStore
+from reminiscence.anomaly.storage import (
+    ActivityObservationStore,
+    AnomalyStorageError,
+    BaselineStore,
+    PersonalStateStore,
+)
 from reminiscence.main import app
 from reminiscence.storage import JsonObjectStore
 from reminiscence.storage.migration import migrate_data_directory
@@ -27,229 +28,317 @@ SEOUL = ZoneInfo("Asia/Seoul")
 NOW = datetime(2026, 7, 27, 18, 0, tzinfo=SEOUL)
 
 
-def build_service(
-    tmp_path: Path,
-    *,
-    confirmation_count: int = 3,
-) -> tuple[AnomalyService, Path, Path]:
+def build_service(tmp_path: Path) -> tuple[AnomalyService, Path, Path, Path]:
     activity_path = tmp_path / "activity_metrics.json"
+    baseline_path = tmp_path / "anomaly_baseline.json"
     state_path = tmp_path / "personal_state.json"
     return (
         AnomalyService(
-            ActivityMetricReader(JsonObjectStore(activity_path)),
+            ActivityObservationStore(JsonObjectStore(activity_path)),
+            BaselineStore(JsonObjectStore(baseline_path)),
             PersonalStateStore(JsonObjectStore(state_path)),
-            confirmation_count=confirmation_count,
         ),
         activity_path,
+        baseline_path,
         state_path,
     )
 
 
-def routine_execution(day: int, state: str) -> dict[str, object]:
-    scheduled_at = NOW - timedelta(days=3 - day, hours=9)
+def routine_execution(
+    days_ago: int,
+    state: str,
+    *,
+    routine_id: str = "medication",
+    category: str = "MEDICATION",
+) -> dict[str, object]:
+    scheduled_at = NOW - timedelta(days=days_ago, hours=9)
+    confirmed = state == "CONFIRMED"
+    delay = 300 if confirmed else None
     return {
-        "execution_id": f"medication:{scheduled_at.date().isoformat()}",
-        "routine_id": "medication",
+        "execution_id": f"{routine_id}:{scheduled_at.date().isoformat()}",
+        "routine_id": routine_id,
         "scheduled_at": scheduled_at.isoformat(),
         "state": state,
-        "reminder_count": 3 if state == "NOT_ANSWERED" else 0,
+        "reminder_count": 0,
         "last_prompted_at": scheduled_at.isoformat(),
-        "confirmed_at": None,
-        "confirmation_delay_seconds": None,
-        "closed_at": scheduled_at.isoformat(),
+        "routine_name": routine_id,
+        "category": category,
+        "policy": None,
+        "confirmed_at": (
+            (scheduled_at + timedelta(seconds=delay)).isoformat()
+            if delay is not None
+            else None
+        ),
+        "confirmation_delay_seconds": delay,
+        "closed_at": (
+            (scheduled_at + timedelta(seconds=delay or 0)).isoformat()
+            if state != "REMINDING"
+            else None
+        ),
     }
 
 
-def test_evaluate_persists_explainable_cold_start_anomaly(tmp_path: Path) -> None:
-    service, activity_path, state_path = build_service(tmp_path)
-    activity_path.write_text(
-        json.dumps(
-            {
-                "routine_executions": [
-                    routine_execution(day, "NOT_ANSWERED")
-                    for day in range(3)
-                ]
-            }
-        ),
-        encoding="utf-8",
+def completed_session(index: int, *, turns: int = 5) -> dict[str, object]:
+    started_at = NOW - timedelta(days=30 - index)
+    completed_at = started_at + timedelta(minutes=10)
+    return {
+        "session_id": f"session-{index}",
+        "source": "VOLUNTARY",
+        "photo_id": None,
+        "started_at": started_at.isoformat(),
+        "status": "COMPLETED",
+        "completed_at": completed_at.isoformat(),
+        "turns": [],
+        "summary": {
+            "user_turn_count": turns,
+            "total_utterance_chars": turns * 20,
+            "average_utterance_chars": 20.0 if turns else None,
+            "average_turn_duration_seconds": 8.0 if turns else None,
+            "no_response_count": 0,
+        },
+    }
+
+
+def write_activity(path: Path, **sections: object) -> None:
+    path.write_text(json.dumps(sections), encoding="utf-8")
+
+
+def test_evaluate_persists_cold_start_consensus_once_per_observation(
+    tmp_path: Path,
+) -> None:
+    service, activity_path, _, state_path = build_service(tmp_path)
+    write_activity(
+        activity_path,
+        routine_executions=[
+            routine_execution(day, "NOT_ANSWERED") for day in (3, 2, 1)
+        ],
+        conversation_sessions=[],
     )
 
     first = service.evaluate(NOW)
     second = service.evaluate(NOW + timedelta(minutes=1))
-    third = service.evaluate(NOW + timedelta(minutes=2))
-    fourth = service.evaluate(NOW + timedelta(minutes=3))
     persisted = json.loads(state_path.read_text(encoding="utf-8"))
+    activity = json.loads(activity_path.read_text(encoding="utf-8"))
 
-    assert first.evaluation.status.value == "NORMAL"
-    assert first.evaluation.consecutive_anomalous_evaluations == 1
-    assert first.became_anomalous is False
-    assert second.evaluation.status.value == "NORMAL"
+    assert first.evaluation.status.value == "ANOMALOUS"
+    assert first.became_anomalous is True
+    assert second.evaluation.status.value == "ANOMALOUS"
     assert second.became_anomalous is False
-    assert third.evaluation.status.value == "ANOMALOUS"
-    assert third.became_anomalous is True
-    assert fourth.evaluation.status.value == "ANOMALOUS"
-    assert fourth.became_anomalous is False
-    assert persisted["consecutive_anomalous_evaluations"] == 3
-    assert persisted["routine"]["mode"] == "COLD_START"
-    assert persisted["routine"]["reasons"] == [
-        "medication 루틴 3회 연속 미응답"
-    ]
-    assert persisted["model_metadata"]["routine_baseline_days"] == 28
+    assert second.evaluation.routine.signal_count == 2
+    assert persisted["consecutive_anomalous_evaluations"] == 1
+    assert len(activity["routine_observations"]) == 3
 
 
-def test_future_metrics_and_active_conversations_are_ignored(
-    tmp_path: Path,
-) -> None:
-    service, activity_path, _ = build_service(tmp_path)
-    future = routine_execution(3, "NOT_ANSWERED")
-    future["scheduled_at"] = (NOW + timedelta(days=1)).isoformat()
-    activity_path.write_text(
-        json.dumps(
-            {
-                "routine_executions": [future],
-                "conversation_sessions": [
-                    {
-                        "session_id": "active",
-                        "status": "ACTIVE",
-                    }
-                ],
-            }
-        ),
-        encoding="utf-8",
+def test_confirmation_resets_same_routine_miss_streak(tmp_path: Path) -> None:
+    service, activity_path, _, _ = build_service(tmp_path)
+    write_activity(
+        activity_path,
+        routine_executions=[
+            routine_execution(4, "NOT_ANSWERED"),
+            routine_execution(3, "NOT_ANSWERED"),
+            routine_execution(2, "CONFIRMED"),
+            routine_execution(1, "NOT_ANSWERED"),
+        ],
+        conversation_sessions=[],
+    )
+
+    result = service.evaluate(NOW).evaluation.routine
+
+    assert result.rule_based_signal is False
+    assert result.persistence_signal is False
+    assert result.status.value == "NORMAL"
+
+
+def test_incomplete_current_date_is_excluded(tmp_path: Path) -> None:
+    service, activity_path, _, _ = build_service(tmp_path)
+    current = routine_execution(0, "NOT_ANSWERED")
+    current["scheduled_at"] = (NOW - timedelta(hours=1)).isoformat()
+    write_activity(
+        activity_path,
+        routine_executions=[current],
+        conversation_sessions=[],
     )
 
     outcome = service.evaluate(NOW)
 
     assert outcome.evaluation.routine.sample_count == 0
-    assert outcome.evaluation.conversation.sample_count == 0
-    assert outcome.evaluation.status.value == "NORMAL"
 
 
-def test_active_routine_is_ignored_after_model_baseline(tmp_path: Path) -> None:
-    service, activity_path, _ = build_service(tmp_path)
-    baseline = []
-    for day in range(28):
-        execution = routine_execution(day, "CONFIRMED")
-        execution["scheduled_at"] = (
-            NOW - timedelta(days=28 - day)
-        ).isoformat()
-        execution["confirmation_delay_seconds"] = 300
-        baseline.append(execution)
-    active = routine_execution(3, "REMINDING")
-    active["scheduled_at"] = NOW.isoformat()
-    activity_path.write_text(
-        json.dumps({"routine_executions": [*baseline, active]}),
-        encoding="utf-8",
-    )
-
-    outcome = service.evaluate(NOW)
-
-    assert outcome.evaluation.routine.sample_count == 28
-    assert outcome.evaluation.routine.status.value == "NORMAL"
-    assert outcome.evaluation.status.value == "NORMAL"
-
-
-def test_normal_candidate_resets_persisted_confirmation_count(
+def test_daily_observation_uses_evaluation_timezone_at_midnight_boundary(
     tmp_path: Path,
 ) -> None:
-    service, activity_path, state_path = build_service(tmp_path)
-    activity_path.write_text(
-        json.dumps(
-            {
-                "routine_executions": [
-                    routine_execution(day, "NOT_ANSWERED")
-                    for day in range(3)
-                ]
-            }
-        ),
-        encoding="utf-8",
+    service, activity_path, _, _ = build_service(tmp_path)
+    execution = routine_execution(1, "CONFIRMED")
+    execution["scheduled_at"] = "2026-07-27T15:30:00+00:00"
+    execution["last_prompted_at"] = "2026-07-27T15:30:00+00:00"
+    execution["confirmed_at"] = "2026-07-27T15:35:00+00:00"
+    execution["closed_at"] = "2026-07-27T15:35:00+00:00"
+    write_activity(
+        activity_path,
+        routine_executions=[execution],
+        conversation_sessions=[],
+    )
+
+    service.evaluate(datetime(2026, 7, 29, 1, 0, tzinfo=SEOUL))
+    activity = json.loads(activity_path.read_text(encoding="utf-8"))
+
+    assert activity["routine_observations"][0]["target_date"] == "2026-07-28"
+
+
+def test_first_28_routine_vectors_are_fixed_after_more_data(tmp_path: Path) -> None:
+    service, activity_path, baseline_path, _ = build_service(tmp_path)
+    executions = [routine_execution(day, "CONFIRMED") for day in range(29, 0, -1)]
+    write_activity(
+        activity_path,
+        routine_executions=executions,
+        conversation_sessions=[],
     )
     service.evaluate(NOW)
-    restarted = AnomalyService(
-        ActivityMetricReader(JsonObjectStore(activity_path)),
-        PersonalStateStore(JsonObjectStore(state_path)),
-    )
-    restarted.evaluate(NOW + timedelta(minutes=1))
-    activity_path.write_text(
-        json.dumps({"routine_executions": []}),
-        encoding="utf-8",
+    initial = json.loads(baseline_path.read_text(encoding="utf-8"))[
+        "routine_vectors"
+    ]
+    activity = json.loads(activity_path.read_text(encoding="utf-8"))
+    future = routine_execution(0, "NOT_ANSWERED", routine_id="meal", category="MEAL")
+    scheduled = NOW + timedelta(days=1, hours=-9)
+    future["execution_id"] = f"meal:{scheduled.date().isoformat()}"
+    future["scheduled_at"] = scheduled.isoformat()
+    future["last_prompted_at"] = scheduled.isoformat()
+    future["closed_at"] = scheduled.isoformat()
+    activity["routine_executions"].append(future)
+    activity_path.write_text(json.dumps(activity), encoding="utf-8")
+
+    service.evaluate(NOW + timedelta(days=2))
+
+    assert json.loads(baseline_path.read_text(encoding="utf-8"))[
+        "routine_vectors"
+    ] == initial
+
+
+def test_completed_sessions_create_quality_and_zero_participation_days(
+    tmp_path: Path,
+) -> None:
+    service, activity_path, baseline_path, _ = build_service(tmp_path)
+    sessions = [completed_session(index) for index in range(20)]
+    write_activity(
+        activity_path,
+        routine_executions=[],
+        conversation_sessions=sessions,
     )
 
-    normal = restarted.evaluate(NOW + timedelta(minutes=2))
+    service.evaluate(NOW)
+    activity = json.loads(activity_path.read_text(encoding="utf-8"))
+    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
 
-    assert normal.evaluation.status.value == "NORMAL"
-    assert normal.evaluation.consecutive_anomalous_evaluations == 0
-    assert json.loads(state_path.read_text(encoding="utf-8"))[
-        "consecutive_anomalous_evaluations"
+    assert len(activity["conversation_quality_observations"]) == 20
+    assert len(activity["participation_observations"]) == 30
+    assert activity["participation_observations"][-1][
+        "recent_7_day_user_turn_count"
     ] == 0
+    assert len(baseline["conversation_quality_vectors"]) == 20
+    assert baseline["participation_weekly_turn_mean"] >= 0
+
+
+def test_repeated_evaluation_does_not_duplicate_observation_keys(tmp_path: Path) -> None:
+    service, activity_path, _, _ = build_service(tmp_path)
+    write_activity(
+        activity_path,
+        routine_executions=[routine_execution(1, "CONFIRMED")],
+        conversation_sessions=[],
+    )
+
+    service.evaluate(NOW)
+    first = json.loads(activity_path.read_text(encoding="utf-8"))
+    service.evaluate(NOW + timedelta(minutes=1))
+    second = json.loads(activity_path.read_text(encoding="utf-8"))
+
+    assert first["routine_observations"] == second["routine_observations"]
+    assert first["participation_observations"] == second["participation_observations"]
+
+
+def test_participation_does_not_freeze_incomplete_current_date(tmp_path: Path) -> None:
+    service, activity_path, _, _ = build_service(tmp_path)
+    write_activity(
+        activity_path,
+        routine_executions=[routine_execution(1, "CONFIRMED")],
+        conversation_sessions=[],
+    )
+    service.evaluate(NOW)
+    first = json.loads(activity_path.read_text(encoding="utf-8"))
+    assert first["participation_observations"][-1]["target_date"] == (
+        NOW.date() - timedelta(days=1)
+    ).isoformat()
+
+    first["conversation_sessions"].append(completed_session(30, turns=5))
+    activity_path.write_text(json.dumps(first), encoding="utf-8")
+
+    service.evaluate(NOW + timedelta(days=1))
+    updated = json.loads(activity_path.read_text(encoding="utf-8"))
+    assert updated["participation_observations"][-1]["target_date"] == NOW.date().isoformat()
+    assert updated["participation_observations"][-1][
+        "recent_7_day_user_turn_count"
+    ] == 5
+
+
+def test_date_reversal_is_rejected(tmp_path: Path) -> None:
+    service, activity_path, _, _ = build_service(tmp_path)
+    write_activity(
+        activity_path,
+        routine_executions=[routine_execution(1, "CONFIRMED")],
+        conversation_sessions=[],
+    )
+    service.evaluate(NOW)
+
+    with pytest.raises(ValueError, match="backwards"):
+        service.evaluate(NOW - timedelta(days=1))
 
 
 def test_malformed_activity_metrics_are_rejected(tmp_path: Path) -> None:
-    service, activity_path, _ = build_service(tmp_path)
-    activity_path.write_text(
-        json.dumps({"routine_executions": {}}),
-        encoding="utf-8",
-    )
+    service, activity_path, _, _ = build_service(tmp_path)
+    write_activity(activity_path, routine_executions={}, conversation_sessions=[])
 
-    try:
+    with pytest.raises(AnomalyStorageError, match="routine_executions"):
         service.evaluate(NOW)
-    except RuntimeError as exc:
-        assert "routine_executions" in str(exc)
-    else:
-        raise AssertionError("expected malformed activity metrics to fail")
-
-
-def test_semantically_invalid_activity_metric_is_rejected(
-    tmp_path: Path,
-) -> None:
-    service, activity_path, _ = build_service(tmp_path)
-    invalid = routine_execution(0, "CONFIRMED")
-    invalid["confirmation_delay_seconds"] = None
-    activity_path.write_text(
-        json.dumps({"routine_executions": [invalid]}),
-        encoding="utf-8",
-    )
-
-    try:
-        service.evaluate(NOW)
-    except RuntimeError as exc:
-        assert "confirmation_delay_seconds" in str(exc)
-    else:
-        raise AssertionError("expected invalid routine metric to fail")
 
 
 def test_concurrent_evaluations_are_serialized() -> None:
-    class EmptyReader:
-        def read(self, evaluated_at: datetime) -> tuple[tuple[()], tuple[()]]:
+    class EmptyObservationStore:
+        active = 0
+        maximum = 0
+        lock = threading.Lock()
+
+        def materialize(self, evaluated_at: datetime):  # type: ignore[no-untyped-def]
+            from reminiscence.anomaly.models import AnomalyObservations
+
             del evaluated_at
-            return (), ()
-
-    class OverlapDetectingStateStore:
-        def __init__(self) -> None:
-            self.active_loads = 0
-            self.maximum_active_loads = 0
-            self.value = None
-            self.lock = threading.Lock()
-
-        def load(self):  # type: ignore[no-untyped-def]
             with self.lock:
-                self.active_loads += 1
-                self.maximum_active_loads = max(
-                    self.maximum_active_loads,
-                    self.active_loads,
-                )
+                self.active += 1
+                self.maximum = max(self.maximum, self.active)
             time.sleep(0.02)
             with self.lock:
-                self.active_loads -= 1
-                return self.value
+                self.active -= 1
+            return AnomalyObservations((), (), ())
 
-        def save(self, evaluation):  # type: ignore[no-untyped-def]
-            self.value = evaluation
+    class EmptyBaselineStore:
+        def load_or_initialize(self, observations):  # type: ignore[no-untyped-def]
+            from reminiscence.anomaly.models import BaselineState
 
-    state_store = OverlapDetectingStateStore()
-    service = AnomalyService(  # type: ignore[arg-type]
-        EmptyReader(),
-        state_store,
+            del observations
+            return BaselineState()
+
+    class MemoryStateStore:
+        value = None
+
+        def load(self):  # type: ignore[no-untyped-def]
+            return self.value
+
+        def save(self, value):  # type: ignore[no-untyped-def]
+            self.value = value
+
+    observations = EmptyObservationStore()
+    service = AnomalyService(
+        observations,  # type: ignore[arg-type]
+        EmptyBaselineStore(),  # type: ignore[arg-type]
+        MemoryStateStore(),  # type: ignore[arg-type]
     )
     errors: list[BaseException] = []
 
@@ -266,77 +355,37 @@ def test_concurrent_evaluations_are_serialized() -> None:
         thread.join(timeout=1)
 
     assert errors == []
-    assert state_store.maximum_active_loads == 1
-
-
-@pytest.mark.parametrize("confirmation_count", [0, -1, True])
-def test_invalid_confirmation_count_is_rejected(
-    tmp_path: Path,
-    confirmation_count: int,
-) -> None:
-    with pytest.raises(ValueError, match="positive integer"):
-        build_service(tmp_path, confirmation_count=confirmation_count)
-
-
-def test_confirmation_count_is_read_from_environment(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("REMINISCENCE_ANOMALY_CONFIRMATION_COUNT", "5")
-
-    assert _confirmation_count_from_environment() == 5
-
-
-@pytest.mark.parametrize("value", ["0", "-1", "1.5", "invalid", ""])
-def test_invalid_confirmation_count_environment_is_rejected(
-    monkeypatch: pytest.MonkeyPatch,
-    value: str,
-) -> None:
-    monkeypatch.setenv("REMINISCENCE_ANOMALY_CONFIRMATION_COUNT", value)
-
-    with pytest.raises(RuntimeError, match="ANOMALY_CONFIRMATION_COUNT"):
-        _confirmation_count_from_environment()
+    assert observations.maximum == 1
 
 
 def test_api_evaluates_and_reads_current_state(tmp_path: Path) -> None:
-    service, activity_path, _ = build_service(tmp_path)
-    activity_path.write_text(
-        json.dumps(
-            {
-                "routine_executions": [
-                    routine_execution(day, "NOT_ANSWERED")
-                    for day in range(3)
-                ]
-            }
-        ),
-        encoding="utf-8",
+    service, activity_path, _, _ = build_service(tmp_path)
+    write_activity(
+        activity_path,
+        routine_executions=[
+            routine_execution(day, "NOT_ANSWERED") for day in (3, 2, 1)
+        ],
+        conversation_sessions=[],
     )
     app.dependency_overrides[get_anomaly_service] = lambda: service
     app.dependency_overrides[get_current_time] = lambda: NOW
     client = TestClient(app)
 
-    pending_one = client.post("/api/v1/anomaly/evaluate")
-    pending_two = client.post("/api/v1/anomaly/evaluate")
     evaluated = client.post("/api/v1/anomaly/evaluate")
     current = client.get("/api/v1/anomaly/state")
 
-    assert pending_one.json()["status"] == "NORMAL"
-    assert pending_one.json()["consecutive_anomalous_evaluations"] == 1
-    assert pending_two.json()["status"] == "NORMAL"
     assert evaluated.status_code == 200
     assert evaluated.json()["became_anomalous"] is True
-    assert evaluated.json()["consecutive_anomalous_evaluations"] == 3
-    assert evaluated.json()["routine"]["reasons"]
+    assert evaluated.json()["routine"]["signal_count"] == 2
     assert current.status_code == 200
     assert current.json()["became_anomalous"] is False
 
 
 def test_state_is_not_found_before_first_evaluation(tmp_path: Path) -> None:
-    service, _, _ = build_service(tmp_path)
+    service, _, _, _ = build_service(tmp_path)
     app.dependency_overrides[get_anomaly_service] = lambda: service
 
-    response = TestClient(app).get("/api/v1/anomaly/state")
-
-    assert response.status_code == 404
+    assert TestClient(app).get("/api/v1/anomaly/state").status_code == 404
 
 
 def test_migrated_empty_personal_state_is_not_an_evaluation(tmp_path: Path) -> None:
@@ -350,7 +399,6 @@ def test_migrated_empty_personal_state_is_not_an_evaluation(tmp_path: Path) -> N
 
 def test_anomaly_endpoints_are_documented() -> None:
     paths = app.openapi()["paths"]
-
     assert "/api/v1/anomaly/evaluate" in paths
     assert "/api/v1/anomaly/state" in paths
 

@@ -1,145 +1,179 @@
-"""Cold-start and Isolation Forest boundary tests."""
+"""Confirmed v1.4 anomaly policy boundary tests."""
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from reminiscence.anomaly import (
     AnomalyMode,
+    AnomalyObservations,
     AnomalyStatus,
-    ConversationMetric,
+    BaselineState,
+    ConversationQualityObservation,
+    ParticipationObservation,
     PersonalAnomalyDetector,
-    RoutineMetric,
+    RoutineObservation,
 )
 
 SEOUL = ZoneInfo("Asia/Seoul")
-START = datetime(2026, 1, 1, 9, 0, tzinfo=SEOUL)
+START_DATE = date(2026, 1, 1)
+START = datetime(2026, 1, 1, 18, 0, tzinfo=SEOUL)
+NORMAL_ROUTINE = (0.0, 0.0, 300.0, 300.0, 1.0, 0.0)
+ANOMALOUS_ROUTINE = (1.0, 1.0, 0.0, 0.0, 0.0, 4.0)
+MODEL_ONLY_ROUTINE = (1.0, 1.0, 0.0, 0.0, 0.0, 2.0)
+NORMAL_QUALITY = (5.0, 100.0, 20.0, 8.0, 0.0)
+ANOMALOUS_QUALITY = (0.0, 0.0, 0.0, 0.0, 5.0)
 
 
-def routine(
-    day: int,
-    state: str = "CONFIRMED",
-    *,
-    routine_id: str = "morning-medication",
-    delay: int | None = 300,
-) -> RoutineMetric:
-    return RoutineMetric(
-        routine_id=routine_id,
-        scheduled_at=START + timedelta(days=day),
-        state=state,
-        confirmation_delay_seconds=delay if state == "CONFIRMED" else None,
-    )
+def routine(index: int, values: tuple[float, ...] = NORMAL_ROUTINE) -> RoutineObservation:
+    return RoutineObservation(START_DATE + timedelta(days=index), values)  # type: ignore[arg-type]
 
 
-def conversation(
+def quality(
     index: int,
-    *,
-    turns: int = 5,
-    chars: int = 100,
-    average_chars: float = 20,
-    duration: float = 8,
-    no_response: int = 0,
-) -> ConversationMetric:
-    return ConversationMetric(
-        session_id=f"session-{index}",
-        started_at=START + timedelta(days=index),
-        user_turn_count=turns,
-        total_utterance_chars=chars,
-        average_utterance_chars=average_chars,
-        average_turn_duration_seconds=duration,
-        no_response_count=no_response,
+    values: tuple[float, ...] = NORMAL_QUALITY,
+) -> ConversationQualityObservation:
+    return ConversationQualityObservation(
+        f"session-{index}",
+        START + timedelta(days=index),
+        values,  # type: ignore[arg-type]
     )
 
 
-def test_cold_start_flags_three_consecutive_misses_for_same_routine() -> None:
+def participation(index: int, turns: int) -> ParticipationObservation:
+    return ParticipationObservation(START_DATE + timedelta(days=index), turns)
+
+
+def observations(
+    *,
+    routines: tuple[RoutineObservation, ...] = (),
+    quality_sessions: tuple[ConversationQualityObservation, ...] = (),
+    participation_days: tuple[ParticipationObservation, ...] = (),
+) -> AnomalyObservations:
+    return AnomalyObservations(routines, quality_sessions, participation_days)
+
+
+def test_cold_start_combines_three_miss_rule_with_persistence_signal() -> None:
     result = PersonalAnomalyDetector().evaluate_routines(
-        (
-            routine(0, "NOT_ANSWERED"),
-            routine(1, "NOT_ANSWERED"),
-            routine(2, "NOT_ANSWERED"),
-        )
+        (routine(0), routine(1), routine(2, ANOMALOUS_ROUTINE)),
+        BaselineState(),
     )
 
     assert result.status is AnomalyStatus.ANOMALOUS
     assert result.mode is AnomalyMode.COLD_START
-    assert result.reasons == ("morning-medication 루틴 3회 연속 미응답",)
+    assert result.rule_based_signal is True
+    assert result.isolation_forest_signal is False
+    assert result.persistence_signal is True
+    assert result.signal_count == 2
 
 
-def test_confirmation_breaks_consecutive_miss_sequence() -> None:
-    result = PersonalAnomalyDetector().evaluate_routines(
-        (
-            routine(0, "NOT_ANSWERED"),
-            routine(1, "NOT_ANSWERED"),
-            routine(2, "CONFIRMED"),
-            routine(3, "NOT_ANSWERED"),
-        )
+def test_routine_model_activates_on_29th_completed_day_without_early_finalization() -> None:
+    baseline_vectors = tuple(NORMAL_ROUTINE for _ in range(28))
+    detector = PersonalAnomalyDetector()
+    day_29 = tuple(routine(index) for index in range(28)) + (
+        routine(28, MODEL_ONLY_ROUTINE),
+    )
+    day_30 = day_29 + (routine(29, MODEL_ONLY_ROUTINE),)
+
+    first = detector.evaluate_routines(day_29, BaselineState(baseline_vectors))
+    second = detector.evaluate_routines(day_30, BaselineState(baseline_vectors))
+
+    assert first.mode is AnomalyMode.ISOLATION_FOREST
+    assert first.isolation_forest_signal is True
+    assert first.persistence_signal is False
+    assert first.status is AnomalyStatus.NORMAL
+    assert second.isolation_forest_signal is True
+    assert second.persistence_signal is True
+    assert second.status is AnomalyStatus.ANOMALOUS
+
+
+def test_conversation_quality_requires_20_baseline_and_two_of_recent_three() -> None:
+    baseline_vectors = tuple(NORMAL_QUALITY for _ in range(20))
+    baseline = BaselineState(conversation_quality_vectors=baseline_vectors)
+    detector = PersonalAnomalyDetector()
+    first_candidate = tuple(quality(index) for index in range(20)) + (
+        quality(20, ANOMALOUS_QUALITY),
+    )
+    second_candidate = first_candidate + (quality(21, ANOMALOUS_QUALITY),)
+
+    first = detector.evaluate_conversations(
+        observations(quality_sessions=first_candidate),
+        baseline,
+    )
+    second = detector.evaluate_conversations(
+        observations(quality_sessions=second_candidate),
+        baseline,
     )
 
-    assert result.status is AnomalyStatus.NORMAL
+    assert first.isolation_forest_signal is True
+    assert first.persistence_signal is False
+    assert first.status is AnomalyStatus.NORMAL
+    assert second.isolation_forest_signal is True
+    assert second.persistence_signal is True
+    assert second.status is AnomalyStatus.ANOMALOUS
+    assert "최근 3개" in second.reasons[-1]
 
 
-def test_different_routines_do_not_combine_misses() -> None:
-    result = PersonalAnomalyDetector().evaluate_routines(
-        (
-            routine(0, "NOT_ANSWERED", routine_id="meal"),
-            routine(1, "NOT_ANSWERED", routine_id="medication"),
-            routine(2, "NOT_ANSWERED", routine_id="meal"),
-        )
+def test_participation_exactly_fifty_percent_and_ten_turn_decrease() -> None:
+    baseline = BaselineState(participation_weekly_turn_mean=20.0)
+    initial = tuple(participation(index, 20) for index in range(28))
+    first = PersonalAnomalyDetector().evaluate_conversations(
+        observations(participation_days=(*initial, participation(28, 10))),
+        baseline,
+    )
+    second = PersonalAnomalyDetector().evaluate_conversations(
+        observations(
+            participation_days=(
+                *initial,
+                participation(28, 10),
+                participation(29, 10),
+            )
+        ),
+        baseline,
     )
 
-    assert result.status is AnomalyStatus.NORMAL
+    assert first.rule_based_signal is True
+    assert first.persistence_signal is False
+    assert first.status is AnomalyStatus.NORMAL
+    assert second.rule_based_signal is True
+    assert second.persistence_signal is True
+    assert second.status is AnomalyStatus.ANOMALOUS
 
 
-def test_routine_model_activates_after_28_baseline_days() -> None:
-    metrics = tuple(routine(day) for day in range(28))
-
-    baseline_only = PersonalAnomalyDetector().evaluate_routines(metrics)
-    with_current = PersonalAnomalyDetector().evaluate_routines(
-        (*metrics, routine(28, "NOT_ANSWERED"))
+def test_participation_zero_sessions_is_observed_as_zero() -> None:
+    baseline = BaselineState(participation_weekly_turn_mean=20.0)
+    days = tuple(participation(index, 20) for index in range(28)) + (
+        participation(28, 0),
+        participation(29, 0),
     )
 
-    assert baseline_only.mode is AnomalyMode.COLD_START
-    assert with_current.mode is AnomalyMode.ISOLATION_FOREST
-    assert with_current.status is AnomalyStatus.ANOMALOUS
-    assert "루틴 미응답 비율" in with_current.reasons[0]
-
-
-def test_conversation_model_requires_20_baseline_sessions() -> None:
-    metrics = tuple(conversation(index) for index in range(20))
-
-    insufficient = PersonalAnomalyDetector().evaluate_conversations(metrics)
-    evaluated = PersonalAnomalyDetector().evaluate_conversations(
-        (
-            *metrics,
-            conversation(
-                20,
-                turns=0,
-                chars=0,
-                average_chars=0,
-                duration=0,
-                no_response=5,
-            ),
-        )
+    result = PersonalAnomalyDetector().evaluate_conversations(
+        observations(participation_days=days),
+        baseline,
     )
 
-    assert insufficient.mode is AnomalyMode.INSUFFICIENT_DATA
-    assert insufficient.status is AnomalyStatus.NORMAL
-    assert evaluated.mode is AnomalyMode.ISOLATION_FOREST
-    assert evaluated.status is AnomalyStatus.ANOMALOUS
-    assert any("사용자 턴 수" in reason for reason in evaluated.reasons)
-    assert any("무응답" in reason for reason in evaluated.reasons)
-    assert evaluated.feature_names[0] == "recent_7_day_user_turn_count"
+    assert result.rule_based_signal is True
+    assert result.persistence_signal is True
+    assert result.status is AnomalyStatus.ANOMALOUS
 
 
 def test_models_remain_separate_in_combined_state() -> None:
+    baseline = BaselineState(
+        routine_vectors=tuple(NORMAL_ROUTINE for _ in range(28)),
+        conversation_quality_vectors=tuple(NORMAL_QUALITY for _ in range(20)),
+    )
     result = PersonalAnomalyDetector().evaluate(
-        tuple(routine(day) for day in range(29)),
-        (
-            *(conversation(index) for index in range(20)),
-            conversation(20, turns=0, chars=0, duration=0, no_response=5),
+        observations(
+            routines=tuple(routine(index) for index in range(30)),
+            quality_sessions=(
+                *(quality(index) for index in range(20)),
+                quality(20, ANOMALOUS_QUALITY),
+                quality(21, ANOMALOUS_QUALITY),
+            ),
         ),
-        START + timedelta(days=30),
+        baseline,
+        START + timedelta(days=31),
     )
 
     assert result.routine.status is AnomalyStatus.NORMAL
@@ -148,13 +182,14 @@ def test_models_remain_separate_in_combined_state() -> None:
 
 
 def test_evaluation_is_deterministic() -> None:
-    metrics = (
-        *(conversation(index) for index in range(20)),
-        conversation(20, turns=0, chars=0, duration=0, no_response=5),
+    sessions = tuple(quality(index) for index in range(20)) + (
+        quality(20, ANOMALOUS_QUALITY),
+    )
+    baseline = BaselineState(
+        conversation_quality_vectors=tuple(NORMAL_QUALITY for _ in range(20))
     )
     detector = PersonalAnomalyDetector()
 
-    first = detector.evaluate_conversations(metrics)
-    second = detector.evaluate_conversations(metrics)
-
-    assert first == second
+    assert detector.evaluate_conversations(
+        observations(quality_sessions=sessions), baseline
+    ) == detector.evaluate_conversations(observations(quality_sessions=sessions), baseline)

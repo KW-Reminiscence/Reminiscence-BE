@@ -19,13 +19,11 @@ from reminiscence.anomaly.models import (
     DomainEvaluation,
     PersonalEvaluation,
 )
-from reminiscence.anomaly.service import (
-    DEFAULT_ANOMALY_CONFIRMATION_COUNT,
-    AnomalyService,
-)
+from reminiscence.anomaly.service import AnomalyService
 from reminiscence.anomaly.storage import (
-    ActivityMetricReader,
+    ActivityObservationStore,
     AnomalyStorageError,
+    BaselineStore,
     PersonalStateStore,
 )
 from reminiscence.storage import JsonStorageError, open_versioned_store
@@ -42,6 +40,11 @@ class DomainEvaluationResponse(BaseModel):
     score: float | None
     reasons: list[str]
     feature_names: list[str]
+    rule_based_signal: bool
+    isolation_forest_signal: bool
+    persistence_signal: bool
+    signal_count: int
+    observation_key: str | None
 
 
 class PersonalStateResponse(BaseModel):
@@ -67,33 +70,26 @@ def _server_timezone() -> ZoneInfo:
         raise RuntimeError(f"unknown REMINISCENCE_TIMEZONE: {timezone_name}") from exc
 
 
-def _confirmation_count_from_environment() -> int:
-    raw_value = os.environ.get(
-        "REMINISCENCE_ANOMALY_CONFIRMATION_COUNT",
-        str(DEFAULT_ANOMALY_CONFIRMATION_COUNT),
-    )
-    try:
-        value = int(raw_value)
-    except ValueError as exc:
-        raise RuntimeError(
-            "REMINISCENCE_ANOMALY_CONFIRMATION_COUNT must be an integer"
-        ) from exc
-    if value <= 0:
-        raise RuntimeError(
-            "REMINISCENCE_ANOMALY_CONFIRMATION_COUNT must be positive"
-        )
-    return value
-
-
 @lru_cache(maxsize=1)
 def get_anomaly_service() -> AnomalyService:
     """Build the process-wide detector over local JSON files."""
 
     data_directory = _data_directory()
     return AnomalyService(
-        ActivityMetricReader(
+        ActivityObservationStore(
             open_versioned_store(
                 data_directory / "activity_metrics.json",
+                missing_default={},
+            ),
+            open_versioned_store(
+                data_directory / "configuration.json",
+                missing_default={},
+                read_only=True,
+            ),
+        ),
+        BaselineStore(
+            open_versioned_store(
+                data_directory / "anomaly_baseline.json",
                 missing_default={},
             )
         ),
@@ -104,7 +100,6 @@ def get_anomaly_service() -> AnomalyService:
             )
         ),
         PersonalAnomalyDetector(),
-        confirmation_count=_confirmation_count_from_environment(),
     )
 
 
@@ -122,6 +117,11 @@ def _domain_response(value: DomainEvaluation) -> DomainEvaluationResponse:
         score=value.score,
         reasons=list(value.reasons),
         feature_names=list(value.feature_names),
+        rule_based_signal=value.rule_based_signal,
+        isolation_forest_signal=value.isolation_forest_signal,
+        persistence_signal=value.persistence_signal,
+        signal_count=value.signal_count,
+        observation_key=value.observation_key,
     )
 
 

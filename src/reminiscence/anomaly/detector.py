@@ -1,11 +1,7 @@
-"""Cold-start rules and separate Isolation Forest models."""
+"""Fixed-baseline anomaly policy from the confirmed product specification."""
 
 from __future__ import annotations
 
-from collections import defaultdict
-from dataclasses import dataclass
-from datetime import date, datetime, timedelta
-from math import isfinite
 from statistics import median
 
 from sklearn.ensemble import IsolationForest  # type: ignore[import-untyped]
@@ -14,21 +10,31 @@ from sklearn.preprocessing import StandardScaler  # type: ignore[import-untyped]
 
 from reminiscence.anomaly.models import (
     AnomalyMode,
+    AnomalyObservations,
     AnomalyStatus,
-    ConversationMetric,
+    BaselineState,
+    ConversationQualityObservation,
     DomainEvaluation,
     PersonalEvaluation,
-    RoutineMetric,
+    RoutineObservation,
 )
 
 ROUTINE_BASELINE_DAYS = 28
 CONVERSATION_BASELINE_SESSIONS = 20
+PARTICIPATION_BASELINE_DAYS = 28
+MODEL_RANDOM_STATE = 42
+MODEL_ESTIMATORS = 100
+MODEL_CONTAMINATION = 0.1
 ROUTINE_FEATURE_NAMES = (
-    "not_answered_ratio",
-    "average_confirmation_delay_seconds",
+    "meal_not_answered_ratio",
+    "medication_not_answered_ratio",
+    "meal_average_confirmation_delay_seconds",
+    "medication_average_confirmation_delay_seconds",
+    "completion_ratio",
+    "maximum_consecutive_not_answered",
 )
 CONVERSATION_FEATURE_NAMES = (
-    "recent_7_day_user_turn_count",
+    "user_turn_count",
     "total_utterance_chars",
     "average_utterance_chars",
     "average_turn_duration_seconds",
@@ -36,31 +42,28 @@ CONVERSATION_FEATURE_NAMES = (
 )
 
 
-@dataclass(frozen=True, slots=True)
-class _DailyRoutineVector:
-    target_date: date
-    values: tuple[float, float]
-
-
 class PersonalAnomalyDetector:
-    """Evaluate current behavior against one user's own history."""
+    """Evaluate immutable observations against fixed JSON baselines."""
 
     def evaluate(
         self,
-        routine_metrics: tuple[RoutineMetric, ...],
-        conversation_metrics: tuple[ConversationMetric, ...],
-        evaluated_at: datetime,
+        observations: AnomalyObservations,
+        baseline: BaselineState,
+        evaluated_at: object,
     ) -> PersonalEvaluation:
-        """Evaluate routine and conversation domains independently."""
+        """Apply independent routine and conversation three-signal policies."""
 
+        from datetime import datetime
+
+        if not isinstance(evaluated_at, datetime):
+            raise TypeError("evaluated_at must be a datetime")
         if evaluated_at.tzinfo is None or evaluated_at.utcoffset() is None:
             raise ValueError("evaluated_at must be timezone-aware")
-        routine = self.evaluate_routines(routine_metrics)
-        conversation = self.evaluate_conversations(conversation_metrics)
+        routine = self.evaluate_routines(observations.routine_days, baseline)
+        conversation = self.evaluate_conversations(observations, baseline)
         status = (
             AnomalyStatus.ANOMALOUS
-            if AnomalyStatus.ANOMALOUS
-            in {routine.status, conversation.status}
+            if AnomalyStatus.ANOMALOUS in {routine.status, conversation.status}
             else AnomalyStatus.NORMAL
         )
         return PersonalEvaluation(
@@ -72,161 +75,178 @@ class PersonalAnomalyDetector:
 
     def evaluate_routines(
         self,
-        metrics: tuple[RoutineMetric, ...],
+        observations: tuple[RoutineObservation, ...],
+        baseline: BaselineState,
     ) -> DomainEvaluation:
-        """Apply three consecutive misses until 28 baseline days exist."""
+        """Evaluate cold-start misses or post-baseline daily IF candidates."""
 
-        ordered = tuple(sorted(metrics, key=lambda metric: metric.scheduled_at))
-        daily_vectors = self._daily_routine_vectors(ordered)
-        if len(daily_vectors) <= ROUTINE_BASELINE_DAYS:
-            missed_routine_id = self._three_consecutive_misses(ordered)
-            reasons: tuple[str, ...] = (
-                (f"{missed_routine_id} 루틴 3회 연속 미응답",)
-                if missed_routine_id is not None
-                else ()
-            )
+        ordered = tuple(sorted(observations, key=lambda item: item.target_date))
+        latest = ordered[-1] if ordered else None
+        rule_signal = bool(latest and latest.values[5] >= 3)
+        reasons: list[str] = []
+        if rule_signal:
+            reasons.append("동일 루틴에서 3회 연속 미응답")
+
+        if not baseline.routine_vectors:
+            persistence_signal = rule_signal
+            status = self._consensus(rule_signal, False, persistence_signal)
             return DomainEvaluation(
-                status=(
-                    AnomalyStatus.ANOMALOUS
-                    if reasons
-                    else AnomalyStatus.NORMAL
+                status=status,
+                mode=(
+                    AnomalyMode.COLD_START
+                    if ordered
+                    else AnomalyMode.INSUFFICIENT_DATA
                 ),
-                mode=AnomalyMode.COLD_START,
-                sample_count=len(daily_vectors),
+                sample_count=len(ordered),
                 score=None,
-                reasons=reasons,
+                reasons=tuple(reasons),
                 feature_names=ROUTINE_FEATURE_NAMES,
+                rule_based_signal=rule_signal,
+                persistence_signal=persistence_signal,
+                observation_key=latest.key if latest else None,
             )
 
-        baseline = [list(vector.values) for vector in daily_vectors[:-1]]
-        current = list(daily_vectors[-1].values)
-        anomalous, score = self._is_anomalous(baseline, current)
-        reasons = (
-            self._routine_reasons(baseline, current) if anomalous else ()
+        candidates = ordered[ROUTINE_BASELINE_DAYS:]
+        model_results = tuple(
+            self._is_anomalous(baseline.routine_vectors, item.values)
+            for item in candidates
         )
+        model_signal, score = model_results[-1] if model_results else (False, None)
+        persistence_signal = (
+            len(model_results) >= 2
+            and model_results[-1][0]
+            and model_results[-2][0]
+        )
+        if model_signal and latest is not None:
+            reasons.extend(self._routine_reasons(baseline.routine_vectors, latest.values))
+        if persistence_signal:
+            reasons.append("루틴 모델 이탈이 완성된 2개 관측일 연속 발생")
         return DomainEvaluation(
-            status=(
-                AnomalyStatus.ANOMALOUS
-                if anomalous
-                else AnomalyStatus.NORMAL
-            ),
+            status=self._consensus(rule_signal, model_signal, persistence_signal),
             mode=AnomalyMode.ISOLATION_FOREST,
-            sample_count=len(daily_vectors),
+            sample_count=len(ordered),
             score=score,
-            reasons=reasons,
+            reasons=tuple(dict.fromkeys(reasons)),
             feature_names=ROUTINE_FEATURE_NAMES,
+            rule_based_signal=rule_signal,
+            isolation_forest_signal=model_signal,
+            persistence_signal=persistence_signal,
+            observation_key=latest.key if latest else None,
         )
 
     def evaluate_conversations(
         self,
-        metrics: tuple[ConversationMetric, ...],
+        observations: AnomalyObservations,
+        baseline: BaselineState,
     ) -> DomainEvaluation:
-        """Activate the conversation model after 20 completed baseline sessions."""
+        """Combine participation rule, session IF and their persistence."""
 
-        ordered = tuple(sorted(metrics, key=lambda metric: metric.started_at))
-        if len(ordered) <= CONVERSATION_BASELINE_SESSIONS:
-            return DomainEvaluation(
-                status=AnomalyStatus.NORMAL,
-                mode=AnomalyMode.INSUFFICIENT_DATA,
-                sample_count=len(ordered),
-                score=None,
-                reasons=(),
-                feature_names=CONVERSATION_FEATURE_NAMES,
+        quality = tuple(
+            sorted(observations.conversation_quality, key=lambda item: item.completed_at)
+        )
+        participation = tuple(
+            sorted(observations.participation_days, key=lambda item: item.target_date)
+        )
+        model_results: tuple[tuple[bool, float], ...] = ()
+        if baseline.conversation_quality_vectors:
+            model_results = tuple(
+                self._is_anomalous(
+                    baseline.conversation_quality_vectors,
+                    item.values,
+                )
+                for item in quality[CONVERSATION_BASELINE_SESSIONS:]
             )
+        model_signal, score = model_results[-1] if model_results else (False, None)
+        quality_persistence = (
+            len(model_results) >= 2
+            and sum(result[0] for result in model_results[-3:]) >= 2
+        )
 
-        vectors = self._conversation_vectors(ordered)
-        baseline = [list(vector) for vector in vectors[:-1]]
-        current = list(vectors[-1])
-        anomalous, score = self._is_anomalous(baseline, current)
-        reasons = (
-            self._conversation_reasons(baseline, current) if anomalous else ()
+        participation_candidates = participation[PARTICIPATION_BASELINE_DAYS:]
+        decrease_candidates = tuple(
+            self._participation_decreased(
+                baseline.participation_weekly_turn_mean,
+                item.recent_7_day_user_turn_count,
+            )
+            for item in participation_candidates
+        )
+        rule_signal = decrease_candidates[-1] if decrease_candidates else False
+        participation_persistence = (
+            len(decrease_candidates) >= 2
+            and decrease_candidates[-1]
+            and decrease_candidates[-2]
+        )
+        persistence_signal = quality_persistence or participation_persistence
+        latest_quality = quality[-1] if quality else None
+        latest_participation = participation[-1] if participation else None
+        reasons: list[str] = []
+        if rule_signal and latest_participation is not None:
+            baseline_mean = baseline.participation_weekly_turn_mean or 0.0
+            decrease = baseline_mean - latest_participation.recent_7_day_user_turn_count
+            reasons.append(
+                "최근 7일 사용자 턴 수가 기준보다 "
+                f"{decrease:.1f}턴 감소"
+            )
+        if model_signal and latest_quality is not None:
+            reasons.extend(
+                self._conversation_reasons(
+                    baseline.conversation_quality_vectors,
+                    latest_quality,
+                )
+            )
+        if quality_persistence:
+            reasons.append("최근 3개 완료 세션 중 2개 이상이 모델 이상 후보")
+        if participation_persistence:
+            reasons.append("대화 참여량 감소가 2개 관측일 연속 유지")
+
+        mode = (
+            AnomalyMode.ISOLATION_FOREST
+            if baseline.conversation_quality_vectors
+            else AnomalyMode.INSUFFICIENT_DATA
+        )
+        observation_key = (
+            latest_quality.key
+            if latest_quality is not None
+            else (latest_participation.key if latest_participation else None)
         )
         return DomainEvaluation(
-            status=(
-                AnomalyStatus.ANOMALOUS
-                if anomalous
-                else AnomalyStatus.NORMAL
-            ),
-            mode=AnomalyMode.ISOLATION_FOREST,
-            sample_count=len(ordered),
+            status=self._consensus(rule_signal, model_signal, persistence_signal),
+            mode=mode,
+            sample_count=len(quality),
             score=score,
-            reasons=reasons,
+            reasons=tuple(dict.fromkeys(reasons)),
             feature_names=CONVERSATION_FEATURE_NAMES,
+            rule_based_signal=rule_signal,
+            isolation_forest_signal=model_signal,
+            persistence_signal=persistence_signal,
+            observation_key=observation_key,
         )
 
     @staticmethod
-    def _three_consecutive_misses(
-        metrics: tuple[RoutineMetric, ...],
-    ) -> str | None:
-        by_routine: dict[str, list[RoutineMetric]] = defaultdict(list)
-        for metric in metrics:
-            by_routine[metric.routine_id].append(metric)
-        for routine_id, routine_metrics in sorted(by_routine.items()):
-            if (
-                len(routine_metrics) >= 3
-                and all(
-                    metric.state == "NOT_ANSWERED"
-                    for metric in routine_metrics[-3:]
-                )
-            ):
-                return routine_id
-        return None
+    def _consensus(rule: bool, model: bool, persistence: bool) -> AnomalyStatus:
+        return (
+            AnomalyStatus.ANOMALOUS
+            if sum((rule, model, persistence)) >= 2
+            else AnomalyStatus.NORMAL
+        )
 
     @staticmethod
-    def _daily_routine_vectors(
-        metrics: tuple[RoutineMetric, ...],
-    ) -> tuple[_DailyRoutineVector, ...]:
-        grouped: dict[date, list[RoutineMetric]] = defaultdict(list)
-        for metric in metrics:
-            grouped[metric.scheduled_at.date()].append(metric)
-        vectors: list[_DailyRoutineVector] = []
-        for target_date, day_metrics in sorted(grouped.items()):
-            not_answered_ratio = sum(
-                metric.state == "NOT_ANSWERED" for metric in day_metrics
-            ) / len(day_metrics)
-            delays = [
-                metric.confirmation_delay_seconds
-                for metric in day_metrics
-                if metric.confirmation_delay_seconds is not None
-            ]
-            average_delay = sum(delays) / len(delays) if delays else 0.0
-            vectors.append(
-                _DailyRoutineVector(
-                    target_date=target_date,
-                    values=(not_answered_ratio, average_delay),
-                )
-            )
-        return tuple(vectors)
-
-    @staticmethod
-    def _conversation_vectors(
-        metrics: tuple[ConversationMetric, ...],
-    ) -> list[tuple[float, ...]]:
-        vectors: list[tuple[float, ...]] = []
-        for index, metric in enumerate(metrics):
-            window_start = metric.started_at - timedelta(days=7)
-            recent_turns = sum(
-                candidate.user_turn_count
-                for candidate in metrics[: index + 1]
-                if candidate.started_at > window_start
-            )
-            values = (
-                float(recent_turns),
-                float(metric.total_utterance_chars),
-                float(metric.average_utterance_chars or 0.0),
-                float(metric.average_turn_duration_seconds or 0.0),
-                float(metric.no_response_count),
-            )
-            if not all(isfinite(value) for value in values):
-                raise ValueError("conversation metrics must be finite")
-            vectors.append(values)
-        return vectors
+    def _participation_decreased(
+        baseline: float | None,
+        current: int,
+    ) -> bool:
+        if baseline is None or baseline <= 0:
+            return False
+        decrease = baseline - current
+        return decrease >= 10 and current <= baseline * 0.5
 
     @staticmethod
     def _is_anomalous(
-        baseline: list[list[float]],
-        current: list[float],
+        baseline: tuple[tuple[float, ...], ...],
+        current: tuple[float, ...],
     ) -> tuple[bool, float]:
+        if not baseline:
+            raise ValueError("Isolation Forest baseline must not be empty")
         constant_feature_shift = any(
             max(row[index] for row in baseline)
             == min(row[index] for row in baseline)
@@ -236,41 +256,56 @@ class PersonalAnomalyDetector:
         pipeline = make_pipeline(
             StandardScaler(),
             IsolationForest(
-                n_estimators=100,
-                contamination=0.1,
-                random_state=42,
+                n_estimators=MODEL_ESTIMATORS,
+                contamination=MODEL_CONTAMINATION,
+                random_state=MODEL_RANDOM_STATE,
             ),
         )
-        pipeline.fit(baseline)
-        prediction = int(pipeline.predict([current])[0])
-        score = float(pipeline.decision_function([current])[0])
+        pipeline.fit([list(row) for row in baseline])
+        prediction = int(pipeline.predict([list(current)])[0])
+        score = float(pipeline.decision_function([list(current)])[0])
         return prediction == -1 or constant_feature_shift, round(score, 6)
 
     @staticmethod
     def _routine_reasons(
-        baseline: list[list[float]],
-        current: list[float],
+        baseline: tuple[tuple[float, ...], ...],
+        current: tuple[float, ...],
     ) -> tuple[str, ...]:
-        reasons: list[str] = []
-        if current[0] > median(row[0] for row in baseline):
-            reasons.append("루틴 미응답 비율이 개인 기준선보다 증가")
-        if current[1] > median(row[1] for row in baseline):
-            reasons.append("루틴 확인 지연이 개인 기준선보다 증가")
-        return tuple(reasons or ["루틴 패턴이 개인 기준선에서 이탈"])
+        labels = (
+            "식사 미응답률 증가",
+            "복약 미응답률 증가",
+            "식사 확인 지연 증가",
+            "복약 확인 지연 증가",
+            "전체 완료율 변화",
+            "동일 루틴 연속 미응답 증가",
+        )
+        reasons = [
+            labels[index]
+            for index in range(len(current))
+            if (
+                current[index] > median(row[index] for row in baseline)
+                if index != 4
+                else current[index] < median(row[index] for row in baseline)
+            )
+        ]
+        return tuple(reasons[:3] or ["루틴 패턴이 개인 기준선에서 이탈"])
 
     @staticmethod
     def _conversation_reasons(
-        baseline: list[list[float]],
-        current: list[float],
+        baseline: tuple[tuple[float, ...], ...],
+        current: ConversationQualityObservation,
     ) -> tuple[str, ...]:
-        medians = [median(row[index] for row in baseline) for index in range(5)]
+        values = current.values
+        medians = tuple(
+            median(row[index] for row in baseline) for index in range(len(values))
+        )
         reasons: list[str] = []
-        if current[0] < medians[0]:
-            reasons.append("최근 7일 회상 대화 사용자 턴 수가 개인 기준선보다 감소")
-        if current[1] < medians[1]:
-            reasons.append("회상 대화 글자 수가 개인 기준선보다 감소")
-        if current[4] > medians[4]:
-            reasons.append("회상 대화 무응답 횟수가 개인 기준선보다 증가")
-        if current[3] < medians[3]:
-            reasons.append("회상 대화 턴 지속시간이 개인 기준선보다 감소")
-        return tuple(reasons[:3] or ["회상 대화 패턴이 개인 기준선에서 이탈"])
+        if values[0] < medians[0]:
+            reasons.append("회상 대화 사용자 턴 수 감소")
+        if values[1] < medians[1]:
+            reasons.append("회상 대화 총 글자 수 감소")
+        if values[3] < medians[3]:
+            reasons.append("회상 대화 평균 턴 입력 시간 감소")
+        if values[4] > medians[4]:
+            reasons.append("회상 대화 무응답 횟수 증가")
+        return tuple(reasons[:3] or ["회상 대화 품질이 개인 기준선에서 이탈"])
