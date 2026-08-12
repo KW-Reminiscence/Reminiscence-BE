@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 def test_deploy_script_runs_real_supertonic_smoke() -> None:
     deploy_script = (PROJECT_ROOT / "scripts/deploy.sh").read_text(encoding="utf-8")
 
-    assert "SupertonicSynthesizer(config).synthesize" in deploy_script
+    assert "get_speech_synthesizer().synthesize" in deploy_script
     assert "result.audio[:4] == b'RIFF'" in deploy_script
 
 
@@ -27,8 +27,8 @@ def test_deploy_script_wires_required_application_secret() -> None:
 def test_compose_mounts_writable_supertonic_parent_directory() -> None:
     compose = (PROJECT_ROOT / "deploy/docker-compose.yml").read_text(encoding="utf-8")
 
-    assert "HF_HOME: /models/.cache/huggingface" in compose
-    assert "SUPERTONIC_MODEL_DIR: /models/supertonic-3" in compose
+    assert "HF_HOME:" not in compose
+    assert "SUPERTONIC_MODEL_DIR:" not in compose
     assert "        target: /models\n" in compose
     assert "        target: /models/supertonic-3\n" not in compose
 

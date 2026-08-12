@@ -33,7 +33,6 @@ readonly compose_source_file="${project_root}/deploy/docker-compose.yml"
 readonly compose_file="${deployment_directory}/docker-compose.yml"
 readonly application_secrets_file="${deployment_directory}/application-secrets.json"
 readonly notification_config_file="${deployment_directory}/notification-config.json"
-readonly runtime_env_file="${deployment_directory}/runtime.env"
 readonly data_directory="${deployment_directory}/data"
 readonly supertonic_model_directory="${deployment_directory}/supertonic3"
 readonly configuration_file="${data_directory}/configuration.json"
@@ -67,7 +66,6 @@ write_environment() {
         printf 'SUPERTONIC_MODEL_DIRECTORY=%s\n' "${supertonic_model_directory}"
         printf 'APPLICATION_SECRETS_FILE=%s\n' "${application_secrets_file}"
         printf 'NOTIFICATION_CONFIG_FILE=%s\n' "${notification_config_file}"
-        printf 'RUNTIME_ENV_FILE=%s\n' "${runtime_env_file}"
     } >"${env_file}"
 }
 
@@ -106,11 +104,6 @@ if [[ ! -f "${notification_config_file}" ]]; then
     echo "Create it from deploy/notification-config.example.json with mode 0600." >&2
     exit 78
 fi
-if [[ ! -f "${runtime_env_file}" ]]; then
-    echo "Missing runtime environment: ${runtime_env_file}" >&2
-    echo "Create it from deploy/runtime.env.example with mode 0600." >&2
-    exit 78
-fi
 if [[ ! -f "${configuration_file}" ]]; then
     echo "Missing application configuration: ${configuration_file}" >&2
     echo "Create it from deploy/configuration.example.json." >&2
@@ -122,7 +115,7 @@ write_environment "${next_env_file}"
 compose "${next_env_file}" pull
 compose "${next_env_file}" run --rm --no-deps api \
     python -c \
-    "from dataclasses import replace; from reminiscence.tts import SupertonicConfig, SupertonicSynthesizer; config = replace(SupertonicConfig.from_environment(), auto_download=True); result = SupertonicSynthesizer(config).synthesize('오늘 사진을 보며 이야기 나눠 보실래요?'); assert result.audio[:4] == b'RIFF' and result.audio[8:12] == b'WAVE'; print(f'Supertonic smoke passed: {result.sample_rate} Hz, {result.duration_seconds} s')"
+    "from reminiscence.tts.api import get_speech_synthesizer; result = get_speech_synthesizer().synthesize('오늘 사진을 보며 이야기 나눠 보실래요?'); assert result.audio[:4] == b'RIFF' and result.audio[8:12] == b'WAVE'; print(f'Supertonic smoke passed: {result.sample_rate} Hz, {result.duration_seconds} s')"
 
 if [[ -f "${active_env_file}" ]]; then
     cp -p "${active_env_file}" "${previous_env_file}"

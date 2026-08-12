@@ -18,14 +18,10 @@ services:
     security_opt:
       - no-new-privileges:true
     read_only: true
-    env_file:
-      - ${RUNTIME_ENV_FILE:?RUNTIME_ENV_FILE is required}
     environment:
-      HF_HOME: /models/.cache/huggingface
       NOTIFICATION_CONFIG_PATH: /run/secrets/notification-config.json
       REMINISCENCE_DATA_DIR: /data
       REMINISCENCE_SECRETS_PATH: /run/secrets/application-secrets.json
-      SUPERTONIC_MODEL_DIR: /models/supertonic-3
     tmpfs:
       - /tmp
     volumes:

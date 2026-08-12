@@ -7,37 +7,27 @@ from pathlib import Path
 
 from reminiscence.conversation.photos import parse_photos
 from reminiscence.routine.storage import JsonRoutineStore
+from reminiscence.runtime_config import parse_runtime_settings
 from reminiscence.storage import JsonObjectStore
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_runtime_environment_example_covers_validated_settings() -> None:
-    names = {
-        line.split("=", maxsplit=1)[0]
-        for line in (
-            PROJECT_ROOT / "deploy/runtime.env.example"
-        ).read_text(encoding="utf-8").splitlines()
-        if line and not line.startswith("#") and "=" in line
-    }
+def test_runtime_configuration_example_covers_validated_settings() -> None:
+    root = JsonObjectStore(
+        PROJECT_ROOT / "deploy/configuration.example.json",
+        schema_version=1,
+        read_only=True,
+        locking=False,
+    ).read()
 
-    assert {
-        "CODEX_LB_API_KEY",
-        "CODEX_LB_BASE_URL",
-        "CODEX_LB_CONNECT_TIMEOUT_SECONDS",
-        "CODEX_LB_READ_TIMEOUT_SECONDS",
-        "CODEX_LB_RESPONSE_MODEL",
-        "CODEX_LB_RESPONSE_READ_TIMEOUT_SECONDS",
-        "REMINISCENCE_PUBLIC_ORIGIN",
-        "REMINISCENCE_ROUTINE_TICK_SECONDS",
-        "REMINISCENCE_EVALUATION_SECONDS",
-        "SUPERTONIC_AUTO_DOWNLOAD",
-        "SUPERTONIC_MAX_TEXT_CHARS",
-    } <= names
-    assert not {
-        "ETRI_API_KEY",
-        "ETRI_ASR_URL",
-    } & names
+    settings = parse_runtime_settings(root, require_explicit=True)
+
+    assert settings.timezone == "Asia/Seoul"
+    assert settings.public_origin == "https://reminiscence.leehyowon14.dev"
+    assert settings.codex_lb.base_url == "https://codex-api.leehyowon14.dev/v1"
+    assert settings.supertonic.model_dir == Path("/models/supertonic-3")
+    assert not (PROJECT_ROOT / "deploy/runtime.env.example").exists()
 
 
 def test_configuration_example_is_accepted_by_routine_store(
