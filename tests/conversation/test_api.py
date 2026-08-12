@@ -282,7 +282,7 @@ def test_turn_reduces_audio_to_metrics_without_returning_or_storing_text(
 
     response = client.post(
         f"/api/v1/conversations/sessions/{session_id}/turns",
-        params={"turn_duration_seconds": 4},
+        params={"turn_duration_seconds": 4, "has_speech": True},
         content=b"wav-audio",
         headers=TURN_HEADERS,
     )
@@ -291,6 +291,7 @@ def test_turn_reduces_audio_to_metrics_without_returning_or_storing_text(
     payload = response.json()
     assert payload["utterance_chars"] == 7
     assert payload["chars_per_second"] == 1.75
+    assert payload["speech_detected"] is True
     assert payload["next_question"]["spoken_text"] == payload["next_question"]["display_text"]
     assert "transcript" not in response.text
     persisted = activity_path.read_text(encoding="utf-8")
@@ -310,14 +311,14 @@ def test_duplicate_turn_id_skips_providers_and_metrics(tmp_path: Path) -> None:
     session_id = start_session(client)
     first = client.post(
         f"/api/v1/conversations/sessions/{session_id}/turns",
-        params={"turn_duration_seconds": 4},
+        params={"turn_duration_seconds": 4, "has_speech": True},
         content=b"first-wav",
         headers=TURN_HEADERS,
     )
 
     repeated = client.post(
         f"/api/v1/conversations/sessions/{session_id}/turns",
-        params={"turn_duration_seconds": 99},
+        params={"turn_duration_seconds": 99, "has_speech": False},
         content=b"repeated-wav",
         headers=TURN_HEADERS,
     )
@@ -342,7 +343,7 @@ def test_question_failure_does_not_persist_turn(tmp_path: Path) -> None:
 
     response = client.post(
         f"/api/v1/conversations/sessions/{session_id}/turns",
-        params={"turn_duration_seconds": 4},
+        params={"turn_duration_seconds": 4, "has_speech": True},
         content=b"wav",
         headers=TURN_HEADERS,
     )
@@ -373,7 +374,7 @@ def test_whitespace_transcript_is_recorded_as_no_response(tmp_path: Path) -> Non
 
     response = client.post(
         f"/api/v1/conversations/sessions/{session_id}/turns",
-        params={"turn_duration_seconds": 10},
+        params={"turn_duration_seconds": 10, "has_speech": True},
         content=b"wav",
         headers=TURN_HEADERS,
     )
@@ -383,12 +384,40 @@ def test_whitespace_transcript_is_recorded_as_no_response(tmp_path: Path) -> Non
     assert response.json()["chars_per_second"] is None
 
 
+def test_recorder_no_speech_suppresses_hallucinated_transcript(
+    tmp_path: Path,
+) -> None:
+    recognizer = FakeRecognizer("ASR 환각 문장")
+    questions = FakeQuestionProvider()
+    client, activity_path, _ = client_with(
+        tmp_path,
+        recognizer,
+        questions,
+    )
+    session_id = start_session(client)
+
+    response = client.post(
+        f"/api/v1/conversations/sessions/{session_id}/turns",
+        params={"turn_duration_seconds": 3, "has_speech": False},
+        content=b"silent-wav",
+        headers=TURN_HEADERS,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["speech_detected"] is False
+    assert response.json()["utterance_chars"] == 0
+    assert response.json()["no_response"] is True
+    assert questions.follow_ups[0][1] == ""
+    persisted = activity_path.read_text(encoding="utf-8")
+    assert "ASR 환각 문장" not in persisted
+
+
 def test_complete_returns_metrics_only_summary(tmp_path: Path) -> None:
     client, _, _ = client_with(tmp_path)
     session_id = start_session(client)
     client.post(
         f"/api/v1/conversations/sessions/{session_id}/turns",
-        params={"turn_duration_seconds": 4},
+        params={"turn_duration_seconds": 4, "has_speech": True},
         content=b"wav",
         headers=TURN_HEADERS,
     )
@@ -427,7 +456,7 @@ def test_completed_session_rejects_another_turn(tmp_path: Path) -> None:
 
     response = client.post(
         f"/api/v1/conversations/sessions/{session_id}/turns",
-        params={"turn_duration_seconds": 1},
+        params={"turn_duration_seconds": 1, "has_speech": True},
         content=b"wav",
         headers=TURN_HEADERS,
     )
@@ -441,7 +470,7 @@ def test_unknown_session_is_rejected_before_asr(tmp_path: Path) -> None:
 
     response = client.post(
         "/api/v1/conversations/sessions/missing/turns",
-        params={"turn_duration_seconds": 1},
+        params={"turn_duration_seconds": 1, "has_speech": True},
         content=b"wav",
         headers=TURN_HEADERS,
     )
@@ -460,6 +489,19 @@ def test_completion_before_session_start_is_rejected(tmp_path: Path) -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_completion_persists_tablet_end_reason(tmp_path: Path) -> None:
+    client, _, _ = client_with(tmp_path)
+    session_id = start_session(client)
+
+    response = client.post(
+        f"/api/v1/conversations/sessions/{session_id}/complete",
+        json={"reason": "INACTIVITY_TIMEOUT"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["completion_reason"] == "INACTIVITY_TIMEOUT"
 
 
 def test_unknown_photo_is_not_found(tmp_path: Path) -> None:
@@ -494,7 +536,7 @@ def test_unsupported_audio_type_is_rejected(tmp_path: Path) -> None:
 
     response = client.post(
         f"/api/v1/conversations/sessions/{session_id}/turns",
-        params={"turn_duration_seconds": 1},
+        params={"turn_duration_seconds": 1, "has_speech": True},
         content=b"webm",
         headers={"content-type": "audio/webm", "X-Turn-ID": "client-turn-1"},
     )
@@ -508,7 +550,7 @@ def test_oversized_audio_is_rejected_before_asr(tmp_path: Path) -> None:
 
     response = client.post(
         f"/api/v1/conversations/sessions/{session_id}/turns",
-        params={"turn_duration_seconds": 1},
+        params={"turn_duration_seconds": 1, "has_speech": True},
         content=b"x" * (MAX_AUDIO_BYTES + 1),
         headers=TURN_HEADERS,
     )
@@ -523,7 +565,7 @@ def test_invalid_content_length_is_rejected_before_asr(tmp_path: Path) -> None:
 
     response = client.post(
         f"/api/v1/conversations/sessions/{session_id}/turns",
-        params={"turn_duration_seconds": 1},
+        params={"turn_duration_seconds": 1, "has_speech": True},
         content=b"wav",
         headers={
             "content-type": "audio/wav",

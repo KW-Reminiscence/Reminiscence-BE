@@ -8,6 +8,7 @@ from math import isfinite
 from typing import Any
 
 from reminiscence.conversation.models import (
+    ConversationCompletionReason,
     ConversationSession,
     ConversationSource,
     ConversationStatus,
@@ -62,6 +63,11 @@ def _parse_turn(value: Any) -> ConversationTurnMetric:
         no_response = value["no_response"]
         if not isinstance(no_response, bool):
             raise ConversationStorageError("no_response must be a boolean")
+        speech_detected = value.get("speech_detected")
+        if speech_detected is not None and not isinstance(speech_detected, bool):
+            raise ConversationStorageError(
+                "speech_detected must be a boolean or null"
+            )
         return ConversationTurnMetric(
             turn_id=_required_string(value["turn_id"], "turn_id"),
             recorded_at=datetime.fromisoformat(
@@ -85,6 +91,7 @@ def _parse_turn(value: Any) -> ConversationTurnMetric:
                 "asr_latency_seconds",
             ),
             asr_attempts=_required_int(value["asr_attempts"], "asr_attempts"),
+            speech_detected=speech_detected,
         )
     except (KeyError, ValueError) as exc:
         raise ConversationStorageError(f"invalid conversation turn: {exc}") from exc
@@ -101,6 +108,7 @@ def _parse_session(value: Any) -> ConversationSession:
         if not isinstance(turns_value, list):
             raise ConversationStorageError("turns must be an array")
         completed_at_value = value.get("completed_at")
+        completion_reason_value = value.get("completion_reason")
         return ConversationSession(
             session_id=_required_string(value["session_id"], "session_id"),
             source=ConversationSource(_required_string(value["source"], "source")),
@@ -115,6 +123,13 @@ def _parse_session(value: Any) -> ConversationSession:
                     _required_string(completed_at_value, "completed_at")
                 )
                 if completed_at_value is not None
+                else None
+            ),
+            completion_reason=(
+                ConversationCompletionReason(
+                    _required_string(completion_reason_value, "completion_reason")
+                )
+                if completion_reason_value is not None
                 else None
             ),
         )
@@ -132,6 +147,7 @@ def _serialize_turn(turn: ConversationTurnMetric) -> dict[str, Any]:
         "no_response": turn.no_response,
         "asr_latency_seconds": turn.asr_latency_seconds,
         "asr_attempts": turn.asr_attempts,
+        "speech_detected": turn.speech_detected,
     }
 
 
@@ -146,6 +162,11 @@ def _serialize_session(session: ConversationSession) -> dict[str, Any]:
         "completed_at": (
             session.completed_at.isoformat()
             if session.completed_at is not None
+            else None
+        ),
+        "completion_reason": (
+            session.completion_reason.value
+            if session.completion_reason is not None
             else None
         ),
         "turns": [_serialize_turn(turn) for turn in session.turns],

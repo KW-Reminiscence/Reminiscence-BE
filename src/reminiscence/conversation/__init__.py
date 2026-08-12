@@ -1,6 +1,7 @@
 """Reminiscence conversation metrics domain."""
 
 from reminiscence.conversation.models import (
+    ConversationCompletionReason,
     ConversationSession,
     ConversationSource,
     ConversationStatus,
@@ -15,6 +16,7 @@ from reminiscence.conversation.service import (
 from reminiscence.conversation.storage import JsonConversationStore
 
 __all__ = [
+    "ConversationCompletionReason",
     "ConversationNotFoundError",
     "ConversationService",
     "ConversationSession",

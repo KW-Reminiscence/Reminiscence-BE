@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from reminiscence.asr import RecognitionResult
 from reminiscence.conversation.models import (
+    ConversationCompletionReason,
     ConversationSession,
     ConversationSource,
     ConversationStatus,
@@ -79,12 +80,15 @@ class ConversationService:
         turn_duration_seconds: float,
         recorded_at: datetime,
         turn_id: str | None = None,
+        has_speech: bool | None = None,
     ) -> ConversationTurnMetric:
         """Reduce a transient transcript to metrics and discard the text."""
 
         _require_aware(recorded_at, "recorded_at")
         if turn_id is not None and not turn_id.strip():
             raise ValueError("turn_id must not be blank")
+        if has_speech is not None and not isinstance(has_speech, bool):
+            raise ValueError("has_speech must be a boolean")
         if (
             not isfinite(turn_duration_seconds)
             or turn_duration_seconds < 0
@@ -106,7 +110,11 @@ class ConversationService:
             self._require_active(session)
             if recorded_at < session.started_at:
                 raise ValueError("recorded_at must not be before started_at")
-            utterance_chars = len("".join(recognition.transcript.split()))
+            utterance_chars = (
+                0
+                if has_speech is False
+                else len("".join(recognition.transcript.split()))
+            )
             no_response = utterance_chars == 0
             metric = ConversationTurnMetric(
                 turn_id=requested_id,
@@ -121,6 +129,7 @@ class ConversationService:
                 no_response=no_response,
                 asr_latency_seconds=recognition.latency_seconds,
                 asr_attempts=recognition.attempts,
+                speech_detected=has_speech,
             )
             return replace(session, turns=(*session.turns, metric))
 
@@ -146,6 +155,9 @@ class ConversationService:
         self,
         session_id: str,
         completed_at: datetime,
+        reason: ConversationCompletionReason = (
+            ConversationCompletionReason.USER_FINISHED
+        ),
     ) -> ConversationSession:
         """Finalize one active conversation session."""
 
@@ -160,6 +172,7 @@ class ConversationService:
                 session,
                 status=ConversationStatus.COMPLETED,
                 completed_at=completed_at,
+                completion_reason=reason,
             )
 
         try:

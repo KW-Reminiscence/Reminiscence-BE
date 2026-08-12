@@ -29,6 +29,28 @@
         "title": "AuthRole",
         "type": "string"
       },
+      "CompleteConversationRequest": {
+        "description": "Tablet-observed reason for finalizing a conversation.",
+        "properties": {
+          "reason": {
+            "$ref": "#/components/schemas/ConversationCompletionReason",
+            "default": "USER_FINISHED"
+          }
+        },
+        "title": "CompleteConversationRequest",
+        "type": "object"
+      },
+      "ConversationCompletionReason": {
+        "description": "Why the tablet finalized an active conversation.",
+        "enum": [
+          "USER_FINISHED",
+          "INACTIVITY_TIMEOUT",
+          "MAX_DURATION",
+          "NAVIGATION"
+        ],
+        "title": "ConversationCompletionReason",
+        "type": "string"
+      },
       "ConversationSource": {
         "description": "How the user entered a conversation session.",
         "enum": [
@@ -140,6 +162,16 @@
             ],
             "title": "Completed At"
           },
+          "completion_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConversationCompletionReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "no_response_count": {
             "title": "No Response Count",
             "type": "integer"
@@ -170,6 +202,7 @@
           "status",
           "started_at",
           "completed_at",
+          "completion_reason",
           "user_turn_count",
           "total_utterance_chars",
           "average_utterance_chars",
@@ -771,6 +804,17 @@
             "title": "No Response",
             "type": "boolean"
           },
+          "speech_detected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speech Detected"
+          },
           "turn_duration_seconds": {
             "title": "Turn Duration Seconds",
             "type": "number"
@@ -790,6 +834,7 @@
           "turn_duration_seconds",
           "chars_per_second",
           "no_response",
+          "speech_detected",
           "next_question"
         ],
         "title": "TurnMetricResponse",
@@ -1198,6 +1243,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/CompleteConversationRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -1254,6 +1316,15 @@
               "minimum": 0,
               "title": "Turn Duration Seconds",
               "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "has_speech",
+            "required": true,
+            "schema": {
+              "title": "Has Speech",
+              "type": "boolean"
             }
           },
           {

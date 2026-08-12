@@ -22,6 +22,15 @@ class ConversationStatus(StrEnum):
     COMPLETED = "COMPLETED"
 
 
+class ConversationCompletionReason(StrEnum):
+    """Why the tablet finalized an active conversation."""
+
+    USER_FINISHED = "USER_FINISHED"
+    INACTIVITY_TIMEOUT = "INACTIVITY_TIMEOUT"
+    MAX_DURATION = "MAX_DURATION"
+    NAVIGATION = "NAVIGATION"
+
+
 @dataclass(frozen=True, slots=True)
 class ConversationTurnMetric:
     """One user turn reduced to directly observable metrics."""
@@ -34,6 +43,7 @@ class ConversationTurnMetric:
     no_response: bool
     asr_latency_seconds: float
     asr_attempts: int
+    speech_detected: bool | None = None
 
     def __post_init__(self) -> None:
         if not self.turn_id.strip():
@@ -51,8 +61,16 @@ class ConversationTurnMetric:
             not isfinite(self.chars_per_second) or self.chars_per_second < 0
         ):
             raise ValueError("chars_per_second must be finite and non-negative")
-        if self.no_response != (self.utterance_chars == 0):
-            raise ValueError("no_response must match utterance_chars")
+        if self.speech_detected is not None and not isinstance(
+            self.speech_detected,
+            bool,
+        ):
+            raise ValueError("speech_detected must be a boolean or null")
+        expected_no_response = (
+            self.utterance_chars == 0 or self.speech_detected is False
+        )
+        if self.no_response != expected_no_response:
+            raise ValueError("no_response must match speech and utterance metrics")
         if not isfinite(self.asr_latency_seconds) or self.asr_latency_seconds < 0:
             raise ValueError("asr_latency_seconds must be finite and non-negative")
         if self.asr_attempts <= 0:
@@ -81,6 +99,7 @@ class ConversationSession:
     status: ConversationStatus
     turns: tuple[ConversationTurnMetric, ...]
     completed_at: datetime | None = None
+    completion_reason: ConversationCompletionReason | None = None
 
     def __post_init__(self) -> None:
         if not self.session_id.strip():
@@ -89,8 +108,10 @@ class ConversationSession:
             raise ValueError("photo_id must not be blank")
         if self.started_at.tzinfo is None or self.started_at.utcoffset() is None:
             raise ValueError("started_at must be timezone-aware")
-        if self.status is ConversationStatus.ACTIVE and self.completed_at is not None:
-            raise ValueError("ACTIVE session must not have completed_at")
+        if self.status is ConversationStatus.ACTIVE and (
+            self.completed_at is not None or self.completion_reason is not None
+        ):
+            raise ValueError("ACTIVE session must not have completion fields")
         if self.status is ConversationStatus.COMPLETED:
             if self.completed_at is None:
                 raise ValueError("COMPLETED session requires completed_at")

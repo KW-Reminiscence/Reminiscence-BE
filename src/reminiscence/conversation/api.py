@@ -30,6 +30,7 @@ from reminiscence.conversation.llm_questions import (
     QuestionGenerationUnavailableError,
 )
 from reminiscence.conversation.models import (
+    ConversationCompletionReason,
     ConversationSession,
     ConversationSource,
     ConversationStatus,
@@ -114,6 +115,7 @@ class TurnMetricResponse(BaseModel):
     turn_duration_seconds: float
     chars_per_second: float | None
     no_response: bool
+    speech_detected: bool | None
     next_question: SpeechTextResponse
 
 
@@ -124,11 +126,18 @@ class ConversationSummaryResponse(BaseModel):
     status: ConversationStatus
     started_at: datetime
     completed_at: datetime | None
+    completion_reason: ConversationCompletionReason | None
     user_turn_count: int
     total_utterance_chars: int
     average_utterance_chars: float | None
     average_turn_duration_seconds: float | None
     no_response_count: int
+
+
+class CompleteConversationRequest(BaseModel):
+    """Tablet-observed reason for finalizing a conversation."""
+
+    reason: ConversationCompletionReason = ConversationCompletionReason.USER_FINISHED
 
 
 def _data_directory() -> Path:
@@ -274,6 +283,7 @@ def _summary_response(session: ConversationSession) -> ConversationSummaryRespon
         status=session.status,
         started_at=session.started_at,
         completed_at=session.completed_at,
+        completion_reason=session.completion_reason,
         user_turn_count=summary.user_turn_count,
         total_utterance_chars=summary.total_utterance_chars,
         average_utterance_chars=summary.average_utterance_chars,
@@ -313,6 +323,7 @@ QuestionProviderDependency = Annotated[
 CurrentTimeDependency = Annotated[datetime, Depends(get_current_time)]
 AudioBody = Annotated[bytes, Body(media_type="audio/wav")]
 TurnDuration = Annotated[float, Query(ge=0, le=300)]
+HasSpeech = Annotated[bool, Query()]
 ClientTurnId = Annotated[
     str,
     Header(
@@ -400,6 +411,7 @@ async def record_conversation_turn(
     request: Request,
     audio: AudioBody,
     turn_duration_seconds: TurnDuration,
+    has_speech: HasSpeech,
     turn_id: ClientTurnId,
     _: TabletSessionDependency,
     __: SameOriginDependency,
@@ -430,6 +442,7 @@ async def record_conversation_turn(
                 turn_duration_seconds=existing.turn_duration_seconds,
                 chars_per_second=existing.chars_per_second,
                 no_response=existing.no_response,
+                speech_detected=existing.speech_detected,
                 next_question=SpeechTextResponse(
                     display_text="이어서 이야기해 주세요.",
                     spoken_text="이어서 이야기해 주세요.",
@@ -445,7 +458,7 @@ async def record_conversation_turn(
         next_question = await run_in_threadpool(
             questions.follow_up_question,
             photo,
-            recognition.transcript,
+            recognition.transcript if has_speech else "",
             active_session.summary.user_turn_count + 1,
         )
         metric: ConversationTurnMetric = service.record_turn(
@@ -454,6 +467,7 @@ async def record_conversation_turn(
             turn_duration_seconds,
             now,
             turn_id,
+            has_speech,
         )
     except ConversationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
@@ -488,6 +502,7 @@ async def record_conversation_turn(
         turn_duration_seconds=metric.turn_duration_seconds,
         chars_per_second=metric.chars_per_second,
         no_response=metric.no_response,
+        speech_detected=metric.speech_detected,
         next_question=_speech_response(next_question),
     )
 
@@ -503,11 +518,17 @@ async def complete_conversation(
     __: SameOriginDependency,
     service: ConversationServiceDependency,
     now: CurrentTimeDependency,
+    payload: CompleteConversationRequest | None = None,
 ) -> ConversationSummaryResponse:
     """Finalize a session and return its metrics-only summary."""
 
     try:
-        return _summary_response(service.complete_session(session_id, now))
+        reason = (
+            payload.reason
+            if payload is not None
+            else ConversationCompletionReason.USER_FINISHED
+        )
+        return _summary_response(service.complete_session(session_id, now, reason))
     except ConversationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ConversationStateError as exc:

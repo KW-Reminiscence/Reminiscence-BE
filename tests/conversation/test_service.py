@@ -100,6 +100,25 @@ def test_no_response_is_excluded_from_session_averages(tmp_path: Path) -> None:
     assert summary.no_response_count == 1
 
 
+def test_recorder_no_speech_overrides_asr_hallucination(tmp_path: Path) -> None:
+    service, _ = service_at(tmp_path)
+    session = service.start_session(ConversationSource.VOLUNTARY, None, now())
+
+    metric = service.record_turn(
+        session.session_id,
+        recognition("실제로는 없었던 환각 전사"),
+        3,
+        now() + timedelta(seconds=3),
+        "client-turn-no-speech",
+        False,
+    )
+
+    assert metric.speech_detected is False
+    assert metric.utterance_chars == 0
+    assert metric.no_response is True
+    assert metric.chars_per_second is None
+
+
 def test_zero_duration_has_no_chars_per_second(tmp_path: Path) -> None:
     service, _ = service_at(tmp_path)
     session = service.start_session(ConversationSource.VOLUNTARY, None, now())
