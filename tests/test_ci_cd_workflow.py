@@ -15,3 +15,4 @@ def test_ci_cd_runs_only_for_main() -> None:
     assert "workflow_dispatch:" not in workflow
     assert './scripts/deploy.sh production "${IMAGE_TAG}"' in workflow
     assert "DEPLOYMENT_ENVIRONMENT:" not in workflow
+    assert "uv run python scripts/export_openapi.py --check" in workflow

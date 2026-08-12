@@ -43,6 +43,9 @@ jobs:
       - name: Run type check
         run: uv run mypy
 
+      - name: Verify OpenAPI contract
+        run: uv run python scripts/export_openapi.py --check
+
   build:
     name: Build and publish image
     if: github.event_name == 'push'
