@@ -31,6 +31,7 @@ from reminiscence.routine.api import (
 )
 from reminiscence.runtime import build_background_runtime
 from reminiscence.storage.instance_lock import SingleInstanceLock
+from reminiscence.storage.migration import validate_data_directory
 from reminiscence.tts.api import router as tts_router
 
 
@@ -81,6 +82,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
     data_directory = Path(os.environ.get("REMINISCENCE_DATA_DIR", "data"))
     with SingleInstanceLock(data_directory):
+        validate_data_directory(data_directory)
         runtime = build_background_runtime(
             get_routine_scheduler(),
             get_notification_coordinator(),

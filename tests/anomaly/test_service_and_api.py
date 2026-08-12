@@ -21,6 +21,7 @@ from reminiscence.anomaly.service import AnomalyService
 from reminiscence.anomaly.storage import ActivityMetricReader, PersonalStateStore
 from reminiscence.main import app
 from reminiscence.storage import JsonObjectStore
+from reminiscence.storage.migration import migrate_data_directory
 
 SEOUL = ZoneInfo("Asia/Seoul")
 NOW = datetime(2026, 7, 27, 18, 0, tzinfo=SEOUL)
@@ -336,6 +337,15 @@ def test_state_is_not_found_before_first_evaluation(tmp_path: Path) -> None:
     response = TestClient(app).get("/api/v1/anomaly/state")
 
     assert response.status_code == 404
+
+
+def test_migrated_empty_personal_state_is_not_an_evaluation(tmp_path: Path) -> None:
+    migrate_data_directory(tmp_path, apply=True)
+    store = PersonalStateStore(
+        JsonObjectStore(tmp_path / "personal_state.json", schema_version=1)
+    )
+
+    assert store.load() is None
 
 
 def test_anomaly_endpoints_are_documented() -> None:

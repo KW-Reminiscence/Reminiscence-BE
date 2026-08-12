@@ -230,7 +230,7 @@ class PersonalStateStore:
         """Return the current state if it has been evaluated."""
 
         root = self._store.read()
-        if not root:
+        if not root or set(root) <= {"schema_version"}:
             return None
         try:
             return PersonalEvaluation(

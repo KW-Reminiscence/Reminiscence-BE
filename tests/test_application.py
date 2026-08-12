@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from reminiscence import main
 from reminiscence.main import app, create_app
+from reminiscence.storage.migration import migrate_data_directory
 
 
 def test_openapi_document_describes_the_application() -> None:
@@ -50,6 +51,7 @@ def test_application_lifespan_starts_and_stops_background_runtime(
     )
     monkeypatch.setattr(main, "build_background_runtime", build_runtime)
     monkeypatch.setenv("REMINISCENCE_DATA_DIR", str(tmp_path))
+    migrate_data_directory(tmp_path, apply=True)
 
     application = create_app()
     with TestClient(application) as client:
