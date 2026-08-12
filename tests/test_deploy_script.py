@@ -70,6 +70,15 @@ def test_deploy_script_holds_maintenance_until_loopback_smoke_passes() -> None:
     assert '"schema_version": 1' in deploy_script
 
 
+def test_deploy_script_serializes_host_level_releases() -> None:
+    deploy_script = (PROJECT_ROOT / "scripts/deploy.sh").read_text(encoding="utf-8")
+
+    assert 'deployment_lock_file="${deployment_directory}/.deploy.lock"' in deploy_script
+    assert 'exec 9>"${deployment_lock_file}"' in deploy_script
+    assert "flock -n 9" in deploy_script
+    assert "Another Reminiscence deployment is already running." in deploy_script
+
+
 def test_compose_mounts_writable_supertonic_parent_directory() -> None:
     compose = (PROJECT_ROOT / "deploy/docker-compose.yml").read_text(encoding="utf-8")
 

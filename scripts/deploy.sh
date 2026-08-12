@@ -66,6 +66,7 @@ readonly active_manifest_file="${deployment_directory}/release.json"
 readonly next_manifest_file="${deployment_directory}/release.next.json"
 readonly previous_manifest_file="${deployment_directory}/release.previous.json"
 readonly maintenance_flag="${deployment_directory}/maintenance.flag"
+readonly deployment_lock_file="${deployment_directory}/.deploy.lock"
 deployed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 readonly deployed_at
 readonly api_digest="${api_image_reference##*@sha256:}"
@@ -186,6 +187,11 @@ rollback() {
 }
 
 install -d -m 0750 "${deployment_directory}"
+exec 9>"${deployment_lock_file}"
+if ! flock -n 9; then
+    echo "Another Reminiscence deployment is already running." >&2
+    exit 75
+fi
 install -d -m 0750 "${data_directory}"
 install -d -m 0750 "${backup_directory}"
 install -d -m 0750 "${supertonic_model_directory}"
