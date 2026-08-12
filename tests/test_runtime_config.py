@@ -48,6 +48,8 @@ def test_parses_all_application_runtime_settings_from_json() -> None:
         ({"routine_tick_seconds": 0}, "routine_tick_seconds"),
         ({"evaluation_seconds": float("inf")}, "evaluation_seconds"),
         ({"codex_lb": {"base_url": "ftp://example.com/v1"}}, "base_url"),
+        ({"codex_lb": {"base_url": "http://example.com:bad/v1"}}, "base_url"),
+        ({"codex_lb": {"base_url": "http://example.com:0/v1"}}, "base_url"),
         ({"supertonic": {"speed": 0.1}}, "speed"),
     ],
 )

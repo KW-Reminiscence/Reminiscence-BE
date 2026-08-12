@@ -138,11 +138,18 @@ def _codex_lb(value: Any) -> CodexLbSettings:
         "runtime.codex_lb.base_url",
     )
     parsed_url = urlsplit(base_url)
+    try:
+        port = parsed_url.port
+    except ValueError as exc:
+        raise RuntimeConfigurationError(
+            "runtime.codex_lb.base_url must be an HTTP URL ending in /v1"
+        ) from exc
     if (
         parsed_url.scheme not in {"http", "https"}
         or parsed_url.hostname is None
         or parsed_url.username is not None
         or parsed_url.password is not None
+        or port == 0
         or parsed_url.query
         or parsed_url.fragment
         or not parsed_url.path.rstrip("/").endswith("/v1")
