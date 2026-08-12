@@ -31,6 +31,8 @@ def test_compose_mounts_writable_supertonic_parent_directory() -> None:
     assert "SUPERTONIC_MODEL_DIR:" not in compose
     assert "        target: /models\n" in compose
     assert "        target: /models/supertonic-3\n" not in compose
+    assert "NOTIFICATION_CONFIG_FILE" not in compose
+    assert "NOTIFICATION_CONFIG_PATH" not in compose
 
 
 def test_container_start_uses_strict_preflight_and_readiness() -> None:

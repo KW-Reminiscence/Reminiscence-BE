@@ -32,7 +32,6 @@ esac
 readonly compose_source_file="${project_root}/deploy/docker-compose.yml"
 readonly compose_file="${deployment_directory}/docker-compose.yml"
 readonly application_secrets_file="${deployment_directory}/application-secrets.json"
-readonly notification_config_file="${deployment_directory}/notification-config.json"
 readonly data_directory="${deployment_directory}/data"
 readonly supertonic_model_directory="${deployment_directory}/supertonic3"
 readonly configuration_file="${data_directory}/configuration.json"
@@ -65,7 +64,6 @@ write_environment() {
         printf 'DATA_DIRECTORY=%s\n' "${data_directory}"
         printf 'SUPERTONIC_MODEL_DIRECTORY=%s\n' "${supertonic_model_directory}"
         printf 'APPLICATION_SECRETS_FILE=%s\n' "${application_secrets_file}"
-        printf 'NOTIFICATION_CONFIG_FILE=%s\n' "${notification_config_file}"
     } >"${env_file}"
 }
 
@@ -97,11 +95,6 @@ mkdir -p "${supertonic_model_directory}"
 if [[ ! -f "${application_secrets_file}" ]]; then
     echo "Missing application secrets: ${application_secrets_file}" >&2
     echo "Create it from deploy/application-secrets.example.json with mode 0600." >&2
-    exit 78
-fi
-if [[ ! -f "${notification_config_file}" ]]; then
-    echo "Missing notification configuration: ${notification_config_file}" >&2
-    echo "Create it from deploy/notification-config.example.json with mode 0600." >&2
     exit 78
 fi
 if [[ ! -f "${configuration_file}" ]]; then

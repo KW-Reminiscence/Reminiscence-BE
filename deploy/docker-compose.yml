@@ -19,7 +19,6 @@ services:
       - no-new-privileges:true
     read_only: true
     environment:
-      NOTIFICATION_CONFIG_PATH: /run/secrets/notification-config.json
       REMINISCENCE_DATA_DIR: /data
       REMINISCENCE_SECRETS_PATH: /run/secrets/application-secrets.json
     tmpfs:
@@ -33,12 +32,6 @@ services:
       - type: bind
         source: ${APPLICATION_SECRETS_FILE:?APPLICATION_SECRETS_FILE is required}
         target: /run/secrets/application-secrets.json
-        read_only: true
-        bind:
-          create_host_path: false
-      - type: bind
-        source: ${NOTIFICATION_CONFIG_FILE:?NOTIFICATION_CONFIG_FILE is required}
-        target: /run/secrets/notification-config.json
         read_only: true
         bind:
           create_host_path: false
