@@ -121,6 +121,49 @@ def test_restore_rolls_back_every_document_after_midway_write_failure(
     } == before_restore
 
 
+def test_restore_rolls_back_document_replaced_before_directory_fsync_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    data_directory = _initialized_data_directory(tmp_path)
+    snapshot = create_snapshot(
+        data_directory,
+        tmp_path / "backups",
+        snapshot_id="fsync-rollback",
+    )
+    configuration_path = data_directory / "configuration.json"
+    current = json.loads(configuration_path.read_text(encoding="utf-8"))
+    current["conversation"]["suggestion_time"] = "15:00"
+    configuration_path.write_text(json.dumps(current), encoding="utf-8")
+    before_restore = {
+        filename: (data_directory / filename).read_bytes()
+        for filename in BACKUP_FILENAMES
+    }
+    real_fsync_directory = snapshot_module._fsync_directory
+    calls = 0
+
+    def fail_first_directory_fsync(path: Path) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise OSError("simulated directory fsync failure")
+        real_fsync_directory(path)
+
+    monkeypatch.setattr(
+        snapshot_module,
+        "_fsync_directory",
+        fail_first_directory_fsync,
+    )
+
+    with pytest.raises(JsonSnapshotError, match="original data restored"):
+        restore_snapshot(snapshot, data_directory)
+
+    assert {
+        filename: (data_directory / filename).read_bytes()
+        for filename in BACKUP_FILENAMES
+    } == before_restore
+
+
 @pytest.mark.parametrize("snapshot_id", ["", ".", "..", "nested/path"])
 def test_snapshot_rejects_unsafe_identifier(
     tmp_path: Path,

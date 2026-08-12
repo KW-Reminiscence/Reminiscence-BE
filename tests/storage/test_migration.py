@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from reminiscence.storage import migration
+from reminiscence.storage import snapshot as snapshot_module
 from reminiscence.storage.migration import (
     CURRENT_SCHEMA_VERSION,
     JsonMigrationError,
@@ -116,6 +117,36 @@ def test_apply_rolls_back_every_document_after_midway_write_failure(
         real_write(path, data)
 
     monkeypatch.setattr(migration, "atomic_write_bytes", fail_second_write)
+
+    with pytest.raises(JsonMigrationError, match="original data restored"):
+        migrate_data_directory(tmp_path, apply=True)
+
+    assert configuration_path.read_bytes() == original
+    assert not (tmp_path / "activity_metrics.json").exists()
+
+
+def test_apply_rolls_back_document_replaced_before_directory_fsync_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configuration_path = tmp_path / "configuration.json"
+    original = json.dumps(_legacy_configuration()).encode("utf-8")
+    configuration_path.write_bytes(original)
+    real_fsync_directory = snapshot_module._fsync_directory
+    calls = 0
+
+    def fail_first_directory_fsync(path: Path) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise OSError("simulated directory fsync failure")
+        real_fsync_directory(path)
+
+    monkeypatch.setattr(
+        snapshot_module,
+        "_fsync_directory",
+        fail_first_directory_fsync,
+    )
 
     with pytest.raises(JsonMigrationError, match="original data restored"):
         migrate_data_directory(tmp_path, apply=True)

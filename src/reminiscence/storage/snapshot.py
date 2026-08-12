@@ -240,8 +240,8 @@ def restore_snapshot(snapshot_directory: Path, data_directory: Path) -> None:
         applied: list[str] = []
         try:
             for filename, data in documents.items():
-                atomic_write_bytes(data_directory / filename, data)
                 applied.append(filename)
+                atomic_write_bytes(data_directory / filename, data)
         except (OSError, JsonSnapshotError) as exc:
             rollback_errors: list[str] = []
             for filename in reversed(applied):

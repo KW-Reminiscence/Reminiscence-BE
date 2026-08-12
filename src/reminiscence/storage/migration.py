@@ -143,8 +143,8 @@ def migrate_data_directory(
         try:
             for spec, (result, data) in zip(DOCUMENT_SPECS, prepared, strict=True):
                 if result.changed:
-                    atomic_write_bytes(result.path, data)
                     applied.append(spec.filename)
+                    atomic_write_bytes(result.path, data)
         except (OSError, JsonSnapshotError) as exc:
             rollback_errors = _rollback_documents(data_directory, originals, applied)
             if rollback_errors:
