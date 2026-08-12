@@ -64,14 +64,14 @@ jobs:
 
     outputs:
       api-image-reference: ghcr.io/kw-reminiscence/reminiscence-be@${{ steps.api-image.outputs.digest }}
-      web-image-reference: ghcr.io/kw-reminiscence/reminiscence-fe@${{ steps.web-image.outputs.digest }}
+      web-image-reference: ghcr.io/kw-reminiscence/reminiscence-web-release@${{ steps.web-image.outputs.digest }}
       api-commit: ${{ github.sha }}
       web-commit: ${{ steps.web-source.outputs.commit }}
       openapi-sha256: ${{ steps.contract.outputs.sha256 }}
 
     env:
       IMAGE_NAME: ghcr.io/kw-reminiscence/reminiscence-be
-      WEB_IMAGE_NAME: ghcr.io/kw-reminiscence/reminiscence-fe
+      WEB_IMAGE_NAME: ghcr.io/kw-reminiscence/reminiscence-web-release
 
     steps:
       - name: Check out source
@@ -146,17 +146,21 @@ jobs:
           provenance: mode=max
           sbom: true
 
-      - name: Resolve verified web image digest
+      - name: Build and publish verified ARM64 web image
         id: web-image
-        env:
-          WEB_IMAGE_REFERENCE: ${{ env.WEB_IMAGE_NAME }}:${{ steps.web-source.outputs.commit }}
-        run: |
-          digest="$(docker buildx imagetools inspect "${WEB_IMAGE_REFERENCE}" --format '{{.Manifest.Digest}}')"
-          if [[ ! "${digest}" =~ ^sha256:[a-f0-9]{64}$ ]]; then
-            echo "Invalid web image digest: ${digest}" >&2
-            exit 1
-          fi
-          printf 'digest=%s\n' "${digest}" >>"${GITHUB_OUTPUT}"
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend-release
+          push: true
+          platforms: linux/arm64
+          tags: |
+            ${{ env.WEB_IMAGE_NAME }}:${{ steps.web-source.outputs.commit }}
+            ${{ env.WEB_IMAGE_NAME }}:main
+          labels: org.opencontainers.image.source=https://github.com/KW-Reminiscence/Reminiscence-FE
+          cache-from: type=gha,scope=web-release
+          cache-to: type=gha,mode=max,scope=web-release
+          provenance: mode=max
+          sbom: true
 
   deploy:
     name: Deploy

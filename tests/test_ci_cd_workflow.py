@@ -44,18 +44,19 @@ def test_workflow_deploys_api_and_web_by_immutable_digest() -> None:
     assert "api-image-reference:" in workflow
     assert "web-image-reference:" in workflow
     assert "steps.api-image.outputs.digest" in workflow
-    assert "docker buildx imagetools inspect" in workflow
-    assert "^sha256:[a-f0-9]{64}$" in workflow
+    assert "steps.web-image.outputs.digest" in workflow
     assert "needs.build.outputs.api-image-reference" in workflow
     assert "needs.build.outputs.web-image-reference" in workflow
-    assert "platforms: linux/arm64" in workflow
-    assert "provenance: mode=max" in workflow
-    assert "sbom: true" in workflow
+    assert workflow.count("platforms: linux/arm64") == 2
+    assert workflow.count("provenance: mode=max") == 2
+    assert workflow.count("sbom: true") == 2
     assert "repository: KW-Reminiscence/Reminiscence-FE" in workflow
     assert "git -C frontend-release rev-parse HEAD" in workflow
     assert "OPENAPI_SCHEMA_PATH: ../openapi.json" in workflow
     assert "pnpm api:check" in workflow
     assert "pnpm typecheck" in workflow
     assert "pnpm build" in workflow
+    assert "context: frontend-release" in workflow
+    assert "reminiscence-web-release" in workflow
     assert "WEB_IMAGE_NAME }}:${{ steps.web-source.outputs.commit }}" in workflow
     assert "sha256sum openapi.json" in workflow
