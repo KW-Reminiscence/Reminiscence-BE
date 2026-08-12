@@ -55,8 +55,13 @@ jobs:
       contents: read
       packages: write
 
+    outputs:
+      api-image-reference: ghcr.io/kw-reminiscence/reminiscence-be@${{ steps.api-image.outputs.digest }}
+      web-image-reference: ghcr.io/kw-reminiscence/reminiscence-fe@${{ steps.web-image.outputs.digest }}
+
     env:
       IMAGE_NAME: ghcr.io/kw-reminiscence/reminiscence-be
+      WEB_IMAGE_NAME: ghcr.io/kw-reminiscence/reminiscence-fe
 
     steps:
       - name: Check out source
@@ -76,15 +81,32 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish ARM64 image
+        id: api-image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           platforms: linux/arm64
-          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:main
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
+
+      - name: Resolve verified web image digest
+        id: web-image
+        env:
+          WEB_IMAGE_REFERENCE: ${{ env.WEB_IMAGE_NAME }}:main
+        run: |
+          digest="$(docker buildx imagetools inspect "${WEB_IMAGE_REFERENCE}" --format '{{.Manifest.Digest}}')"
+          if [[ ! "${digest}" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "Invalid web image digest: ${digest}" >&2
+            exit 1
+          fi
+          printf 'digest=%s\n' "${digest}" >>"${GITHUB_OUTPUT}"
 
   deploy:
     name: Deploy
@@ -99,8 +121,8 @@ jobs:
       packages: read
 
     env:
-      IMAGE_NAME: ghcr.io/kw-reminiscence/reminiscence-be
-      IMAGE_TAG: ${{ github.sha }}
+      API_IMAGE_REFERENCE: ${{ needs.build.outputs.api-image-reference }}
+      WEB_IMAGE_REFERENCE: ${{ needs.build.outputs.web-image-reference }}
 
     steps:
       - name: Check out deployment configuration
@@ -112,7 +134,7 @@ jobs:
         run: printf '%s' "${GITHUB_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
 
       - name: Deploy with Docker Compose
-        run: ./scripts/deploy.sh production "${IMAGE_TAG}"
+        run: ./scripts/deploy.sh production "${API_IMAGE_REFERENCE}" "${WEB_IMAGE_REFERENCE}"
 
       - name: Log out from GHCR
         if: always()
