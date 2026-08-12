@@ -26,6 +26,7 @@ from reminiscence.anomaly.storage import (
     BaselineStore,
     PersonalStateStore,
 )
+from reminiscence.auth.dependencies import GuardianSessionDependency
 from reminiscence.storage import JsonStorageError, open_versioned_store
 
 router = APIRouter(prefix="/api/v1/anomaly", tags=["anomaly"])
@@ -177,6 +178,7 @@ async def evaluate_anomaly(
 )
 async def get_anomaly_state(
     service: AnomalyServiceDependency,
+    _: GuardianSessionDependency,
 ) -> PersonalStateResponse:
     """Return the last evaluation without rerunning either model."""
 
