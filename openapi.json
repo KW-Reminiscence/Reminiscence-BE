@@ -518,6 +518,10 @@
             "title": "Execution Id",
             "type": "string"
           },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
           "reminder_count": {
             "title": "Reminder Count",
             "type": "integer"
@@ -538,6 +542,7 @@
         "required": [
           "execution_id",
           "routine_id",
+          "name",
           "state",
           "scheduled_at",
           "reminder_count",

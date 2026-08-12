@@ -86,6 +86,7 @@ def test_current_endpoint_does_not_duplicate_execution(tmp_path: Path) -> None:
     assert first.status_code == 200
     assert second.status_code == 200
     assert len(history.json()) == 1
+    assert history.json()[0]["name"] == "아침 약"
 
 
 def test_active_prompt_keeps_snapshot_after_definition_is_removed(

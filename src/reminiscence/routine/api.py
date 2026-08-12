@@ -60,6 +60,7 @@ class RoutineExecutionResponse(BaseModel):
 
     execution_id: str
     routine_id: str
+    name: str
     state: RoutineState
     scheduled_at: datetime
     reminder_count: int
@@ -128,10 +129,14 @@ def _prompt_response(
     )
 
 
-def _execution_response(execution: RoutineExecution) -> RoutineExecutionResponse:
+def _execution_response(
+    execution: RoutineExecution,
+    definition: RoutineDefinition | None = None,
+) -> RoutineExecutionResponse:
     return RoutineExecutionResponse(
         execution_id=execution.execution_id,
         routine_id=execution.routine_id,
+        name=execution.routine_name or (definition.name if definition else execution.routine_id),
         state=execution.state,
         scheduled_at=execution.scheduled_at,
         reminder_count=execution.reminder_count,
@@ -240,8 +245,11 @@ async def get_routine_history(
 
     try:
         scheduler.tick(now)
+        definitions = {
+            definition.routine_id: definition for definition in scheduler.list_definitions()
+        }
         return [
-            _execution_response(execution)
+            _execution_response(execution, definitions.get(execution.routine_id))
             for execution in scheduler.list_executions()
         ]
     except RoutineStorageError as exc:
