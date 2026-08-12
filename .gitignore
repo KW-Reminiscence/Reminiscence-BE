@@ -10,6 +10,7 @@ __pycache__/
 data/
 runtime.env
 notification-config.json
+application-secrets.json
 logs/
 test_audio/
 _incoming/
