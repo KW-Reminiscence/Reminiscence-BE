@@ -547,12 +547,11 @@ def test_api_evaluates_and_reads_current_state(tmp_path: Path) -> None:
     app.dependency_overrides[get_current_time] = lambda: NOW
     client = TestClient(app)
 
-    evaluated = client.post("/api/v1/anomaly/evaluate")
+    evaluated = service.evaluate(NOW)
     current = client.get("/api/v1/anomaly/state")
 
-    assert evaluated.status_code == 200
-    assert evaluated.json()["became_anomalous"] is True
-    assert evaluated.json()["routine"]["signal_count"] == 2
+    assert evaluated.became_anomalous is True
+    assert evaluated.evaluation.routine.signal_count == 2
     assert current.status_code == 200
     assert current.json()["became_anomalous"] is False
 
@@ -575,7 +574,7 @@ def test_migrated_empty_personal_state_is_not_an_evaluation(tmp_path: Path) -> N
 
 def test_anomaly_endpoints_are_documented() -> None:
     paths = app.openapi()["paths"]
-    assert "/api/v1/anomaly/evaluate" in paths
+    assert "/api/v1/anomaly/evaluate" not in paths
     assert "/api/v1/anomaly/state" in paths
 
 

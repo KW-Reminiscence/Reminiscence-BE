@@ -147,16 +147,11 @@ AnomalyServiceDependency = Annotated[AnomalyService, Depends(get_anomaly_service
 CurrentTimeDependency = Annotated[datetime, Depends(get_current_time)]
 
 
-@router.post(
-    "/evaluate",
-    response_model=PersonalStateResponse,
-    summary="Evaluate personal activity patterns",
-)
 async def evaluate_anomaly(
     service: AnomalyServiceDependency,
     now: CurrentTimeDependency,
 ) -> PersonalStateResponse:
-    """Run both domain detectors and atomically store the current state."""
+    """Internal helper retained for direct tests; not exposed through HTTP."""
 
     try:
         outcome = service.evaluate(now)
@@ -177,8 +172,8 @@ async def evaluate_anomaly(
     summary="Get the latest personal state",
 )
 async def get_anomaly_state(
-    service: AnomalyServiceDependency,
     _: GuardianSessionDependency,
+    service: AnomalyServiceDependency,
 ) -> PersonalStateResponse:
     """Return the last evaluation without rerunning either model."""
 
