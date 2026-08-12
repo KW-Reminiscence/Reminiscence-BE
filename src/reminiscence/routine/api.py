@@ -152,9 +152,9 @@ CurrentTimeDependency = Annotated[datetime, Depends(get_current_time)]
     summary="Get active tablet routine prompts",
 )
 async def get_current_routines(
+    _: TabletSessionDependency,
     scheduler: SchedulerDependency,
     now: CurrentTimeDependency,
-    _: TabletSessionDependency,
 ) -> CurrentRoutinesResponse:
     """Advance due transitions and return prompts the tablet should display."""
 
@@ -191,10 +191,10 @@ async def get_current_routines(
 )
 async def confirm_routine(
     execution_id: str,
-    scheduler: SchedulerDependency,
-    now: CurrentTimeDependency,
     _: TabletSessionDependency,
     __: SameOriginDependency,
+    scheduler: SchedulerDependency,
+    now: CurrentTimeDependency,
 ) -> RoutineExecutionResponse:
     """Record the tablet button press using the trusted server time."""
 
@@ -224,9 +224,9 @@ async def confirm_routine(
     summary="List persisted routine executions",
 )
 async def get_routine_history(
+    _: GuardianSessionDependency,
     scheduler: SchedulerDependency,
     now: CurrentTimeDependency,
-    _: GuardianSessionDependency,
 ) -> list[RoutineExecutionResponse]:
     """Advance transitions and return routine history without prompt text."""
 

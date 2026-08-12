@@ -28,6 +28,7 @@ from reminiscence.auth.secrets import (
 )
 from reminiscence.auth.service import AuthService
 from reminiscence.auth.storage import AuthAttemptStore, AuthSessionStore, hash_secret
+from reminiscence.main import create_app
 from reminiscence.storage import JsonObjectStore
 
 SEOUL = ZoneInfo("Asia/Seoul")
@@ -85,6 +86,28 @@ def test_secret_loader_requires_0600_and_never_returns_unrelated_fields(
     assert load_auth_secrets(path) == AuthSecrets(PASSWORD, PAIRING_CODE)
 
 
+@pytest.mark.parametrize("mode", [0o400, 0o640, 0o700])
+def test_secret_loader_rejects_every_mode_except_0600(
+    tmp_path: Path,
+    mode: int,
+) -> None:
+    path = tmp_path / "application-secrets.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "guardian_password": PASSWORD,
+                "tablet_pairing_code": PAIRING_CODE,
+            }
+        ),
+        encoding="utf-8",
+    )
+    path.chmod(mode)
+
+    with pytest.raises(ApplicationSecretsError, match="0600"):
+        load_auth_secrets(path)
+
+
 def test_guardian_login_cookie_session_and_logout(tmp_path: Path) -> None:
     service = build_service(tmp_path, auth_secrets())
     client = TestClient(build_app(service), base_url=ORIGIN)
@@ -109,6 +132,21 @@ def test_guardian_login_cookie_session_and_logout(tmp_path: Path) -> None:
     assert current.json()["role"] == "GUARDIAN"
     assert logout.status_code == 204
     assert expired.status_code == 401
+
+
+def test_non_ascii_guardian_password_uses_constant_time_byte_comparison(
+    tmp_path: Path,
+) -> None:
+    secrets = {"value": AuthSecrets("보호자-비밀번호", PAIRING_CODE)}
+    client = TestClient(build_app(build_service(tmp_path, secrets)), base_url=ORIGIN)
+
+    response = client.post(
+        "/api/v1/auth/guardian/login",
+        headers={"Origin": ORIGIN},
+        json={"password": "보호자-비밀번호"},
+    )
+
+    assert response.status_code == 200
 
 
 def test_auth_rejects_missing_or_wrong_origin(tmp_path: Path) -> None:
@@ -264,3 +302,48 @@ def test_role_dependencies_reject_cross_role_cookie(tmp_path: Path) -> None:
     assert client.get("/tablet-only").status_code == 401
     assert GUARDIAN_COOKIE in client.cookies
     assert TABLET_COOKIE not in client.cookies
+
+
+def test_product_routes_reject_missing_and_cross_role_sessions(tmp_path: Path) -> None:
+    service = build_service(tmp_path, auth_secrets())
+    application = create_app()
+    application.dependency_overrides[get_auth_service] = lambda: service
+    application.dependency_overrides[get_auth_current_time] = lambda: NOW
+    anonymous = TestClient(application, base_url=ORIGIN)
+
+    assert anonymous.get("/api/v1/routines/current").status_code == 401
+    assert anonymous.get("/api/v1/routines/history").status_code == 401
+    assert anonymous.get("/api/v1/conversations/suggestion").status_code == 401
+    assert anonymous.get("/api/v1/conversations/sessions").status_code == 401
+    assert anonymous.get("/api/v1/anomaly/state").status_code == 401
+    assert anonymous.post(
+        "/api/v1/tts/speech",
+        headers={"Origin": ORIGIN},
+        json={"text": "안내"},
+    ).status_code == 401
+
+    guardian = TestClient(application, base_url=ORIGIN)
+    guardian.post(
+        "/api/v1/auth/guardian/login",
+        headers={"Origin": ORIGIN},
+        json={"password": PASSWORD},
+    )
+    assert guardian.get("/api/v1/routines/current").status_code == 401
+    assert guardian.get("/api/v1/conversations/suggestion").status_code == 401
+    assert guardian.get("/api/v1/routines/history").status_code != 401
+
+
+def test_openapi_marks_cookie_security_and_keeps_login_public() -> None:
+    schema = create_app().openapi()
+
+    assert schema["components"]["securitySchemes"] == {
+        "GuardianSession": {"type": "apiKey", "in": "cookie", "name": GUARDIAN_COOKIE},
+        "TabletSession": {"type": "apiKey", "in": "cookie", "name": TABLET_COOKIE},
+    }
+    assert schema["paths"]["/api/v1/routines/current"]["get"]["security"] == [
+        {"TabletSession": []}
+    ]
+    assert schema["paths"]["/api/v1/routines/history"]["get"]["security"] == [
+        {"GuardianSession": []}
+    ]
+    assert "security" not in schema["paths"]["/api/v1/auth/guardian/login"]["post"]

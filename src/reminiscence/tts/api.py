@@ -83,9 +83,9 @@ SynthesizerDependency = Annotated[
 )
 async def synthesize_speech(
     payload: SpeechSynthesisRequest,
-    synthesizer: SynthesizerDependency,
     _: TabletSessionDependency,
     __: SameOriginDependency,
+    synthesizer: SynthesizerDependency,
 ) -> Response:
     """Return a non-persisted WAV that the tablet can play immediately."""
 

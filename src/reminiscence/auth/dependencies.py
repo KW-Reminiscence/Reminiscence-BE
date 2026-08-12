@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import Annotated
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import Cookie, Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, Security, status
+from fastapi.security import APIKeyCookie
 
 from reminiscence.auth.models import AuthRole, AuthSession
 from reminiscence.auth.secrets import ApplicationSecretsError, load_auth_secrets
@@ -102,13 +103,23 @@ def _require_role(
 
 AuthServiceDependency = Annotated[AuthService, Depends(get_auth_service)]
 AuthCurrentTimeDependency = Annotated[datetime, Depends(get_auth_current_time)]
+guardian_cookie_scheme = APIKeyCookie(
+    name=GUARDIAN_COOKIE,
+    scheme_name="GuardianSession",
+    auto_error=False,
+)
+tablet_cookie_scheme = APIKeyCookie(
+    name=TABLET_COOKIE,
+    scheme_name="TabletSession",
+    auto_error=False,
+)
 GuardianCookieDependency = Annotated[
     str | None,
-    Cookie(alias=GUARDIAN_COOKIE),
+    Security(guardian_cookie_scheme),
 ]
 TabletCookieDependency = Annotated[
     str | None,
-    Cookie(alias=TABLET_COOKIE),
+    Security(tablet_cookie_scheme),
 ]
 
 

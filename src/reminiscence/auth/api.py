@@ -5,14 +5,16 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
 
 from reminiscence.auth.dependencies import (
     GUARDIAN_COOKIE,
     TABLET_COOKIE,
+    GuardianCookieDependency,
     GuardianSessionDependency,
     SameOriginDependency,
+    TabletCookieDependency,
     TabletSessionDependency,
     get_auth_current_time,
     get_auth_service,
@@ -133,7 +135,7 @@ async def guardian_logout(
     _: SameOriginDependency,
     __: GuardianSessionDependency,
     service: AuthServiceDependency,
-    token: Annotated[str | None, Cookie(alias=GUARDIAN_COOKIE)] = None,
+    token: GuardianCookieDependency = None,
 ) -> None:
     """Revoke the guardian cookie hash and expire the browser cookie."""
 
@@ -171,7 +173,7 @@ async def tablet_logout(
     _: SameOriginDependency,
     __: TabletSessionDependency,
     service: AuthServiceDependency,
-    token: Annotated[str | None, Cookie(alias=TABLET_COOKIE)] = None,
+    token: TabletCookieDependency = None,
 ) -> None:
     """Revoke the tablet cookie hash and expire the browser cookie."""
 

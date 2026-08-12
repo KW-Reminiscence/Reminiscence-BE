@@ -103,7 +103,10 @@ class AuthService:
         locked_until = self._attempts.locked_until(role, now)
         if locked_until is not None:
             raise AuthLockedError(locked_until)
-        valid = isinstance(supplied, str) and hmac.compare_digest(supplied, expected)
+        valid = isinstance(supplied, str) and hmac.compare_digest(
+            supplied.encode("utf-8"),
+            expected.encode("utf-8"),
+        )
         if not valid:
             locked_until = self._attempts.record_failure(role, now)
             if locked_until is not None:

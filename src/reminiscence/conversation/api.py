@@ -295,9 +295,9 @@ TurnDuration = Annotated[float, Query(ge=0, le=300)]
     summary="Get today's scheduled conversation suggestion",
 )
 async def get_conversation_suggestion(
+    _: TabletSessionDependency,
     service: ConversationServiceDependency,
     now: CurrentTimeDependency,
-    _: TabletSessionDependency,
 ) -> ConversationSuggestionResponse:
     """Offer a daily session without treating a dismissed offer as an anomaly."""
 
@@ -328,11 +328,11 @@ async def get_conversation_suggestion(
 )
 async def start_conversation(
     payload: StartConversationRequest,
+    _: TabletSessionDependency,
+    __: SameOriginDependency,
     service: ConversationServiceDependency,
     questions: QuestionProviderDependency,
     now: CurrentTimeDependency,
-    _: TabletSessionDependency,
-    __: SameOriginDependency,
 ) -> StartConversationResponse:
     """Start a scheduled or voluntary session with a synthesizable question."""
 
@@ -370,12 +370,12 @@ async def record_conversation_turn(
     request: Request,
     audio: AudioBody,
     turn_duration_seconds: TurnDuration,
+    _: TabletSessionDependency,
+    __: SameOriginDependency,
     service: ConversationServiceDependency,
     recognizer: RecognizerDependency,
     questions: QuestionProviderDependency,
     now: CurrentTimeDependency,
-    _: TabletSessionDependency,
-    __: SameOriginDependency,
 ) -> TurnMetricResponse:
     """Use ASR transiently, then persist metrics without text or audio."""
 
@@ -454,10 +454,10 @@ async def record_conversation_turn(
 )
 async def complete_conversation(
     session_id: str,
-    service: ConversationServiceDependency,
-    now: CurrentTimeDependency,
     _: TabletSessionDependency,
     __: SameOriginDependency,
+    service: ConversationServiceDependency,
+    now: CurrentTimeDependency,
 ) -> ConversationSummaryResponse:
     """Finalize a session and return its metrics-only summary."""
 
@@ -488,8 +488,8 @@ async def complete_conversation(
     summary="List conversation session summaries",
 )
 async def list_conversations(
-    service: ConversationServiceDependency,
     _: GuardianSessionDependency,
+    service: ConversationServiceDependency,
 ) -> list[ConversationSummaryResponse]:
     """Return metrics-only session history."""
 

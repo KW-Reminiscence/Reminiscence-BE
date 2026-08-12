@@ -55,7 +55,7 @@ def load_auth_secrets(path: Path | None = None) -> AuthSecrets:
         metadata = secret_path.stat()
         if not stat.S_ISREG(metadata.st_mode):
             raise ApplicationSecretsError("application secrets must be a regular file")
-        if stat.S_IMODE(metadata.st_mode) & 0o077:
+        if stat.S_IMODE(metadata.st_mode) != 0o600:
             raise ApplicationSecretsError("application secrets file mode must be 0600")
         value: object = json.loads(secret_path.read_text(encoding="utf-8"))
     except OSError as exc:
