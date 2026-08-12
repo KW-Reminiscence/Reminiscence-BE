@@ -19,6 +19,11 @@ from reminiscence.asr import (
     RecognitionUnavailableError,
     SpeechRecognizer,
 )
+from reminiscence.auth.dependencies import (
+    GuardianSessionDependency,
+    SameOriginDependency,
+    TabletSessionDependency,
+)
 from reminiscence.conversation.llm_questions import (
     CodexLbFollowUpQuestionProvider,
     CodexLbQuestionConfig,
@@ -292,6 +297,7 @@ TurnDuration = Annotated[float, Query(ge=0, le=300)]
 async def get_conversation_suggestion(
     service: ConversationServiceDependency,
     now: CurrentTimeDependency,
+    _: TabletSessionDependency,
 ) -> ConversationSuggestionResponse:
     """Offer a daily session without treating a dismissed offer as an anomaly."""
 
@@ -325,6 +331,8 @@ async def start_conversation(
     service: ConversationServiceDependency,
     questions: QuestionProviderDependency,
     now: CurrentTimeDependency,
+    _: TabletSessionDependency,
+    __: SameOriginDependency,
 ) -> StartConversationResponse:
     """Start a scheduled or voluntary session with a synthesizable question."""
 
@@ -366,6 +374,8 @@ async def record_conversation_turn(
     recognizer: RecognizerDependency,
     questions: QuestionProviderDependency,
     now: CurrentTimeDependency,
+    _: TabletSessionDependency,
+    __: SameOriginDependency,
 ) -> TurnMetricResponse:
     """Use ASR transiently, then persist metrics without text or audio."""
 
@@ -446,6 +456,8 @@ async def complete_conversation(
     session_id: str,
     service: ConversationServiceDependency,
     now: CurrentTimeDependency,
+    _: TabletSessionDependency,
+    __: SameOriginDependency,
 ) -> ConversationSummaryResponse:
     """Finalize a session and return its metrics-only summary."""
 
@@ -477,6 +489,7 @@ async def complete_conversation(
 )
 async def list_conversations(
     service: ConversationServiceDependency,
+    _: GuardianSessionDependency,
 ) -> list[ConversationSummaryResponse]:
     """Return metrics-only session history."""
 
