@@ -12,6 +12,11 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
+from reminiscence.auth.dependencies import (
+    GuardianSessionDependency,
+    SameOriginDependency,
+    TabletSessionDependency,
+)
 from reminiscence.routine.models import (
     RoutineCategory,
     RoutineDefinition,
@@ -149,6 +154,7 @@ CurrentTimeDependency = Annotated[datetime, Depends(get_current_time)]
 async def get_current_routines(
     scheduler: SchedulerDependency,
     now: CurrentTimeDependency,
+    _: TabletSessionDependency,
 ) -> CurrentRoutinesResponse:
     """Advance due transitions and return prompts the tablet should display."""
 
@@ -187,6 +193,8 @@ async def confirm_routine(
     execution_id: str,
     scheduler: SchedulerDependency,
     now: CurrentTimeDependency,
+    _: TabletSessionDependency,
+    __: SameOriginDependency,
 ) -> RoutineExecutionResponse:
     """Record the tablet button press using the trusted server time."""
 
@@ -218,6 +226,7 @@ async def confirm_routine(
 async def get_routine_history(
     scheduler: SchedulerDependency,
     now: CurrentTimeDependency,
+    _: GuardianSessionDependency,
 ) -> list[RoutineExecutionResponse]:
     """Advance transitions and return routine history without prompt text."""
 
