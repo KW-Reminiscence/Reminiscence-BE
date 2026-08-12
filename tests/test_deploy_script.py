@@ -19,3 +19,14 @@ def test_compose_mounts_writable_supertonic_parent_directory() -> None:
     assert "SUPERTONIC_MODEL_DIR: /models/supertonic-3" in compose
     assert "        target: /models\n" in compose
     assert "        target: /models/supertonic-3\n" not in compose
+
+
+def test_container_start_uses_strict_preflight_and_readiness() -> None:
+    dockerfile = (PROJECT_ROOT / "Dockerfile").read_text(encoding="utf-8")
+    compose = (PROJECT_ROOT / "deploy/docker-compose.yml").read_text(encoding="utf-8")
+
+    assert "USER app" in dockerfile
+    assert '"reminiscence.preflight", "uvicorn"' in dockerfile
+    assert "      - reminiscence.preflight" in compose
+    assert "/api/health/ready" in dockerfile
+    assert "/api/health/ready" in compose

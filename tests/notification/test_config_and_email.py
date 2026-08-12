@@ -49,6 +49,7 @@ def write_config(path: Path, value: object) -> None:
         json.dumps(value, ensure_ascii=False),
         encoding="utf-8",
     )
+    path.chmod(0o600)
 
 
 def evaluation() -> PersonalEvaluation:
@@ -106,8 +107,21 @@ def test_rejects_malformed_secret(
 ) -> None:
     path = tmp_path / "notification.json"
     path.write_text(content, encoding="utf-8")
+    path.chmod(0o600)
 
     with pytest.raises(NotificationConfigError, match=message):
+        load_notification_config(path)
+
+
+def test_rejects_notification_secret_with_non_private_mode(
+    tmp_path: Path,
+    valid_config: dict[str, Any],
+) -> None:
+    path = tmp_path / "notification.json"
+    write_config(path, valid_config)
+    path.chmod(0o640)
+
+    with pytest.raises(NotificationConfigError, match="0600"):
         load_notification_config(path)
 
 

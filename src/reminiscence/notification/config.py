@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -83,6 +84,15 @@ def load_notification_config(path: Path | None = None) -> NotificationConfig:
 
     config_path = path or get_notification_config_path()
     try:
+        metadata = config_path.stat()
+        if not stat.S_ISREG(metadata.st_mode):
+            raise NotificationConfigError(
+                "notification configuration must be a regular file"
+            )
+        if stat.S_IMODE(metadata.st_mode) != 0o600:
+            raise NotificationConfigError(
+                "notification configuration file mode must be 0600"
+            )
         raw_config: object = json.loads(config_path.read_text(encoding="utf-8"))
     except OSError as exc:
         raise NotificationConfigError(
