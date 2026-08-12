@@ -12,6 +12,18 @@ def test_deploy_script_runs_real_supertonic_smoke() -> None:
     assert "result.audio[:4] == b'RIFF'" in deploy_script
 
 
+def test_deploy_script_wires_required_application_secret() -> None:
+    deploy_script = (PROJECT_ROOT / "scripts/deploy.sh").read_text(encoding="utf-8")
+
+    assert (
+        'application_secrets_file="${deployment_directory}/application-secrets.json"'
+        in deploy_script
+    )
+    assert "printf 'APPLICATION_SECRETS_FILE=%s\\n'" in deploy_script
+    assert '[[ ! -f "${application_secrets_file}" ]]' in deploy_script
+    assert "deploy/application-secrets.example.json" in deploy_script
+
+
 def test_compose_mounts_writable_supertonic_parent_directory() -> None:
     compose = (PROJECT_ROOT / "deploy/docker-compose.yml").read_text(encoding="utf-8")
 
