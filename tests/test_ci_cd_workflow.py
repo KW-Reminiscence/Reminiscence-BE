@@ -13,10 +13,9 @@ def test_ci_cd_runs_only_for_main() -> None:
     assert workflow.count("      - main") == 2
     assert "      - develop" not in workflow
     assert "workflow_dispatch:" not in workflow
-    assert (
-        './scripts/deploy.sh production "${API_IMAGE_REFERENCE}" '
-        '"${WEB_IMAGE_REFERENCE}"'
-    ) in workflow
+    assert "./scripts/deploy.sh production" in workflow
+    assert '"${API_IMAGE_REFERENCE}" "${WEB_IMAGE_REFERENCE}"' in workflow
+    assert '"${API_COMMIT}" "${WEB_COMMIT}" "${OPENAPI_SHA256}"' in workflow
     assert "DEPLOYMENT_ENVIRONMENT:" not in workflow
     assert "uv run python scripts/export_openapi.py --check" in workflow
 
@@ -36,3 +35,11 @@ def test_workflow_deploys_api_and_web_by_immutable_digest() -> None:
     assert "platforms: linux/arm64" in workflow
     assert "provenance: mode=max" in workflow
     assert "sbom: true" in workflow
+    assert "repository: KW-Reminiscence/Reminiscence-FE" in workflow
+    assert "git -C frontend-release rev-parse HEAD" in workflow
+    assert "OPENAPI_SCHEMA_PATH: ../openapi.json" in workflow
+    assert "pnpm api:check" in workflow
+    assert "pnpm typecheck" in workflow
+    assert "pnpm build" in workflow
+    assert "WEB_IMAGE_NAME }}:${{ steps.web-source.outputs.commit }}" in workflow
+    assert "sha256sum openapi.json" in workflow

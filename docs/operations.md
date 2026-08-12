@@ -15,7 +15,7 @@ pull합니다.
   backups/                  # checksummed JSON snapshots
   docker-compose.yml
   .env                      # image/path bootstrap only
-  release.json              # 현재 FE·API digest와 snapshot
+  release.json              # FE·API commit·digest, OpenAPI hash와 snapshot
 ```
 
 다음 파일을 example에서 시작해 host에서 직접 작성합니다.
@@ -94,8 +94,9 @@ FE `main` workflow가 먼저 성공해
 
 1. GitHub-hosted runner에서 pytest, Ruff, mypy와 OpenAPI 검증
 2. API ARM64 image build·SBOM·provenance 게시
-3. FE `main` manifest와 API image를 immutable digest로 해석
-4. rpi5의 `reminiscence` label runner에서 두 digest 통합 배포
+3. FE `main`의 정확한 commit을 현재 BE OpenAPI로 다시 typecheck·build
+4. 해당 FE commit SHA tag와 API image를 immutable digest로 해석
+5. rpi5의 `reminiscence` label runner에서 두 digest 통합 배포
 
 rpi5 runner는 image pull, snapshot, migration, Compose와 smoke만 수행합니다.
 runner 상태는 다음처럼 확인합니다.
@@ -110,7 +111,8 @@ systemctl status \
 ```bash
 ./scripts/deploy.sh production \
   ghcr.io/kw-reminiscence/reminiscence-be@sha256:<64-hex> \
-  ghcr.io/kw-reminiscence/reminiscence-fe@sha256:<64-hex>
+  ghcr.io/kw-reminiscence/reminiscence-fe@sha256:<64-hex> \
+  <BE-40-character-commit> <FE-40-character-commit> <openapi-sha256>
 ```
 
 schema 변경을 검토하고 승인한 release에서만
@@ -121,7 +123,8 @@ predeploy snapshot, migration, 두 container 기동과 loopback/public smoke 순
 
 현재 상태는 `release.json`, 이전 상태는 `release.previous.json`,
 `.env.previous`, `docker-compose.previous.yml`에 남습니다. release 파일에는
-비밀값이 없고 FE·API digest와 predeploy snapshot 경로만 있습니다.
+비밀값이 없고 FE·API commit·digest, OpenAPI hash와 predeploy snapshot 경로만
+있습니다.
 
 ## 5. 자동 backup과 복구 훈련
 

@@ -2,14 +2,17 @@
 
 set -Eeuo pipefail
 
-if [[ "$#" -ne 3 ]]; then
-    echo "Usage: $0 <development|production> <api-image@sha256:digest> <web-image@sha256:digest>" >&2
+if [[ "$#" -ne 6 ]]; then
+    echo "Usage: $0 <development|production> <api-image@sha256:digest> <web-image@sha256:digest> <api-commit> <web-commit> <openapi-sha256>" >&2
     exit 64
 fi
 
 readonly deployment_environment="$1"
 readonly api_image_reference="$2"
 readonly web_image_reference="$3"
+readonly api_commit="$4"
+readonly web_commit="$5"
+readonly openapi_sha256="$6"
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly project_root
 readonly image_reference_pattern='^ghcr\.io/[a-z0-9][a-z0-9._/-]*@sha256:[a-f0-9]{64}$'
@@ -21,6 +24,18 @@ if [[ ! "${api_image_reference}" =~ ${image_reference_pattern} ]]; then
 fi
 if [[ ! "${web_image_reference}" =~ ${image_reference_pattern} ]]; then
     echo "Web image must be an immutable GHCR sha256 reference." >&2
+    exit 64
+fi
+if [[ ! "${api_commit}" =~ ^[a-f0-9]{40}$ ]]; then
+    echo "API commit must be a full 40-character Git SHA." >&2
+    exit 64
+fi
+if [[ ! "${web_commit}" =~ ^[a-f0-9]{40}$ ]]; then
+    echo "Web commit must be a full 40-character Git SHA." >&2
+    exit 64
+fi
+if [[ ! "${openapi_sha256}" =~ ^[a-f0-9]{64}$ ]]; then
+    echo "OpenAPI contract hash must be a SHA-256 hex digest." >&2
     exit 64
 fi
 if [[ "${apply_json_migrations}" != "0" && "${apply_json_migrations}" != "1" ]]; then
@@ -139,6 +154,9 @@ write_release_manifest() {
         printf '  "schema_version": 1,\n'
         printf '  "environment": "%s",\n' "${deployment_environment}"
         printf '  "deployed_at": "%s",\n' "${deployed_at}"
+        printf '  "api_commit": "%s",\n' "${api_commit}"
+        printf '  "web_commit": "%s",\n' "${web_commit}"
+        printf '  "openapi_sha256": "%s",\n' "${openapi_sha256}"
         printf '  "api_image": "%s",\n' "${api_image_reference}"
         printf '  "web_image": "%s",\n' "${web_image_reference}"
         printf '  "predeploy_snapshot_kind": "%s",\n' "${snapshot_kind}"
@@ -275,7 +293,7 @@ fi
 
 compose "${next_env_file}" "${compose_file}" run --rm --no-deps api \
     python -m reminiscence.preflight python -c \
-    "from reminiscence.tts.api import get_speech_synthesizer; result = get_speech_synthesizer().synthesize('오늘 사진을 보며 이야기 나눠 보실래요?'); assert result.audio[:4] == b'RIFF' and result.audio[8:12] == b'WAVE'"
+    "from hashlib import sha256; from reminiscence.main import app; from reminiscence.openapi_contract import render_openapi; from reminiscence.tts.api import get_speech_synthesizer; assert sha256(render_openapi(app.openapi()).encode()).hexdigest() == '${openapi_sha256}'; result = get_speech_synthesizer().synthesize('오늘 사진을 보며 이야기 나눠 보실래요?'); assert result.audio[:4] == b'RIFF' and result.audio[8:12] == b'WAVE'"
 
 mv -f "${next_env_file}" "${active_env_file}"
 mv -f "${next_manifest_file}" "${active_manifest_file}"

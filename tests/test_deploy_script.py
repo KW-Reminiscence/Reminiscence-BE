@@ -28,11 +28,14 @@ def test_deploy_script_wires_required_application_secret() -> None:
 def test_deploy_script_requires_two_immutable_image_references() -> None:
     deploy_script = (PROJECT_ROOT / "scripts/deploy.sh").read_text(encoding="utf-8")
 
-    assert 'if [[ "$#" -ne 3 ]]' in deploy_script
+    assert 'if [[ "$#" -ne 6 ]]' in deploy_script
     assert "<api-image@sha256:digest> <web-image@sha256:digest>" in deploy_script
     assert deploy_script.count("immutable GHCR sha256 reference") == 2
     assert "API_IMAGE_REFERENCE" in deploy_script
     assert "WEB_IMAGE_REFERENCE" in deploy_script
+    assert "API commit must be a full 40-character Git SHA." in deploy_script
+    assert "Web commit must be a full 40-character Git SHA." in deploy_script
+    assert "OpenAPI contract hash must be a SHA-256 hex digest." in deploy_script
 
 
 def test_deploy_script_snapshots_before_explicit_migration() -> None:
@@ -91,6 +94,11 @@ def test_deploy_script_holds_maintenance_until_loopback_smoke_passes() -> None:
     assert maintenance < start < smoke < release < clear
     assert "release.json" in deploy_script
     assert '"schema_version": 1' in deploy_script
+    assert '"api_commit"' in deploy_script
+    assert '"web_commit"' in deploy_script
+    assert '"openapi_sha256"' in deploy_script
+    assert "sha256(render_openapi(app.openapi()).encode()).hexdigest()" in deploy_script
+    assert "== '${openapi_sha256}'" in deploy_script
 
 
 def test_deploy_script_serializes_host_level_releases() -> None:

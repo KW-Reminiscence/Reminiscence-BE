@@ -58,6 +58,9 @@ jobs:
     outputs:
       api-image-reference: ghcr.io/kw-reminiscence/reminiscence-be@${{ steps.api-image.outputs.digest }}
       web-image-reference: ghcr.io/kw-reminiscence/reminiscence-fe@${{ steps.web-image.outputs.digest }}
+      api-commit: ${{ github.sha }}
+      web-commit: ${{ steps.web-source.outputs.commit }}
+      openapi-sha256: ${{ steps.contract.outputs.sha256 }}
 
     env:
       IMAGE_NAME: ghcr.io/kw-reminiscence/reminiscence-be
@@ -66,6 +69,46 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
+      - name: Check out web release source
+        uses: actions/checkout@v4
+        with:
+          repository: KW-Reminiscence/Reminiscence-FE
+          path: frontend-release
+
+      - name: Capture exact web commit
+        id: web-source
+        run: printf 'commit=%s\n' "$(git -C frontend-release rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend-release/package.json
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend-release/pnpm-lock.yaml
+
+      - name: Install web dependencies
+        working-directory: frontend-release
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify exact web commit against current API contract
+        working-directory: frontend-release
+        env:
+          OPENAPI_SCHEMA_PATH: ../openapi.json
+        run: |
+          pnpm api:check
+          pnpm typecheck
+          pnpm build
+
+      - name: Capture OpenAPI contract hash
+        id: contract
+        run: printf 'sha256=%s\n' "$(sha256sum openapi.json | cut -d ' ' -f 1)" >>"${GITHUB_OUTPUT}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -99,7 +142,7 @@ jobs:
       - name: Resolve verified web image digest
         id: web-image
         env:
-          WEB_IMAGE_REFERENCE: ${{ env.WEB_IMAGE_NAME }}:main
+          WEB_IMAGE_REFERENCE: ${{ env.WEB_IMAGE_NAME }}:${{ steps.web-source.outputs.commit }}
         run: |
           digest="$(docker buildx imagetools inspect "${WEB_IMAGE_REFERENCE}" --format '{{.Manifest.Digest}}')"
           if [[ ! "${digest}" =~ ^sha256:[a-f0-9]{64}$ ]]; then
@@ -123,6 +166,9 @@ jobs:
     env:
       API_IMAGE_REFERENCE: ${{ needs.build.outputs.api-image-reference }}
       WEB_IMAGE_REFERENCE: ${{ needs.build.outputs.web-image-reference }}
+      API_COMMIT: ${{ needs.build.outputs.api-commit }}
+      WEB_COMMIT: ${{ needs.build.outputs.web-commit }}
+      OPENAPI_SHA256: ${{ needs.build.outputs.openapi-sha256 }}
 
     steps:
       - name: Check out deployment configuration
@@ -134,7 +180,10 @@ jobs:
         run: printf '%s' "${GITHUB_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
 
       - name: Deploy with Docker Compose
-        run: ./scripts/deploy.sh production "${API_IMAGE_REFERENCE}" "${WEB_IMAGE_REFERENCE}"
+        run: >-
+          ./scripts/deploy.sh production
+          "${API_IMAGE_REFERENCE}" "${WEB_IMAGE_REFERENCE}"
+          "${API_COMMIT}" "${WEB_COMMIT}" "${OPENAPI_SHA256}"
 
       - name: Log out from GHCR
         if: always()
