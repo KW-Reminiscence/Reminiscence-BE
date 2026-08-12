@@ -89,16 +89,18 @@ Tablet cookie 흐름을 차단하므로 사용하지 않습니다.
 
 ## 4. CI/CD release
 
-FE `main` workflow가 먼저 성공해
-`ghcr.io/kw-reminiscence/reminiscence-fe:main` ARM64 manifest를 게시해야 합니다.
-그 뒤 BE `main` workflow가 다음을 수행합니다. `ENABLE_PRODUCTION_DEPLOY` repository
+FE `main` workflow가 먼저 성공해 자체 ARM64 image와 품질 게이트를 확인해야 합니다.
+그 뒤 BE `main` workflow가 검증한 exact FE source를
+`ghcr.io/kw-reminiscence/reminiscence-web-release`로 다시 build해 release digest를
+소유합니다. 이 경계는 private GHCR package의 cross-repository token 권한에
+의존하지 않습니다. `ENABLE_PRODUCTION_DEPLOY` repository
 variable이 `true`가 되기 전까지 push는 검증과 image 게시까지만 수행하며 production
 deploy는 시작하지 않습니다.
 
 1. GitHub-hosted runner에서 pytest, Ruff, mypy와 OpenAPI 검증
 2. API ARM64 image build·SBOM·provenance 게시
 3. FE `main`의 정확한 commit을 현재 BE OpenAPI로 다시 typecheck·build
-4. 해당 FE commit SHA tag와 API image를 immutable digest로 해석
+4. 해당 FE commit과 API image를 release 전용 immutable digest로 게시
 5. rpi5의 `reminiscence` label runner에서 두 digest 통합 배포
 
 최초 legacy 전환은 BE image가 게시된 뒤 Actions의 `CI/CD`에서 **Run workflow**를
