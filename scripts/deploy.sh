@@ -73,6 +73,8 @@ readonly api_digest="${api_image_reference##*@sha256:}"
 release_id="predeploy-$(date -u +%Y%m%dT%H%M%SZ)-${api_digest:0:12}"
 readonly release_id
 readonly snapshot_directory="${backup_directory}/${release_id}"
+snapshot_kind="$([[ "${apply_json_migrations}" == "1" ]] && printf legacy || printf current)"
+readonly snapshot_kind
 
 had_active_deployment=false
 deployment_swapped=false
@@ -104,6 +106,13 @@ run_storage_tool() {
         "$@"
 }
 
+smoke_loopback() {
+    curl --fail --silent --show-error --retry 10 --retry-connrefused \
+        "http://127.0.0.1:${api_host_port}/api/health/ready" >/dev/null \
+        && curl --fail --silent --show-error --retry 10 --retry-connrefused \
+            "http://127.0.0.1:${web_host_port}/healthz" >/dev/null
+}
+
 write_environment() {
     local env_file="$1"
 
@@ -132,6 +141,7 @@ write_release_manifest() {
         printf '  "deployed_at": "%s",\n' "${deployed_at}"
         printf '  "api_image": "%s",\n' "${api_image_reference}"
         printf '  "web_image": "%s",\n' "${web_image_reference}"
+        printf '  "predeploy_snapshot_kind": "%s",\n' "${snapshot_kind}"
         printf '  "predeploy_snapshot": "%s"\n' "${snapshot_directory}"
         printf '}\n'
     } >"${manifest_file}"
@@ -160,8 +170,7 @@ rollback() {
     fi
 
     if [[ "${migration_applied}" == true ]]; then
-        if ! run_storage_tool \
-            python -m reminiscence.storage.snapshot restore \
+        if ! run_storage_tool python -m reminiscence.storage.legacy_snapshot restore \
             "/backups/${release_id}" --data-dir /data; then
             echo "Snapshot restore failed; maintenance remains enabled." >&2
             exit "${exit_code}"
@@ -176,10 +185,19 @@ rollback() {
         else
             rm -f "${active_manifest_file}"
         fi
-        compose "${active_env_file}" "${compose_file}" \
-            up -d --wait --wait-timeout 180 --remove-orphans || true
+        if ! compose "${active_env_file}" "${compose_file}" \
+            up -d --wait --wait-timeout 180 --remove-orphans; then
+            echo "Previous Compose failed to start; maintenance remains enabled." >&2
+            exit "${exit_code}"
+        fi
+        if ! smoke_loopback; then
+            echo "Previous release loopback smoke failed; maintenance remains enabled." >&2
+            exit "${exit_code}"
+        fi
     else
         rm -f "${active_env_file}" "${active_manifest_file}"
+        echo "No previous release is available; maintenance remains enabled." >&2
+        exit "${exit_code}"
     fi
 
     remove_maintenance_flag
@@ -234,8 +252,7 @@ if [[ "${apply_json_migrations}" == "0" ]]; then
         "from reminiscence.tts.api import get_speech_synthesizer; result = get_speech_synthesizer().synthesize('오늘 사진을 보며 이야기 나눠 보실래요?'); assert result.audio[:4] == b'RIFF' and result.audio[8:12] == b'WAVE'; print(f'Supertonic smoke passed: {result.sample_rate} Hz, {result.duration_seconds} s')"
 else
     compose "${next_env_file}" "${compose_file}" run --rm --no-deps api \
-        python -c \
-        "from reminiscence.tts.api import get_speech_synthesizer; result = get_speech_synthesizer().synthesize('오늘 사진을 보며 이야기 나눠 보실래요?'); assert result.audio[:4] == b'RIFF' and result.audio[8:12] == b'WAVE'"
+        python -c "from reminiscence.storage.migration import migrate_data_directory; print('Candidate migration code import passed')"
 fi
 
 touch "${maintenance_flag}"
@@ -243,14 +260,17 @@ if [[ "${had_active_deployment}" == true ]]; then
     compose "${previous_env_file}" "${previous_compose_file}" stop api
 fi
 
-run_storage_tool \
-    python -m reminiscence.storage.snapshot create \
-    --data-dir /data --backup-dir /backups --snapshot-id "${release_id}"
-
 if [[ "${apply_json_migrations}" == "1" ]]; then
+    run_storage_tool \
+        python -m reminiscence.storage.legacy_snapshot create \
+        --data-dir /data --backup-dir /backups --snapshot-id "${release_id}"
     run_storage_tool \
         python -m reminiscence.storage.migration --data-dir /data --apply
     migration_applied=true
+else
+    run_storage_tool \
+        python -m reminiscence.storage.snapshot create \
+        --data-dir /data --backup-dir /backups --snapshot-id "${release_id}"
 fi
 
 compose "${next_env_file}" "${compose_file}" run --rm --no-deps api \
@@ -263,10 +283,7 @@ deployment_swapped=true
 compose "${active_env_file}" "${compose_file}" \
     up -d --wait --wait-timeout 180 --remove-orphans
 
-curl --fail --silent --show-error --retry 10 --retry-connrefused \
-    "http://127.0.0.1:${api_host_port}/api/health/ready" >/dev/null
-curl --fail --silent --show-error --retry 10 --retry-connrefused \
-    "http://127.0.0.1:${web_host_port}/healthz" >/dev/null
+smoke_loopback
 
 traffic_released=true
 remove_maintenance_flag

@@ -39,7 +39,7 @@ def test_deploy_script_snapshots_before_explicit_migration() -> None:
     deploy_script = (PROJECT_ROOT / "scripts/deploy.sh").read_text(encoding="utf-8")
 
     stop = deploy_script.index('stop api')
-    snapshot = deploy_script.index("reminiscence.storage.snapshot create")
+    snapshot = deploy_script.index("reminiscence.storage.legacy_snapshot create")
     migration = deploy_script.index("reminiscence.storage.migration --data-dir /data --apply")
     start = deploy_script.index('up -d --wait --wait-timeout 180 --remove-orphans', migration)
     assert stop < snapshot < migration < start
@@ -51,21 +51,44 @@ def test_deploy_script_rolls_back_both_images_and_migrated_data_before_traffic()
 
     assert "release.previous.json" in deploy_script
     assert "docker-compose.previous.yml" in deploy_script
-    assert "reminiscence.storage.snapshot restore" in deploy_script
+    assert "reminiscence.storage.legacy_snapshot restore" in deploy_script
     assert "Snapshot restore failed; maintenance remains enabled." in deploy_script
     assert 'migration_applied}" == true && "${traffic_released}" == true' in deploy_script
     assert "automatic data and image rollback is unsafe" in deploy_script
+
+
+def test_deploy_script_keeps_maintenance_when_previous_release_is_not_healthy() -> None:
+    deploy_script = (PROJECT_ROOT / "scripts/deploy.sh").read_text(encoding="utf-8")
+
+    assert "Previous Compose failed to start; maintenance remains enabled." in deploy_script
+    assert "Previous release loopback smoke failed; maintenance remains enabled." in deploy_script
+    assert "No previous release is available; maintenance remains enabled." in deploy_script
+    rollback = deploy_script.index("rollback()")
+    previous_up = deploy_script.index("up -d --wait --wait-timeout 180", rollback)
+    smoke = deploy_script.index("smoke_loopback", previous_up)
+    clear = deploy_script.index("remove_maintenance_flag", smoke)
+    assert rollback < previous_up < smoke < clear
+
+
+def test_deploy_script_uses_schema_agnostic_snapshot_only_for_migration() -> None:
+    deploy_script = (PROJECT_ROOT / "scripts/deploy.sh").read_text(encoding="utf-8")
+
+    assert 'snapshot_kind="$([[ "${apply_json_migrations}" == "1" ]]' in deploy_script
+    assert "reminiscence.storage.legacy_snapshot create" in deploy_script
+    assert "reminiscence.storage.snapshot create" in deploy_script
+    assert "Candidate migration code import passed" in deploy_script
+    assert '"predeploy_snapshot_kind"' in deploy_script
 
 
 def test_deploy_script_holds_maintenance_until_loopback_smoke_passes() -> None:
     deploy_script = (PROJECT_ROOT / "scripts/deploy.sh").read_text(encoding="utf-8")
 
     maintenance = deploy_script.index('touch "${maintenance_flag}"')
-    ready = deploy_script.index("/api/health/ready", maintenance)
-    web = deploy_script.index("/healthz", ready)
-    release = deploy_script.index("traffic_released=true", web)
+    start = deploy_script.index('up -d --wait --wait-timeout 180 --remove-orphans', maintenance)
+    smoke = deploy_script.index("smoke_loopback", start)
+    release = deploy_script.index("traffic_released=true", smoke)
     clear = deploy_script.index("remove_maintenance_flag", release)
-    assert maintenance < ready < web < release < clear
+    assert maintenance < start < smoke < release < clear
     assert "release.json" in deploy_script
     assert '"schema_version": 1' in deploy_script
 
