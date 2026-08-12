@@ -1,0 +1,746 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Reminiscence 개발 완성 보고서",
+    "description": "확정 기획안 v1.4를 기준으로 두 저장소의 7단계 완성 작업, 검증 결과와 production 인수 잔여 조건을 정리한 보고서",
+    "generatedAt": "2026-08-12T20:30:15Z",
+    "cards": [
+      {
+        "id": "stage_card",
+        "description": "계획서에 정의한 구현·검토 단계 중 P0/P1 없이 완료된 단계",
+        "dataset": "stage_metric",
+        "sourceId": "implementation_verification",
+        "metrics": [
+          {
+            "label": "구현·검토 완료 단계",
+            "field": "value",
+            "format": "number",
+            "unit": "/ 7"
+          }
+        ]
+      },
+      {
+        "id": "backend_test_card",
+        "description": "2026년 8월 13일 최종 로컬 pytest 실행에서 통과한 테스트",
+        "dataset": "backend_test_metric",
+        "sourceId": "backend_quality",
+        "metrics": [
+          {
+            "label": "Backend 테스트 통과",
+            "field": "passed",
+            "format": "number"
+          },
+          {
+            "label": "환경 설정 대기 skip",
+            "field": "skipped",
+            "format": "number"
+          }
+        ]
+      },
+      {
+        "id": "frontend_test_card",
+        "description": "React unit/component 테스트의 최종 통과 수",
+        "dataset": "frontend_test_metric",
+        "sourceId": "frontend_quality",
+        "metrics": [
+          {
+            "label": "Frontend 테스트 통과",
+            "field": "unit_passed",
+            "format": "number"
+          }
+        ]
+      },
+      {
+        "id": "e2e_test_card",
+        "description": "Tablet·Guardian 핵심 흐름을 Chromium tablet viewport에서 검증한 시나리오",
+        "dataset": "frontend_test_metric",
+        "sourceId": "frontend_quality",
+        "metrics": [
+          {
+            "label": "Browser E2E 통과",
+            "field": "e2e_passed",
+            "format": "number"
+          }
+        ]
+      }
+    ],
+    "charts": [
+      {
+        "id": "stage_completion_chart",
+        "title": "7단계 completion status",
+        "subtitle": "각 단계는 구현·관련 테스트·독립 review 완료를 100%로 정의",
+        "type": "bar",
+        "dataset": "stage_completion",
+        "sourceId": "implementation_verification",
+        "valueFormat": "percent",
+        "encodings": {
+          "x": {
+            "field": "stage_label",
+            "type": "nominal",
+            "label": "단계"
+          },
+          "y": {
+            "field": "completion_rate",
+            "type": "quantitative",
+            "label": "완료율",
+            "format": "percent"
+          },
+          "tooltip": [
+            {
+              "field": "area",
+              "type": "nominal",
+              "label": "영역"
+            },
+            {
+              "field": "p0_p1_remaining",
+              "type": "quantitative",
+              "label": "잔존 P0/P1",
+              "format": "number"
+            }
+          ]
+        }
+      }
+    ],
+    "tables": [
+      {
+        "id": "stage_table",
+        "title": "7단계 구현·리뷰 결과",
+        "subtitle": "각 단계는 구현과 테스트 후 독립 subagent가 P0/P1 잔존 여부를 재검토",
+        "dataset": "stage_results",
+        "sourceId": "implementation_verification",
+        "defaultSort": {
+          "field": "stage",
+          "direction": "asc"
+        },
+        "density": "spacious",
+        "columns": [
+          {
+            "field": "stage",
+            "label": "단계",
+            "format": "number"
+          },
+          {
+            "field": "area",
+            "label": "영역",
+            "type": "text"
+          },
+          {
+            "field": "delivery",
+            "label": "주요 완료 내용",
+            "type": "text"
+          },
+          {
+            "field": "review",
+            "label": "리뷰 판정",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "id": "change_table",
+        "title": "최초 감사 대비 제품 상태",
+        "subtitle": "demo 중심 혼합 구현에서 단일 서버·단일 태블릿 appliance beta 코드 경계까지의 변화",
+        "dataset": "before_after",
+        "sourceId": "implementation_verification",
+        "defaultSort": {
+          "field": "priority",
+          "direction": "asc"
+        },
+        "density": "spacious",
+        "columns": [
+          {
+            "field": "priority",
+            "label": "#",
+            "format": "number"
+          },
+          {
+            "field": "area",
+            "label": "영역",
+            "type": "text"
+          },
+          {
+            "field": "before",
+            "label": "최초 상태",
+            "type": "text"
+          },
+          {
+            "field": "after",
+            "label": "완성 상태",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "id": "quality_table",
+        "title": "최종 품질 게이트",
+        "subtitle": "2026년 8월 13일 로컬 재실행 결과; 실환경 전용 항목은 별도 표시",
+        "dataset": "quality_gates",
+        "sourceId": "combined_quality",
+        "defaultSort": {
+          "field": "order",
+          "direction": "asc"
+        },
+        "density": "spacious",
+        "columns": [
+          {
+            "field": "order",
+            "label": "#",
+            "format": "number"
+          },
+          {
+            "field": "scope",
+            "label": "대상",
+            "type": "text"
+          },
+          {
+            "field": "gate",
+            "label": "게이트",
+            "type": "text"
+          },
+          {
+            "field": "result",
+            "label": "결과",
+            "type": "text"
+          },
+          {
+            "field": "note",
+            "label": "비고",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "id": "history_table",
+        "title": "Git 이력의 사실 기반 기간 구분",
+        "subtitle": "요청된 프로젝트 기간과 후속 완성 작업을 실제 author date로 분리",
+        "dataset": "history_periods",
+        "sourceId": "git_history",
+        "defaultSort": {
+          "field": "order",
+          "direction": "asc"
+        },
+        "density": "spacious",
+        "columns": [
+          {
+            "field": "order",
+            "label": "#",
+            "format": "number"
+          },
+          {
+            "field": "period",
+            "label": "구분",
+            "type": "text"
+          },
+          {
+            "field": "requested_window",
+            "label": "기준 기간",
+            "type": "text"
+          },
+          {
+            "field": "evidence",
+            "label": "확인된 이력",
+            "type": "text"
+          }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "completion_plan",
+        "label": "개발 완성 계획",
+        "path": "docs/completion-plan.md"
+      },
+      {
+        "id": "confirmed_plan",
+        "label": "Reminiscence 프로젝트 확정 기획안",
+        "path": "output/doc/Reminiscence_프로젝트_확정_기획안.pdf"
+      },
+      {
+        "id": "implementation_verification",
+        "label": "두 저장소 구현 및 단계별 review 근거",
+        "path": "docs/report/report-data.sql"
+      },
+      {
+        "id": "backend_quality",
+        "label": "Backend 최종 품질 게이트",
+        "path": "docs/report/report-data.sql"
+      },
+      {
+        "id": "frontend_quality",
+        "label": "Frontend 최종 품질 게이트",
+        "path": "docs/report/report-data.sql"
+      },
+      {
+        "id": "combined_quality",
+        "label": "두 저장소 최종 검증 결과",
+        "path": "docs/report/report-data.sql"
+      },
+      {
+        "id": "git_history",
+        "label": "BE·FE Git author-date 이력",
+        "path": "docs/report/report-data.sql"
+      },
+      {
+        "id": "operations_runbook",
+        "label": "배포·backup·복구 runbook",
+        "path": "docs/operations.md"
+      },
+      {
+        "id": "rpi_readiness",
+        "label": "rpi5-server 배포 준비도 read-only 점검",
+        "path": "docs/report/verification-summary.md"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# Reminiscence 개발 완성 보고서"
+      },
+      {
+        "id": "executive_summary",
+        "type": "markdown",
+        "body": "## Executive Summary\n\n- **개발 완성도는 demo 수준에서 appliance beta 코드 수준으로 올라갔습니다.** 확정 기획안 v1.4의 이상 탐지, JSON-only 영속성·설정, Guardian·Tablet 인증, 통합 홈과 대화 흐름, same-origin 배포 경계를 구현했습니다.\n- **계획한 7단계는 모두 구현과 독립 코드리뷰를 통과했습니다.** 각 단계의 P0/P1 지적을 다음 단계 전에 보완했고, 최종 Stage 7 리뷰도 P0/P1 없음으로 판정됐습니다.\n- **로컬 품질 게이트는 통과했습니다.** Backend, Frontend, browser E2E, OpenAPI 계약과 ARM64 대상 container build를 확인했습니다.\n- **production 인수만 외부 입력 대기입니다.** rpi5-server의 실제 application-secrets.json, 최종 사진·루틴 설정, SMTP와 HTTPS hardware smoke가 준비돼야 reminiscence.leehyowon14.dev 전환을 안전하게 실행할 수 있습니다."
+      },
+      {
+        "id": "headline_metrics_intro",
+        "type": "markdown",
+        "body": "## 구현과 검증은 완료됐고, 운영 전환은 입력 대기입니다\n\n아래 수치는 최종 로컬 실행과 단계별 review를 기준으로 합니다. 테스트 수는 수집된 전체 항목이 아니라 실제 통과 수이며, Supertonic real-asset smoke 1건은 production runtime 설정이 없어 의도적으로 skip됐습니다."
+      },
+      {
+        "id": "headline_metrics",
+        "type": "metric-strip",
+        "cardIds": [
+          "stage_card",
+          "backend_test_card",
+          "frontend_test_card",
+          "e2e_test_card"
+        ]
+      },
+      {
+        "id": "stage_findings",
+        "type": "markdown",
+        "body": "## 7단계가 제품의 핵심 위험을 순서대로 닫았습니다\n\n초기 감사에서 가장 큰 위험은 JSON 손상·이상 탐지 기준 불일치·무인증 API·끊긴 Tablet 여정·재현 불가능한 배포였습니다. 저장 경계부터 운영 경계까지 순차적으로 닫아 뒤 단계가 앞 단계의 불안정한 전제에 의존하지 않게 했습니다. **따라서 현재 남은 일은 기능 개발이 아니라 실제 운영값을 넣고 live acceptance를 수행하는 일입니다.**"
+      },
+      {
+        "id": "stage_results_block",
+        "type": "chart",
+        "chartId": "stage_completion_chart"
+      },
+      {
+        "id": "stage_results_table_block",
+        "type": "table",
+        "tableId": "stage_table"
+      },
+      {
+        "id": "change_findings",
+        "type": "markdown",
+        "body": "## 최초의 demo 혼합 상태에서 실제 단일 제품 흐름으로 바뀌었습니다\n\n가장 큰 변화는 화면 수가 아니라 계약과 상태의 일관성입니다. Tablet 홈은 루틴·정시 대화·사진·offline 우선순위를 한 API로 판단하고, 대화와 routine 완료 후 같은 사진 홈으로 돌아옵니다. Guardian 데이터는 session cookie와 역할 검증 뒤에만 노출되며, anomaly는 polling 횟수가 아닌 새로운 일·세션 관측값으로만 지속성을 갱신합니다."
+      },
+      {
+        "id": "change_results_block",
+        "type": "table",
+        "tableId": "change_table"
+      },
+      {
+        "id": "quality_findings",
+        "type": "markdown",
+        "body": "## 자동 검증은 release 후보의 핵심 계약을 함께 묶습니다\n\nFE exact commit을 현재 BE OpenAPI로 다시 생성·typecheck·build한 뒤 동일 commit의 image digest만 선택합니다. 배포 후보도 runtime OpenAPI hash를 다시 비교하고, legacy migration 실패 시 traffic 공개 전 snapshot을 복구합니다. **이 연결 덕분에 old FE와 new API가 우연히 함께 배포되는 문제를 CI/CD 단계에서 차단합니다.**"
+      },
+      {
+        "id": "quality_results_block",
+        "type": "table",
+        "tableId": "quality_table"
+      },
+      {
+        "id": "history_findings",
+        "type": "markdown",
+        "body": "## 프로젝트 기간과 후속 완성 작업은 실제 이력대로 분리했습니다\n\n요청된 2026년 6월 24일~7월 28일 구간에는 실제 Git으로 확인되는 활동만 집계했습니다. 후속 완성 작업은 8월 13일의 실제 author date로 기록했으며, 과거 여러 작업자가 참여한 것처럼 저자나 시각을 재작성하지 않았습니다."
+      },
+      {
+        "id": "history_results_block",
+        "type": "table",
+        "tableId": "history_table"
+      },
+      {
+        "id": "recommended_steps",
+        "type": "markdown",
+        "sourceId": "operations_runbook",
+        "body": "## 안전한 production 전환은 네 묶음으로 진행해야 합니다\n\n1. **Secret 배치:** rpi5-server에 Guardian password, Tablet pairing code, codex-lb key, SMTP를 담은 application-secrets.json을 mode 0600으로 직접 생성합니다.\n2. **사용자 데이터 확정:** 최종 가족사진·설명과 식사·복약 일정을 configuration.json에 반영하고 migration·preflight를 실행합니다.\n3. **Digest release:** FE/BE workflow가 게시한 exact ARM64 digest 쌍을 release manifest로 배포하고 host Nginx를 same-origin 설정으로 전환합니다.\n4. **Live acceptance:** HTTPS에서 Tablet pairing, mic·대화, routine, Guardian session, backup restore와 SMTP 실발송을 확인한 뒤 maintenance를 해제합니다."
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## 운영값 세 가지가 확정되면 최종 인수를 끝낼 수 있습니다\n\n- 실제 Guardian password와 Tablet pairing code를 host에 직접 배치했는가?\n- 현재 5개 가족사진과 3개 routine을 그대로 쓸지, 최종 자료와 일정으로 교체할 것인가?\n- SMTP 발신·수신 계정과 실제 발송 허용이 준비됐는가?"
+      },
+      {
+        "id": "caveats",
+        "type": "markdown",
+        "body": "## Caveats and Assumptions\n\n- 현재 rpi5-server의 legacy 서비스는 변경하지 않았습니다. 새 secret과 설정 없이 CI/CD를 시작하면 production deploy가 fail-closed 되므로 의도적으로 push·전환을 보류했습니다.\n- Supertonic을 포함한 API image build는 통과했지만, real model smoke 1건은 production configuration이 없어 skip 상태입니다. 배포 script가 candidate traffic 공개 전에 이를 필수 실행합니다.\n- 실제 SMTP 발송, Cloudflare 경유 HTTPS, Tablet microphone과 장시간 JSON 운영 안정성은 로컬 mock·browser E2E가 대체할 수 없는 실환경 인수 항목입니다.\n- host 점검 과정에서 legacy secret이 존재한 흔적을 확인했습니다. 값은 보고서에 포함하지 않았으며 production 전환 시 기존 API key와 tunnel credential 회전을 권장합니다.\n- 이 보고서는 정확한 단계·상태 확인이 목적이므로 비교를 왜곡할 수 있는 장식적 chart 대신 source-backed audit table을 사용했습니다."
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-12T20:30:15Z",
+    "status": "partial",
+    "datasets": {
+      "stage_metric": [
+        {
+          "value": 7
+        }
+      ],
+      "backend_test_metric": [
+        {
+          "passed": 438,
+          "skipped": 1
+        }
+      ],
+      "frontend_test_metric": [
+        {
+          "unit_passed": 79,
+          "e2e_passed": 8
+        }
+      ],
+      "stage_results": [
+        {
+          "stage": 1,
+          "area": "JSON storage foundation",
+          "delivery": "strict schema, atomic write, lock, migration, snapshot·restore",
+          "review": "P0/P1 없음"
+        },
+        {
+          "stage": 2,
+          "area": "Anomaly v1.4",
+          "delivery": "28일·20세션 고정 기준선, 참여량·2-of-3 판정",
+          "review": "P0/P1 없음"
+        },
+        {
+          "stage": 3,
+          "area": "Auth and authorization",
+          "delivery": "Guardian·single Tablet JSON session, Origin·role 보호",
+          "review": "P0/P1 없음"
+        },
+        {
+          "stage": 4,
+          "area": "Backend product APIs",
+          "delivery": "통합 Tablet state, conversation 멱등성, notification·health",
+          "review": "P0/P1 없음"
+        },
+        {
+          "stage": 5,
+          "area": "Frontend product flow",
+          "delivery": "통합 홈, auth guard, dashboard, demo·privacy 분리",
+          "review": "P0/P1 없음"
+        },
+        {
+          "stage": 6,
+          "area": "Integration acceptance",
+          "delivery": "routine·scheduled·voluntary·offline·expiry browser E2E",
+          "review": "P0/P1 없음"
+        },
+        {
+          "stage": 7,
+          "area": "Operations and release",
+          "delivery": "ARM64 images, exact contract CI/CD, backup, migration rollback",
+          "review": "P0/P1 없음"
+        }
+      ],
+      "stage_completion": [
+        {
+          "stage_label": "1. Storage",
+          "area": "JSON storage foundation",
+          "completion_rate": 1,
+          "p0_p1_remaining": 0
+        },
+        {
+          "stage_label": "2. Anomaly",
+          "area": "Anomaly v1.4",
+          "completion_rate": 1,
+          "p0_p1_remaining": 0
+        },
+        {
+          "stage_label": "3. Auth",
+          "area": "Auth and authorization",
+          "completion_rate": 1,
+          "p0_p1_remaining": 0
+        },
+        {
+          "stage_label": "4. Backend",
+          "area": "Backend product APIs",
+          "completion_rate": 1,
+          "p0_p1_remaining": 0
+        },
+        {
+          "stage_label": "5. Frontend",
+          "area": "Frontend product flow",
+          "completion_rate": 1,
+          "p0_p1_remaining": 0
+        },
+        {
+          "stage_label": "6. Integration",
+          "area": "Integration acceptance",
+          "completion_rate": 1,
+          "p0_p1_remaining": 0
+        },
+        {
+          "stage_label": "7. Operations",
+          "area": "Operations and release",
+          "completion_rate": 1,
+          "p0_p1_remaining": 0
+        }
+      ],
+      "before_after": [
+        {
+          "priority": 1,
+          "area": "Anomaly",
+          "before": "2개 aggregate feature와 polling 재평가 중심",
+          "after": "기획안 v1.4 관측·기준선·지속성·근거 JSON 구현"
+        },
+        {
+          "priority": 2,
+          "area": "Tablet journey",
+          "before": "routine 화면과 conversation이 분리되고 홈 권유 누락",
+          "after": "routine > scheduled > photo·voluntary > stale 우선순위 통합"
+        },
+        {
+          "priority": 3,
+          "area": "Conversation",
+          "before": "upload 중 complete 경쟁과 active session 복구 불가",
+          "after": "turn ID·complete 멱등성, active 1개, reload 복구"
+        },
+        {
+          "priority": 4,
+          "area": "Security",
+          "before": "사용자·보호자 인증과 API 역할 경계 없음",
+          "after": "JSON server session, strict cookie, role·Origin·rate limit"
+        },
+        {
+          "priority": 5,
+          "area": "Persistence",
+          "before": "도메인별 JSON은 있으나 schema·원자 복구 경계 부족",
+          "after": "versioned strict JSON, fsync·replace, flock, snapshot·migration"
+        },
+        {
+          "priority": 6,
+          "area": "Release",
+          "before": "API-only 배포와 FE production 재현 경로 부재",
+          "after": "same-origin FE+API digest release와 fail-closed rollback"
+        }
+      ],
+      "quality_gates": [
+        {
+          "order": 1,
+          "scope": "Backend",
+          "gate": "pytest",
+          "result": "438 passed, 1 skipped",
+          "note": "skip은 production Supertonic runtime 설정 대기"
+        },
+        {
+          "order": 2,
+          "scope": "Backend",
+          "gate": "Ruff · mypy · OpenAPI",
+          "result": "통과",
+          "note": "mypy 64 source files, contract diff 0"
+        },
+        {
+          "order": 3,
+          "scope": "Frontend",
+          "gate": "Vitest · ESLint · TypeScript",
+          "result": "79 passed · clean",
+          "note": "22 test files"
+        },
+        {
+          "order": 4,
+          "scope": "Frontend",
+          "gate": "production · demo build",
+          "result": "통과",
+          "note": "OpenAPI generated type check 포함"
+        },
+        {
+          "order": 5,
+          "scope": "Browser",
+          "gate": "Playwright Tablet E2E",
+          "result": "8 passed",
+          "note": "routine·대화·offline·Guardian session"
+        },
+        {
+          "order": 6,
+          "scope": "Container · Ops",
+          "gate": "FE/API ARM64-compatible image · deploy review",
+          "result": "build 및 P0/P1 review 통과",
+          "note": "runtime UID 1000, non-root, exact digest contract"
+        }
+      ],
+      "history_periods": [
+        {
+          "order": 1,
+          "period": "프로젝트 수행 기간",
+          "requested_window": "2026-06-24 ~ 2026-07-28",
+          "evidence": "BE 102 commits(7/20~7/28), FE 9 commits(7/27)"
+        },
+        {
+          "order": 2,
+          "period": "후속 완성 작업",
+          "requested_window": "2026-08-13 이후",
+          "evidence": "현재 구현·review commit을 실제 author date로 기록"
+        }
+      ]
+    },
+    "accessIssues": [
+      {
+        "id": "production_acceptance_pending",
+        "scope": "production acceptance",
+        "sourceId": "rpi_readiness",
+        "message": "rpi5-server의 실제 application-secrets.json, 최종 사진·routine 설정과 SMTP가 없어 live 배포·실발송 인수를 아직 실행할 수 없습니다."
+      }
+    ]
+  },
+  "sources": [
+    {
+      "id": "completion_plan",
+      "query": {
+        "engine": "filesystem",
+        "query": "read docs/completion-plan.md",
+        "description": "확정 요구사항, 7단계 범위, 품질 게이트와 외부 입력을 검토",
+        "executed_at": "2026-08-12T20:30:15Z",
+        "language": "text",
+        "tables_used": [
+          "docs/completion-plan.md"
+        ]
+      }
+    },
+    {
+      "id": "confirmed_plan",
+      "query": {
+        "engine": "filesystem",
+        "query": "read output/doc/Reminiscence_프로젝트_확정_기획안.pdf",
+        "description": "이상 탐지와 제품 흐름의 확정 기준 문서를 검토",
+        "language": "document",
+        "tables_used": [
+          "output/doc/Reminiscence_프로젝트_확정_기획안.pdf"
+        ]
+      }
+    },
+    {
+      "id": "implementation_verification",
+      "path": "docs/report/report-data.sql",
+      "query": {
+        "engine": "filesystem+git",
+        "query": "review BE and FE source, tests, stage commits, and independent subagent findings",
+        "description": "두 저장소의 단계별 구현 diff와 독립 review 판정을 대조",
+        "executed_at": "2026-08-12T20:30:15Z",
+        "language": "text",
+        "tables_used": [
+          "Reminiscence-BE/src",
+          "Reminiscence-BE/tests",
+          "Reminiscence-FE/src",
+          "Reminiscence-FE/e2e"
+        ],
+        "metric_definitions": [
+          "완료 단계는 구현·관련 테스트·독립 review에서 P0/P1이 모두 닫힌 계획 단계의 수"
+        ]
+      }
+    },
+    {
+      "id": "backend_quality",
+      "path": "docs/report/report-data.sql",
+      "query": {
+        "engine": "shell",
+        "query": "uv run pytest -q -rs; uv run ruff check .; uv run mypy src; python -m reminiscence.openapi_contract --check openapi.json",
+        "description": "Backend 전체 테스트, lint, typecheck와 OpenAPI 계약 재실행",
+        "executed_at": "2026-08-12T20:28:00Z",
+        "language": "shell",
+        "tables_used": [
+          "tests",
+          "src/reminiscence",
+          "openapi.json"
+        ],
+        "metric_definitions": [
+          "통과 테스트 수는 pytest 전체 collection 439건 중 skip 1건을 제외한 438건"
+        ]
+      }
+    },
+    {
+      "id": "frontend_quality",
+      "path": "docs/report/report-data.sql",
+      "query": {
+        "engine": "shell",
+        "query": "pnpm test; pnpm lint; pnpm typecheck; pnpm api:check; pnpm build; pnpm build:demo; pnpm test:e2e",
+        "description": "Frontend unit, lint, type, contract, build와 browser E2E 재실행",
+        "executed_at": "2026-08-12T20:29:00Z",
+        "language": "shell",
+        "tables_used": [
+          "src",
+          "e2e",
+          "package.json"
+        ],
+        "metric_definitions": [
+          "Frontend 테스트 통과는 Vitest의 22 files·79 tests",
+          "Browser E2E 통과는 Playwright tablet-chromium project의 8 scenarios"
+        ]
+      }
+    },
+    {
+      "id": "combined_quality",
+      "path": "docs/report/report-data.sql",
+      "query": {
+        "engine": "shell+review",
+        "query": "run repository quality gates, container builds, and stage review checks",
+        "description": "BE·FE 최종 품질 게이트와 운영 release review 결과를 결합",
+        "executed_at": "2026-08-12T20:30:15Z",
+        "language": "shell",
+        "tables_used": [
+          "Reminiscence-BE",
+          "Reminiscence-FE"
+        ]
+      }
+    },
+    {
+      "id": "git_history",
+      "path": "docs/report/report-data.sql",
+      "query": {
+        "engine": "git",
+        "query": "git rev-list --count and git log --reverse with author-date windows",
+        "description": "2026-06-24~2026-07-28 실제 author-date commit 수와 첫·마지막 날짜 확인",
+        "executed_at": "2026-08-12T20:30:15Z",
+        "language": "shell",
+        "tables_used": [
+          "Reminiscence-BE/.git",
+          "Reminiscence-FE/.git"
+        ]
+      }
+    },
+    {
+      "id": "operations_runbook",
+      "query": {
+        "engine": "filesystem",
+        "query": "read docs/operations.md",
+        "description": "secret bootstrap, digest release, backup·restore와 live acceptance 순서 검토",
+        "executed_at": "2026-08-12T20:30:15Z",
+        "language": "text",
+        "tables_used": [
+          "docs/operations.md"
+        ]
+      }
+    },
+    {
+      "id": "rpi_readiness",
+      "query": {
+        "engine": "ssh-read-only",
+        "query": "inspect container ports, host Nginx, tunnel mode, data file metadata, model assets, and runner status without reading secret values",
+        "description": "rpi5-server의 기존 배포와 새 release prerequisites를 읽기 전용으로 점검",
+        "executed_at": "2026-08-12T20:00:00Z",
+        "language": "shell",
+        "tables_used": [
+          "docker ps -a",
+          "ss -ltnp",
+          "nginx configuration",
+          "reminiscence deployment metadata"
+        ]
+      }
+    }
+  ]
+}
