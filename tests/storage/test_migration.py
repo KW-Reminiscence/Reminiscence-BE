@@ -248,3 +248,57 @@ def test_strict_validation_rejects_invalid_nested_domain_values(
 
     with pytest.raises(JsonMigrationError, match=message):
         validate_data_directory(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("section", "observation", "message"),
+    [
+        (
+            "routine_observations",
+            {"target_date": "2026-08-12", "values": [2, 0, 0, 0, 1, 0]},
+            "ratios",
+        ),
+        (
+            "routine_observations",
+            {"target_date": "2026-08-12", "values": [0, 0, -1, 0, 1, 0]},
+            "delays",
+        ),
+        (
+            "routine_observations",
+            {"target_date": "2026-08-12", "values": [0, 0, 0, 0, 1, 1.5]},
+            "integer",
+        ),
+        (
+            "conversation_quality_observations",
+            {
+                "session_id": "session-1",
+                "completed_at": "2026-08-12T12:00:00+09:00",
+                "values": [-1, 0, 0, 0, 0],
+            },
+            "negative",
+        ),
+        (
+            "conversation_quality_observations",
+            {
+                "session_id": "session-1",
+                "completed_at": "2026-08-12T12:00:00+09:00",
+                "values": [1.5, 0, 0, 0, 0],
+            },
+            "integers",
+        ),
+    ],
+)
+def test_strict_validation_rejects_semantically_invalid_observations(
+    tmp_path: Path,
+    section: str,
+    observation: dict[str, object],
+    message: str,
+) -> None:
+    migrate_data_directory(tmp_path, apply=True)
+    path = tmp_path / "activity_metrics.json"
+    root = json.loads(path.read_text(encoding="utf-8"))
+    root[section] = [observation]
+    path.write_text(json.dumps(root), encoding="utf-8")
+
+    with pytest.raises(JsonMigrationError, match=message):
+        validate_data_directory(tmp_path)

@@ -165,9 +165,18 @@ def _parse_routine_observation(value: Any) -> RoutineObservation:
     values = value.get("values")
     if not isinstance(values, list) or len(values) != 6:
         raise AnomalyStorageError("routine observation values must have 6 numbers")
+    parsed = tuple(_number(item, "routine observation value") for item in values)
+    if any(parsed[index] < 0 or parsed[index] > 1 for index in (0, 1, 4)):
+        raise AnomalyStorageError("routine observation ratios must be between 0 and 1")
+    if parsed[2] < 0 or parsed[3] < 0:
+        raise AnomalyStorageError("routine observation delays must not be negative")
+    if parsed[5] < 0 or not parsed[5].is_integer():
+        raise AnomalyStorageError(
+            "maximum consecutive misses must be a non-negative integer"
+        )
     return RoutineObservation(
         target_date=_local_date(value.get("target_date"), "target_date"),
-        values=tuple(_number(item, "routine observation value") for item in values),  # type: ignore[arg-type]
+        values=parsed,  # type: ignore[arg-type]
     )
 
 
@@ -177,10 +186,15 @@ def _parse_quality_observation(value: Any) -> ConversationQualityObservation:
     values = value.get("values")
     if not isinstance(values, list) or len(values) != 5:
         raise AnomalyStorageError("quality observation values must have 5 numbers")
+    parsed = tuple(_number(item, "quality observation value") for item in values)
+    if any(item < 0 for item in parsed):
+        raise AnomalyStorageError("quality observation values must not be negative")
+    if any(not parsed[index].is_integer() for index in (0, 1, 4)):
+        raise AnomalyStorageError("quality observation counts must be integers")
     return ConversationQualityObservation(
         session_id=_required_string(value.get("session_id"), "session_id"),
         completed_at=_aware_datetime(value.get("completed_at"), "completed_at"),
-        values=tuple(_number(item, "quality observation value") for item in values),  # type: ignore[arg-type]
+        values=parsed,  # type: ignore[arg-type]
     )
 
 
@@ -215,7 +229,7 @@ class ActivityObservationStore:
 
         if evaluated_at.tzinfo is None or evaluated_at.utcoffset() is None:
             raise ValueError("evaluated_at must be timezone-aware")
-        category_by_id = self._routine_categories()
+        category_by_id, scheduled_weekdays = self._routine_configuration()
         result: AnomalyObservations | None = None
 
         def mutate(root: dict[str, Any]) -> None:
@@ -237,6 +251,17 @@ class ActivityObservationStore:
             stored_routines = self._stored_routines(root)
             stored_quality = self._stored_quality(root)
             stored_participation = self._stored_participation(root)
+            active_session_date = self._earliest_active_session_date(
+                conversations_raw,
+                evaluated_at,
+            )
+            observation_started_on = self._observation_started_on(
+                root,
+                routines,
+                conversations,
+                evaluated_at,
+                active_session_date,
+            )
             self._reject_date_reversal(
                 evaluated_at.date(), stored_routines, stored_participation
             )
@@ -244,6 +269,7 @@ class ActivityObservationStore:
             computed_routines = self._routine_observations(
                 routines,
                 category_by_id,
+                scheduled_weekdays,
                 evaluated_at,
             )
             computed_quality = tuple(
@@ -265,11 +291,26 @@ class ActivityObservationStore:
                 routines,
                 conversations,
                 evaluated_at,
+                observation_started_on,
+                active_session_date,
             )
-            merged_routines = self._merge_immutable(stored_routines, computed_routines)
-            merged_quality = self._merge_immutable(stored_quality, computed_quality)
+            merged_routines = tuple(
+                sorted(
+                    self._merge_immutable(stored_routines, computed_routines),
+                    key=lambda item: item.target_date,
+                )
+            )
+            merged_quality = tuple(
+                sorted(
+                    self._merge_immutable(stored_quality, computed_quality),
+                    key=lambda item: (item.completed_at, item.session_id),
+                )
+            )
             merged_participation = self._merge_immutable(
                 stored_participation, computed_participation
+            )
+            merged_participation = tuple(
+                sorted(merged_participation, key=lambda item: item.target_date)
             )
             root["routine_observations"] = [
                 {"target_date": item.key, "values": list(item.values)}
@@ -303,14 +344,17 @@ class ActivityObservationStore:
             raise AnomalyStorageError("observation update produced no result")
         return result
 
-    def _routine_categories(self) -> dict[str, str]:
+    def _routine_configuration(
+        self,
+    ) -> tuple[dict[str, str], dict[str, frozenset[int]]]:
         if self._configuration_store is None:
-            return {}
+            return {}, {}
         root = self._configuration_store.read()
         routines = root.get("routines", [])
         if not isinstance(routines, list):
             raise AnomalyStorageError("routines must be an array")
         categories: dict[str, str] = {}
+        scheduled_weekdays: dict[str, frozenset[int]] = {}
         for value in routines:
             if not isinstance(value, dict):
                 raise AnomalyStorageError("each routine must be an object")
@@ -319,7 +363,63 @@ class ActivityObservationStore:
             if category not in KNOWN_ROUTINE_CATEGORIES:
                 raise AnomalyStorageError(f"unknown routine category: {category}")
             categories[routine_id] = category
-        return categories
+            active = value.get("active", True)
+            if not isinstance(active, bool):
+                raise AnomalyStorageError("routine active must be a boolean")
+            weekdays = value.get("weekdays")
+            if not isinstance(weekdays, list) or not all(
+                isinstance(day, int)
+                and not isinstance(day, bool)
+                and 0 <= day <= 6
+                for day in weekdays
+            ):
+                raise AnomalyStorageError("routine weekdays must contain 0 through 6")
+            if active:
+                scheduled_weekdays[routine_id] = frozenset(weekdays)
+        return categories, scheduled_weekdays
+
+    @staticmethod
+    def _observation_started_on(
+        root: dict[str, Any],
+        routines: tuple[RoutineMetric, ...],
+        conversations: tuple[ConversationMetric, ...],
+        evaluated_at: datetime,
+        active_session_date: date | None,
+    ) -> date:
+        stored = root.get("anomaly_observation_started_on")
+        if stored is not None:
+            return _local_date(stored, "anomaly_observation_started_on")
+        historical_dates = [
+            item.scheduled_at.astimezone(evaluated_at.tzinfo).date()
+            for item in routines
+            if item.scheduled_at <= evaluated_at
+        ]
+        historical_dates.extend(
+            item.started_at.astimezone(evaluated_at.tzinfo).date()
+            for item in conversations
+        )
+        if active_session_date is not None:
+            historical_dates.append(active_session_date)
+        started_on = min(historical_dates, default=evaluated_at.date())
+        root["anomaly_observation_started_on"] = started_on.isoformat()
+        return started_on
+
+    @staticmethod
+    def _earliest_active_session_date(
+        values: list[Any],
+        evaluated_at: datetime,
+    ) -> date | None:
+        active_dates: list[date] = []
+        for value in values:
+            if not isinstance(value, dict):
+                raise AnomalyStorageError("each conversation session must be an object")
+            if value.get("status") == "ACTIVE":
+                started_at = _aware_datetime(value.get("started_at"), "started_at")
+                if started_at <= evaluated_at:
+                    active_dates.append(
+                        started_at.astimezone(evaluated_at.tzinfo).date()
+                    )
+        return min(active_dates, default=None)
 
     @staticmethod
     def _stored_routines(root: dict[str, Any]) -> tuple[RoutineObservation, ...]:
@@ -378,6 +478,7 @@ class ActivityObservationStore:
     def _routine_observations(
         metrics: tuple[RoutineMetric, ...],
         category_by_id: dict[str, str],
+        scheduled_weekdays: dict[str, frozenset[int]],
         evaluated_at: datetime,
     ) -> tuple[RoutineObservation, ...]:
         grouped: dict[date, list[RoutineMetric]] = defaultdict(list)
@@ -392,6 +493,14 @@ class ActivityObservationStore:
             if target_date >= evaluated_at.date() or any(
                 metric.state == "REMINDING" for metric in day_metrics
             ):
+                continue
+            expected_ids = {
+                routine_id
+                for routine_id, weekdays in scheduled_weekdays.items()
+                if target_date.weekday() in weekdays
+            }
+            actual_ids = {metric.routine_id for metric in day_metrics}
+            if expected_ids and not expected_ids.issubset(actual_ids):
                 continue
             categories = {
                 metric.routine_id: metric.category or category_by_id.get(metric.routine_id)
@@ -447,7 +556,6 @@ class ActivityObservationStore:
         evaluated_at: datetime,
     ) -> int:
         streaks: dict[str, int] = defaultdict(int)
-        maximum = 0
         for metric in metrics:
             local_date = metric.scheduled_at.astimezone(evaluated_at.tzinfo).date()
             if local_date > target or metric.state == "REMINDING":
@@ -456,27 +564,21 @@ class ActivityObservationStore:
                 streaks[metric.routine_id] = 0
             else:
                 streaks[metric.routine_id] += 1
-                maximum = max(maximum, streaks[metric.routine_id])
-        return maximum
+        return max(streaks.values(), default=0)
 
     @staticmethod
     def _participation_observations(
         routines: tuple[RoutineMetric, ...],
         conversations: tuple[ConversationMetric, ...],
         evaluated_at: datetime,
+        observation_started_on: date,
+        active_session_date: date | None,
     ) -> tuple[ParticipationObservation, ...]:
-        activity_dates = [
-            item.scheduled_at.astimezone(evaluated_at.tzinfo).date()
-            for item in routines
-            if item.scheduled_at <= evaluated_at
-        ] + [
-            item.started_at.astimezone(evaluated_at.tzinfo).date()
-            for item in conversations
-        ]
-        if not activity_dates:
-            return ()
-        start = min(activity_dates)
+        del routines
+        start = observation_started_on
         end = evaluated_at.date() - timedelta(days=1)
+        if active_session_date is not None:
+            end = min(end, active_session_date - timedelta(days=1))
         if end < start:
             return ()
         observations: list[ParticipationObservation] = []

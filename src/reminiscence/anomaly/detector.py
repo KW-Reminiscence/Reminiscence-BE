@@ -82,13 +82,16 @@ class PersonalAnomalyDetector:
 
         ordered = tuple(sorted(observations, key=lambda item: item.target_date))
         latest = ordered[-1] if ordered else None
-        rule_signal = bool(latest and latest.values[5] >= 3)
+        rule_signal = bool(latest and (latest.values[0] > 0 or latest.values[1] > 0))
+        miss_persistence = bool(latest and latest.values[5] >= 3)
         reasons: list[str] = []
         if rule_signal:
+            reasons.append("최근 완성일에 식사 또는 복약 미응답 발생")
+        if miss_persistence:
             reasons.append("동일 루틴에서 3회 연속 미응답")
 
         if not baseline.routine_vectors:
-            persistence_signal = rule_signal
+            persistence_signal = miss_persistence
             status = self._consensus(rule_signal, False, persistence_signal)
             return DomainEvaluation(
                 status=status,
@@ -112,14 +115,15 @@ class PersonalAnomalyDetector:
             for item in candidates
         )
         model_signal, score = model_results[-1] if model_results else (False, None)
-        persistence_signal = (
+        model_persistence = (
             len(model_results) >= 2
             and model_results[-1][0]
             and model_results[-2][0]
         )
+        persistence_signal = miss_persistence or model_persistence
         if model_signal and latest is not None:
             reasons.extend(self._routine_reasons(baseline.routine_vectors, latest.values))
-        if persistence_signal:
+        if model_persistence:
             reasons.append("루틴 모델 이탈이 완성된 2개 관측일 연속 발생")
         return DomainEvaluation(
             status=self._consensus(rule_signal, model_signal, persistence_signal),

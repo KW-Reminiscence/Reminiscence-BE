@@ -28,13 +28,25 @@ SEOUL = ZoneInfo("Asia/Seoul")
 NOW = datetime(2026, 7, 27, 18, 0, tzinfo=SEOUL)
 
 
-def build_service(tmp_path: Path) -> tuple[AnomalyService, Path, Path, Path]:
+def build_service(
+    tmp_path: Path,
+    *,
+    configuration: dict[str, object] | None = None,
+) -> tuple[AnomalyService, Path, Path, Path]:
     activity_path = tmp_path / "activity_metrics.json"
     baseline_path = tmp_path / "anomaly_baseline.json"
     state_path = tmp_path / "personal_state.json"
+    configuration_store = None
+    if configuration is not None:
+        configuration_path = tmp_path / "configuration.json"
+        configuration_path.write_text(json.dumps(configuration), encoding="utf-8")
+        configuration_store = JsonObjectStore(configuration_path, read_only=True)
     return (
         AnomalyService(
-            ActivityObservationStore(JsonObjectStore(activity_path)),
+            ActivityObservationStore(
+                JsonObjectStore(activity_path),
+                configuration_store,
+            ),
             BaselineStore(JsonObjectStore(baseline_path)),
             PersonalStateStore(JsonObjectStore(state_path)),
         ),
@@ -144,9 +156,63 @@ def test_confirmation_resets_same_routine_miss_streak(tmp_path: Path) -> None:
 
     result = service.evaluate(NOW).evaluation.routine
 
-    assert result.rule_based_signal is False
+    assert result.rule_based_signal is True
     assert result.persistence_signal is False
     assert result.status.value == "NORMAL"
+
+
+def test_confirmation_clears_previous_three_miss_feature(tmp_path: Path) -> None:
+    service, activity_path, _, _ = build_service(tmp_path)
+    write_activity(
+        activity_path,
+        routine_executions=[
+            routine_execution(4, "NOT_ANSWERED"),
+            routine_execution(3, "NOT_ANSWERED"),
+            routine_execution(2, "NOT_ANSWERED"),
+            routine_execution(1, "CONFIRMED"),
+        ],
+        conversation_sessions=[],
+    )
+
+    service.evaluate(NOW)
+    activity = json.loads(activity_path.read_text(encoding="utf-8"))
+
+    assert [item["values"][5] for item in activity["routine_observations"]] == [
+        1.0,
+        2.0,
+        3.0,
+        0.0,
+    ]
+    assert service.current_state().routine.persistence_signal is False  # type: ignore[union-attr]
+
+
+def test_routine_day_waits_for_every_configured_execution(tmp_path: Path) -> None:
+    configuration = {
+        "routines": [
+            {
+                "id": routine_id,
+                "category": category,
+                "weekdays": list(range(7)),
+            }
+            for routine_id, category in (
+                ("meal", "MEAL"),
+                ("medication", "MEDICATION"),
+            )
+        ]
+    }
+    service, activity_path, _, _ = build_service(
+        tmp_path,
+        configuration=configuration,
+    )
+    write_activity(
+        activity_path,
+        routine_executions=[routine_execution(1, "CONFIRMED")],
+        conversation_sessions=[],
+    )
+
+    outcome = service.evaluate(NOW)
+
+    assert outcome.evaluation.routine.sample_count == 0
 
 
 def test_incomplete_current_date_is_excluded(tmp_path: Path) -> None:
@@ -238,6 +304,57 @@ def test_completed_sessions_create_quality_and_zero_participation_days(
     assert baseline["participation_weekly_turn_mean"] >= 0
 
 
+def test_no_conversation_days_begin_at_first_evaluation(tmp_path: Path) -> None:
+    service, activity_path, _, _ = build_service(tmp_path)
+    write_activity(
+        activity_path,
+        routine_executions=[],
+        conversation_sessions=[],
+    )
+
+    service.evaluate(NOW)
+    service.evaluate(NOW + timedelta(days=1))
+    activity = json.loads(activity_path.read_text(encoding="utf-8"))
+
+    assert activity["anomaly_observation_started_on"] == NOW.date().isoformat()
+    assert activity["participation_observations"] == [
+        {
+            "target_date": NOW.date().isoformat(),
+            "recent_7_day_user_turn_count": 0,
+        }
+    ]
+
+
+def test_quality_baseline_uses_completion_order_not_session_id(tmp_path: Path) -> None:
+    service, activity_path, baseline_path, _ = build_service(tmp_path)
+    sessions = [completed_session(index) for index in range(21)]
+    sessions[9] = completed_session(9, turns=9)
+    sessions[9]["session_id"] = "session-z"
+    sessions[20] = completed_session(20, turns=1)
+    sessions[20]["session_id"] = "session-a"
+    write_activity(
+        activity_path,
+        routine_executions=[],
+        conversation_sessions=sessions,
+    )
+
+    service.evaluate(NOW)
+    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+
+    assert len(baseline["conversation_quality_vectors"]) == 20
+    assert any(vector[0] == 9.0 for vector in baseline["conversation_quality_vectors"])
+    assert not any(
+        vector[0] == 1.0 for vector in baseline["conversation_quality_vectors"]
+    )
+    activity = json.loads(activity_path.read_text(encoding="utf-8"))
+    ordered_ids = [
+        item["session_id"]
+        for item in activity["conversation_quality_observations"]
+    ]
+    assert ordered_ids[9] == "session-z"
+    assert ordered_ids[-1] == "session-a"
+
+
 def test_repeated_evaluation_does_not_duplicate_observation_keys(tmp_path: Path) -> None:
     service, activity_path, _, _ = build_service(tmp_path)
     write_activity(
@@ -275,6 +392,43 @@ def test_participation_does_not_freeze_incomplete_current_date(tmp_path: Path) -
     updated = json.loads(activity_path.read_text(encoding="utf-8"))
     assert updated["participation_observations"][-1]["target_date"] == NOW.date().isoformat()
     assert updated["participation_observations"][-1][
+        "recent_7_day_user_turn_count"
+    ] == 5
+
+
+def test_active_session_blocks_previous_day_participation_until_completion(
+    tmp_path: Path,
+) -> None:
+    service, activity_path, _, _ = build_service(tmp_path)
+    started_at = NOW - timedelta(days=1, hours=-5)
+    active = {
+        "session_id": "overnight",
+        "source": "VOLUNTARY",
+        "photo_id": None,
+        "started_at": started_at.isoformat(),
+        "status": "ACTIVE",
+        "completed_at": None,
+        "turns": [],
+    }
+    write_activity(
+        activity_path,
+        routine_executions=[],
+        conversation_sessions=[active],
+    )
+
+    service.evaluate(NOW)
+    activity = json.loads(activity_path.read_text(encoding="utf-8"))
+    assert activity["participation_observations"] == []
+
+    completed = completed_session(29, turns=5)
+    completed["session_id"] = "overnight"
+    completed["started_at"] = started_at.isoformat()
+    activity["conversation_sessions"] = [completed]
+    activity_path.write_text(json.dumps(activity), encoding="utf-8")
+    service.evaluate(NOW + timedelta(days=1))
+
+    updated = json.loads(activity_path.read_text(encoding="utf-8"))
+    assert updated["participation_observations"][0][
         "recent_7_day_user_turn_count"
     ] == 5
 

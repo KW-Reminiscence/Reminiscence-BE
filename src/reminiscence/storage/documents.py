@@ -123,6 +123,7 @@ def _validate_activity(root: dict[str, Any]) -> None:
             "routine_observations",
             "conversation_quality_observations",
             "participation_observations",
+            "anomaly_observation_started_on",
         },
     )
     executions = _require_list(root, "routine_executions")
@@ -150,6 +151,11 @@ def _validate_activity(root: dict[str, Any]) -> None:
         keys = [item.key for item in parsed]
         if len(keys) != len(set(keys)):
             raise JsonDocumentValidationError(f"{key} keys must be unique")
+    observation_started_on = root.get("anomaly_observation_started_on")
+    if observation_started_on is not None:
+        from reminiscence.anomaly.storage import _local_date
+
+        _local_date(observation_started_on, "anomaly_observation_started_on")
 
 
 def _validate_anomaly_baseline(root: dict[str, Any]) -> None:
