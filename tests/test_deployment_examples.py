@@ -53,7 +53,9 @@ def test_configuration_example_is_accepted_by_routine_store(
 
 def test_configuration_example_contains_valid_photo_memories() -> None:
     configuration = JsonObjectStore(
-        PROJECT_ROOT / "deploy/configuration.example.json"
+        PROJECT_ROOT / "deploy/configuration.example.json",
+        schema_version=1,
+        read_only=True,
     ).read()
 
     photos = parse_photos(configuration["photos"])
