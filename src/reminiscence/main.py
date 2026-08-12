@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from pathlib import Path
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI
@@ -34,6 +32,7 @@ from reminiscence.routine.api import (
     router as routine_router,
 )
 from reminiscence.runtime import build_background_runtime
+from reminiscence.runtime_config import data_directory, load_runtime_settings
 from reminiscence.storage.instance_lock import SingleInstanceLock
 from reminiscence.storage.migration import validate_data_directory
 from reminiscence.tablet.api import router as tablet_router
@@ -85,9 +84,9 @@ def parse_cors_origins(value: str | None) -> tuple[str, ...]:
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     """Start and stop periodic appliance jobs with the API process."""
 
-    data_directory = Path(os.environ.get("REMINISCENCE_DATA_DIR", "data"))
-    with SingleInstanceLock(data_directory) as instance_lock:
-        validate_data_directory(data_directory)
+    configured_data_directory = data_directory()
+    with SingleInstanceLock(configured_data_directory) as instance_lock:
+        validate_data_directory(configured_data_directory)
         runtime = build_background_runtime(
             get_routine_scheduler(),
             get_notification_coordinator(),
@@ -113,7 +112,7 @@ def create_app(cors_origins: tuple[str, ...] | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     configured_origins = (
-        parse_cors_origins(os.environ.get("REMINISCENCE_CORS_ORIGINS"))
+        load_runtime_settings().cors_origins
         if cors_origins is None
         else cors_origins
     )

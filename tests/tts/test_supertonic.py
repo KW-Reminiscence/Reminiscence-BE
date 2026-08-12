@@ -135,39 +135,6 @@ def test_synthesizer_rejects_invalid_waveform() -> None:
         synthesizer.synthesize("안내")
 
 
-def test_config_reads_validated_environment(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("SUPERTONIC_MODEL_DIR", "/models/supertonic-3")
-    monkeypatch.setenv("SUPERTONIC_AUTO_DOWNLOAD", "false")
-    monkeypatch.setenv("SUPERTONIC_VOICE", "F2")
-    monkeypatch.setenv("SUPERTONIC_TOTAL_STEPS", "10")
-    monkeypatch.setenv("SUPERTONIC_SPEED", "0.85")
-    monkeypatch.setenv("SUPERTONIC_MAX_TEXT_CHARS", "240")
-    monkeypatch.setenv("SUPERTONIC_INTRA_OP_THREADS", "4")
-    monkeypatch.setenv("SUPERTONIC_INTER_OP_THREADS", "1")
-
-    config = SupertonicConfig.from_environment()
-
-    assert config.model_dir == Path("/models/supertonic-3")
-    assert config.auto_download is False
-    assert config.voice == "F2"
-    assert config.total_steps == 10
-    assert config.speed == 0.85
-    assert config.max_text_chars == 240
-    assert config.intra_op_num_threads == 4
-    assert config.inter_op_num_threads == 1
-
-
-def test_config_rejects_invalid_boolean(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("SUPERTONIC_AUTO_DOWNLOAD", "sometimes")
-
-    with pytest.raises(RuntimeError, match="must be a boolean"):
-        SupertonicConfig.from_environment()
-
-
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [

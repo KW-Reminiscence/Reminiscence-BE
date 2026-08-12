@@ -22,6 +22,18 @@ def configure_valid_runtime(
     monkeypatch: pytest.MonkeyPatch,
 ) -> Path:
     migrate_data_directory(tmp_path, apply=True)
+    configuration_path = tmp_path / "configuration.json"
+    configuration = json.loads(configuration_path.read_text(encoding="utf-8"))
+    configuration["runtime"] = {
+        "timezone": "Asia/Seoul",
+        "public_origin": "https://reminiscence.leehyowon14.dev",
+        "cors_origins": [],
+        "routine_tick_seconds": 5,
+        "evaluation_seconds": 60,
+        "codex_lb": {"base_url": "https://codex.example/v1"},
+        "supertonic": {"model_dir": "/models/supertonic-3", "auto_download": False},
+    }
+    configuration_path.write_text(json.dumps(configuration), encoding="utf-8")
     application_secrets = tmp_path / "application-secrets.json"
     notification_config = tmp_path / "notification-config.json"
     write_secret_json(
@@ -30,6 +42,7 @@ def configure_valid_runtime(
             "schema_version": 1,
             "guardian_password": "guardian-password",
             "tablet_pairing_code": "pairing-code",
+            "codex_lb_api_key": "codex-lb-key",
         },
     )
     write_secret_json(

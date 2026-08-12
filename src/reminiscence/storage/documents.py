@@ -72,6 +72,7 @@ def _validate_configuration(root: dict[str, Any]) -> None:
     _require_exact_keys(
         root,
         required={"routines", "photos", "conversation"},
+        optional={"runtime"},
     )
     routines = tuple(_parse_definition(value) for value in _require_list(root, "routines"))
     identifiers = [routine.routine_id for routine in routines]
@@ -104,6 +105,9 @@ def _validate_configuration(root: dict[str, Any]) -> None:
             raise JsonDocumentValidationError(
                 "conversation.suggestion_time must not include a timezone"
             )
+    from reminiscence.runtime_config import parse_runtime_settings
+
+    parse_runtime_settings(root)
 
 
 def _validate_activity(root: dict[str, Any]) -> None:

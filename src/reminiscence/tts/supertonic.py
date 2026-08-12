@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -57,31 +56,6 @@ class _SupertonicEngine(Protocol):
 EngineFactory = Callable[..., _SupertonicEngine]
 
 
-def _parse_boolean_environment(name: str, default: bool) -> bool:
-    raw_value = os.environ.get(name)
-    if raw_value is None:
-        return default
-    normalized = raw_value.strip().lower()
-    if normalized in {"1", "true", "yes", "on"}:
-        return True
-    if normalized in {"0", "false", "no", "off"}:
-        return False
-    raise RuntimeError(f"{name} must be a boolean")
-
-
-def _optional_positive_integer(name: str) -> int | None:
-    raw_value = os.environ.get(name)
-    if raw_value is None or not raw_value.strip():
-        return None
-    try:
-        value = int(raw_value)
-    except ValueError as exc:
-        raise RuntimeError(f"{name} must be an integer") from exc
-    if value <= 0:
-        raise RuntimeError(f"{name} must be positive")
-    return value
-
-
 @dataclass(frozen=True, slots=True)
 class SupertonicConfig:
     """Validated local model and voice settings."""
@@ -127,54 +101,6 @@ class SupertonicConfig:
                 or value <= 0
             ):
                 raise ValueError(f"{field_name} must be positive")
-
-    @classmethod
-    def from_environment(cls) -> SupertonicConfig:
-        """Read Raspberry Pi model settings without loading the model."""
-
-        model_dir_value = os.environ.get("SUPERTONIC_MODEL_DIR", "").strip()
-        try:
-            total_steps = int(
-                os.environ.get(
-                    "SUPERTONIC_TOTAL_STEPS",
-                    str(DEFAULT_TOTAL_STEPS),
-                )
-            )
-            speed = float(
-                os.environ.get("SUPERTONIC_SPEED", str(DEFAULT_SPEED))
-            )
-            max_text_chars = int(
-                os.environ.get(
-                    "SUPERTONIC_MAX_TEXT_CHARS",
-                    str(DEFAULT_MAX_TEXT_CHARS),
-                )
-            )
-        except ValueError as exc:
-            raise RuntimeError(
-                "Supertonic numeric environment values are invalid"
-            ) from exc
-        return cls(
-            model_dir=Path(model_dir_value) if model_dir_value else None,
-            auto_download=_parse_boolean_environment(
-                "SUPERTONIC_AUTO_DOWNLOAD",
-                True,
-            ),
-            voice=os.environ.get("SUPERTONIC_VOICE", DEFAULT_VOICE),
-            language=os.environ.get(
-                "SUPERTONIC_LANGUAGE",
-                DEFAULT_LANGUAGE,
-            ),
-            total_steps=total_steps,
-            speed=speed,
-            max_text_chars=max_text_chars,
-            intra_op_num_threads=_optional_positive_integer(
-                "SUPERTONIC_INTRA_OP_THREADS"
-            ),
-            inter_op_num_threads=_optional_positive_integer(
-                "SUPERTONIC_INTER_OP_THREADS"
-            ),
-        )
-
 
 def _official_engine_factory(**kwargs: object) -> _SupertonicEngine:
     from supertonic import TTS

@@ -8,16 +8,16 @@ from io import BytesIO
 import pytest
 import soundfile as sf
 
-from reminiscence.tts import SupertonicConfig, SupertonicSynthesizer
+from reminiscence.tts.api import get_speech_synthesizer
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("RUN_SUPERTONIC_SMOKE") != "1",
-    reason="set RUN_SUPERTONIC_SMOKE=1 with a configured model directory",
+    reason="set RUN_SUPERTONIC_SMOKE=1 with configuration.json runtime settings",
 )
 
 
 def test_real_supertonic_synthesizes_playable_korean_wav() -> None:
-    synthesizer = SupertonicSynthesizer(SupertonicConfig.from_environment())
+    synthesizer = get_speech_synthesizer()
 
     result = synthesizer.synthesize("오늘 사진을 보며 이야기 나눠 보실래요?")
     audio, sample_rate = sf.read(BytesIO(result.audio), dtype="float32")

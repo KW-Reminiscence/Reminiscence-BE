@@ -151,33 +151,6 @@ def test_invalid_audio_is_rejected(
         recognizer(FakeHttp()).recognize(audio, content_type)
 
 
-def test_environment_reads_proxy_settings(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("CODEX_LB_API_KEY", "proxy-secret")
-    monkeypatch.setenv("CODEX_LB_BASE_URL", "https://codex.example/v1/")
-    monkeypatch.setenv("CODEX_LB_CONNECT_TIMEOUT_SECONDS", "3.5")
-    monkeypatch.setenv("CODEX_LB_READ_TIMEOUT_SECONDS", "120")
-
-    value = CodexLbRecognizerConfig.from_environment()
-
-    assert value.api_key == "proxy-secret"
-    assert value.transcription_url == (
-        "https://codex.example/v1/audio/transcriptions"
-    )
-    assert value.connect_timeout_seconds == 3.5
-    assert value.read_timeout_seconds == 120
-
-
-def test_environment_requires_proxy_key(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv("CODEX_LB_API_KEY", raising=False)
-
-    with pytest.raises(RuntimeError, match="CODEX_LB_API_KEY"):
-        CodexLbRecognizerConfig.from_environment()
-
-
 @pytest.mark.parametrize(
     ("overrides", "message"),
     [

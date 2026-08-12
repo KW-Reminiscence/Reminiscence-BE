@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -79,32 +78,6 @@ class CodexLbRecognizerConfig:
         """Return the fixed OpenAI-compatible transcription endpoint."""
 
         return f"{self.base_url.rstrip('/')}/audio/transcriptions"
-
-    @classmethod
-    def from_environment(cls) -> CodexLbRecognizerConfig:
-        """Read the proxy credential without loading a local dotenv file."""
-
-        api_key = os.environ.get("CODEX_LB_API_KEY", "")
-        if not api_key:
-            raise RuntimeError("CODEX_LB_API_KEY is required")
-        try:
-            connect_timeout = float(
-                os.environ.get("CODEX_LB_CONNECT_TIMEOUT_SECONDS", "10.0")
-            )
-            read_timeout = float(
-                os.environ.get("CODEX_LB_READ_TIMEOUT_SECONDS", "150.0")
-            )
-        except ValueError as exc:
-            raise RuntimeError(
-                "codex-lb timeout environment values are invalid"
-            ) from exc
-        return cls(
-            api_key=api_key,
-            base_url=os.environ.get("CODEX_LB_BASE_URL", DEFAULT_BASE_URL),
-            connect_timeout_seconds=connect_timeout,
-            read_timeout_seconds=read_timeout,
-        )
-
 
 class CodexLbRecognizer:
     """Send transient WAV bytes to codex-lb and retain only request metadata."""

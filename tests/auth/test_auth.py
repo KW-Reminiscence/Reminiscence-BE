@@ -83,7 +83,11 @@ def test_secret_loader_requires_0600_and_never_returns_unrelated_fields(
         load_auth_secrets(path)
 
     path.chmod(0o600)
-    assert load_auth_secrets(path) == AuthSecrets(PASSWORD, PAIRING_CODE)
+    assert load_auth_secrets(path) == AuthSecrets(
+        PASSWORD,
+        PAIRING_CODE,
+        "not-returned",
+    )
 
 
 @pytest.mark.parametrize("mode", [0o400, 0o640, 0o700])

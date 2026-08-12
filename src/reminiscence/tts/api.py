@@ -12,6 +12,7 @@ from pydantic import BaseModel, StringConstraints
 from starlette.concurrency import run_in_threadpool
 
 from reminiscence.auth.dependencies import SameOriginDependency, TabletSessionDependency
+from reminiscence.runtime_config import load_runtime_settings
 from reminiscence.tts.models import (
     SpeechSynthesisUnavailableError,
     SpeechSynthesizer,
@@ -45,7 +46,20 @@ class SpeechSynthesisRequest(BaseModel):
 @lru_cache(maxsize=1)
 def _build_speech_synthesizer() -> SpeechSynthesizer | None:
     try:
-        return SupertonicSynthesizer(SupertonicConfig.from_environment())
+        settings = load_runtime_settings().supertonic
+        return SupertonicSynthesizer(
+            SupertonicConfig(
+                model_dir=settings.model_dir,
+                auto_download=settings.auto_download,
+                voice=settings.voice,
+                language=settings.language,
+                total_steps=settings.total_steps,
+                speed=settings.speed,
+                max_text_chars=settings.max_text_chars,
+                intra_op_num_threads=settings.intra_op_num_threads,
+                inter_op_num_threads=settings.inter_op_num_threads,
+            )
+        )
     except (RuntimeError, ValueError, SpeechSynthesisUnavailableError) as exc:
         logger.error("failed to initialize Supertonic 3: %s", exc)
         return None

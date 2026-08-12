@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
+from reminiscence.runtime_config import data_directory
 from reminiscence.storage.migration import validate_data_directory
 from reminiscence.tts.api import get_speech_synthesizer
 
@@ -147,7 +148,7 @@ def get_readiness_checker() -> ReadinessChecker:
     """Build a checker for the current process configuration."""
 
     return ReadinessChecker(
-        Path(os.environ.get("REMINISCENCE_DATA_DIR", "data")),
+        data_directory(),
         atomic_write_probe=_ATOMIC_WRITE_PROBE,
         tts_probe=get_speech_synthesizer,
     )

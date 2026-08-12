@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import os
 from datetime import datetime, time
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Request, status
 from pydantic import BaseModel
@@ -24,6 +23,7 @@ from reminiscence.auth.dependencies import (
     SameOriginDependency,
     TabletSessionDependency,
 )
+from reminiscence.auth.secrets import load_auth_secrets
 from reminiscence.conversation.llm_questions import (
     CodexLbFollowUpQuestionProvider,
     CodexLbQuestionConfig,
@@ -57,6 +57,10 @@ from reminiscence.conversation.storage import (
     JsonConversationStore,
 )
 from reminiscence.conversation.suggestion import ConversationSuggestionPolicy
+from reminiscence.runtime_config import (
+    data_directory as runtime_data_directory,
+)
+from reminiscence.runtime_config import load_runtime_settings, server_timezone
 from reminiscence.storage import JsonStorageError, open_versioned_store
 
 router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])
@@ -141,15 +145,11 @@ class CompleteConversationRequest(BaseModel):
 
 
 def _data_directory() -> Path:
-    return Path(os.environ.get("REMINISCENCE_DATA_DIR", "data"))
+    return runtime_data_directory()
 
 
 def _server_timezone() -> ZoneInfo:
-    timezone_name = os.environ.get("REMINISCENCE_TIMEZONE", "Asia/Seoul")
-    try:
-        return ZoneInfo(timezone_name)
-    except ZoneInfoNotFoundError as exc:
-        raise RuntimeError(f"unknown REMINISCENCE_TIMEZONE: {timezone_name}") from exc
+    return server_timezone()
 
 
 @lru_cache(maxsize=1)
@@ -171,7 +171,15 @@ def get_speech_recognizer() -> SpeechRecognizer:
     """Build the configured ASR provider without persisting its credential."""
 
     try:
-        return CodexLbRecognizer(CodexLbRecognizerConfig.from_environment())
+        runtime = load_runtime_settings().codex_lb
+        return CodexLbRecognizer(
+            CodexLbRecognizerConfig(
+                api_key=load_auth_secrets().codex_lb_api_key,
+                base_url=runtime.base_url,
+                connect_timeout_seconds=runtime.connect_timeout_seconds,
+                read_timeout_seconds=runtime.transcription_read_timeout_seconds,
+            )
+        )
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -184,9 +192,16 @@ def get_question_provider() -> QuestionProvider:
     """Build a fixed opening with photo-aware codex-lb follow-up questions."""
 
     try:
+        runtime = load_runtime_settings().codex_lb
         return TemplateOpeningQuestionProvider(
             CodexLbFollowUpQuestionProvider(
-                CodexLbQuestionConfig.from_environment()
+                CodexLbQuestionConfig(
+                    api_key=load_auth_secrets().codex_lb_api_key,
+                    base_url=runtime.base_url,
+                    model=runtime.response_model,
+                    connect_timeout_seconds=runtime.connect_timeout_seconds,
+                    read_timeout_seconds=runtime.response_read_timeout_seconds,
+                )
             )
         )
     except (RuntimeError, ValueError) as exc:

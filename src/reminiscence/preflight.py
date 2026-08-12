@@ -9,6 +9,7 @@ from pathlib import Path
 
 from reminiscence.auth.secrets import load_auth_secrets
 from reminiscence.notification.config import load_notification_config
+from reminiscence.runtime_config import load_runtime_settings
 from reminiscence.storage.migration import validate_data_directory
 
 CommandExecutor = Callable[[str, list[str]], object]
@@ -21,6 +22,7 @@ def validate_runtime_configuration(data_directory: Path | None = None) -> None:
         data_directory
         or Path(os.environ.get("REMINISCENCE_DATA_DIR", "data"))
     )
+    load_runtime_settings(require_explicit=True)
     load_auth_secrets()
     load_notification_config()
 

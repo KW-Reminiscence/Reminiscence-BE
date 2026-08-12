@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass
 from math import isfinite
 from typing import Any
@@ -85,33 +84,6 @@ class CodexLbQuestionConfig:
     @property
     def responses_url(self) -> str:
         return f"{self.base_url.rstrip('/')}/responses"
-
-    @classmethod
-    def from_environment(cls) -> CodexLbQuestionConfig:
-        """Read the existing codex-lb proxy settings without persisting them."""
-
-        api_key = os.environ.get("CODEX_LB_API_KEY", "")
-        if not api_key:
-            raise RuntimeError("CODEX_LB_API_KEY is required")
-        try:
-            connect_timeout = float(
-                os.environ.get("CODEX_LB_CONNECT_TIMEOUT_SECONDS", "10.0")
-            )
-            read_timeout = float(
-                os.environ.get("CODEX_LB_RESPONSE_READ_TIMEOUT_SECONDS", "60.0")
-            )
-        except ValueError as exc:
-            raise RuntimeError(
-                "codex-lb question timeout environment values are invalid"
-            ) from exc
-        return cls(
-            api_key=api_key,
-            base_url=os.environ.get("CODEX_LB_BASE_URL", DEFAULT_BASE_URL),
-            model=os.environ.get("CODEX_LB_RESPONSE_MODEL", DEFAULT_RESPONSE_MODEL),
-            connect_timeout_seconds=connect_timeout,
-            read_timeout_seconds=read_timeout,
-        )
-
 
 class CodexLbFollowUpQuestionProvider:
     """Generate transient photo-aware follow-ups without retaining transcripts."""

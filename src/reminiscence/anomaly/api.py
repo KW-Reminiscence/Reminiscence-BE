@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import os
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -27,6 +26,10 @@ from reminiscence.anomaly.storage import (
     PersonalStateStore,
 )
 from reminiscence.auth.dependencies import GuardianSessionDependency
+from reminiscence.runtime_config import (
+    data_directory as runtime_data_directory,
+)
+from reminiscence.runtime_config import server_timezone
 from reminiscence.storage import JsonStorageError, open_versioned_store
 
 router = APIRouter(prefix="/api/v1/anomaly", tags=["anomaly"])
@@ -60,15 +63,11 @@ class PersonalStateResponse(BaseModel):
 
 
 def _data_directory() -> Path:
-    return Path(os.environ.get("REMINISCENCE_DATA_DIR", "data"))
+    return runtime_data_directory()
 
 
 def _server_timezone() -> ZoneInfo:
-    timezone_name = os.environ.get("REMINISCENCE_TIMEZONE", "Asia/Seoul")
-    try:
-        return ZoneInfo(timezone_name)
-    except ZoneInfoNotFoundError as exc:
-        raise RuntimeError(f"unknown REMINISCENCE_TIMEZONE: {timezone_name}") from exc
+    return server_timezone()
 
 
 @lru_cache(maxsize=1)

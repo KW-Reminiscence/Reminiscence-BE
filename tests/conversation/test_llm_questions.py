@@ -214,23 +214,6 @@ def test_transport_error_is_mapped_to_unavailable() -> None:
         client.follow_up_question(photo(), "즐거웠어요.", 1)
 
 
-def test_environment_reads_response_settings(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("CODEX_LB_API_KEY", "proxy-secret")
-    monkeypatch.setenv("CODEX_LB_BASE_URL", "https://codex.example/v1/")
-    monkeypatch.setenv("CODEX_LB_RESPONSE_MODEL", "gpt-5.6-terra")
-    monkeypatch.setenv("CODEX_LB_CONNECT_TIMEOUT_SECONDS", "3.5")
-    monkeypatch.setenv("CODEX_LB_RESPONSE_READ_TIMEOUT_SECONDS", "45")
-
-    value = CodexLbQuestionConfig.from_environment()
-
-    assert value.responses_url == "https://codex.example/v1/responses"
-    assert value.model == "gpt-5.6-terra"
-    assert value.connect_timeout_seconds == 3.5
-    assert value.read_timeout_seconds == 45
-
-
 @pytest.mark.parametrize(
     ("overrides", "message"),
     [

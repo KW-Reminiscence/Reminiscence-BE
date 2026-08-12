@@ -25,6 +25,7 @@ class AuthSecrets:
 
     guardian_password: str
     tablet_pairing_code: str
+    codex_lb_api_key: str = ""
 
 
 def get_application_secrets_path() -> Path:
@@ -78,4 +79,5 @@ def load_auth_secrets(path: Path | None = None) -> AuthSecrets:
             "tablet_pairing_code",
             MIN_PAIRING_CODE_LENGTH,
         ),
+        codex_lb_api_key=_credential(value, "codex_lb_api_key", 8),
     )

@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import os
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import Depends, HTTPException, Request, Security, status
 from fastapi.security import APIKeyCookie
@@ -20,26 +18,27 @@ from reminiscence.auth.storage import (
     AuthSessionStore,
     AuthStorageError,
 )
+from reminiscence.runtime_config import (
+    DEFAULT_PUBLIC_ORIGIN,
+    data_directory,
+    load_runtime_settings,
+    server_timezone,
+)
 from reminiscence.storage import JsonStorageError, open_versioned_store
 
 GUARDIAN_COOKIE = "reminiscence_guardian_session"
 TABLET_COOKIE = "reminiscence_tablet_session"
-DEFAULT_APPLICATION_ORIGIN = "https://reminiscence.leehyowon14.dev"
+DEFAULT_APPLICATION_ORIGIN = DEFAULT_PUBLIC_ORIGIN
 
 
 def _data_directory() -> Path:
-    return Path(os.environ.get("REMINISCENCE_DATA_DIR", "data"))
+    return data_directory()
 
 
 def get_auth_current_time() -> datetime:
     """Return current time in the configured appliance timezone."""
 
-    timezone_name = os.environ.get("REMINISCENCE_TIMEZONE", "Asia/Seoul")
-    try:
-        timezone = ZoneInfo(timezone_name)
-    except ZoneInfoNotFoundError as exc:
-        raise RuntimeError(f"unknown REMINISCENCE_TIMEZONE: {timezone_name}") from exc
-    return datetime.now(tz=timezone)
+    return datetime.now(tz=server_timezone())
 
 
 @lru_cache(maxsize=1)
@@ -67,7 +66,7 @@ def get_auth_service() -> AuthService:
 def require_same_origin(request: Request) -> None:
     """Reject every unsafe request without the exact configured web origin."""
 
-    expected = os.environ.get("REMINISCENCE_PUBLIC_ORIGIN", DEFAULT_APPLICATION_ORIGIN)
+    expected = load_runtime_settings().public_origin
     if request.headers.get("origin") != expected:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

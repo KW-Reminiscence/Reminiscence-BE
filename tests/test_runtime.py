@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from reminiscence.runtime import BackgroundRuntime, build_background_runtime
+from reminiscence.runtime import BackgroundRuntime
 
 SEOUL = ZoneInfo("Asia/Seoul")
 NOW = datetime(2026, 7, 27, 9, 0, tzinfo=SEOUL)
@@ -105,29 +105,6 @@ def test_start_twice_is_rejected() -> None:
         await runtime.stop()
 
     asyncio.run(scenario())
-
-
-@pytest.mark.parametrize(
-    ("environment_name", "value"),
-    [
-        ("REMINISCENCE_ROUTINE_TICK_SECONDS", "0"),
-        ("REMINISCENCE_ROUTINE_TICK_SECONDS", "-1"),
-        ("REMINISCENCE_ROUTINE_TICK_SECONDS", "nan"),
-        ("REMINISCENCE_EVALUATION_SECONDS", "inf"),
-        ("REMINISCENCE_EVALUATION_SECONDS", "-inf"),
-        ("REMINISCENCE_EVALUATION_SECONDS", "not-a-number"),
-    ],
-)
-def test_invalid_environment_intervals_are_rejected(
-    monkeypatch: pytest.MonkeyPatch,
-    environment_name: str,
-    value: str,
-) -> None:
-    monkeypatch.setenv(environment_name, value)
-    recorder = Recorder()
-
-    with pytest.raises(RuntimeError, match=environment_name):
-        build_background_runtime(recorder, recorder, lambda: NOW)
 
 
 @pytest.mark.parametrize(

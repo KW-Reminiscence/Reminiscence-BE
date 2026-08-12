@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from collections.abc import Callable
 from datetime import datetime
 from math import isfinite
@@ -29,19 +28,6 @@ class NotificationEvaluator(Protocol):
         """Evaluate personal patterns and notify when required."""
 
         ...
-
-
-def _positive_interval(environment_name: str, default: float) -> float:
-    raw_value = os.environ.get(environment_name)
-    if raw_value is None:
-        return default
-    try:
-        value = float(raw_value)
-    except ValueError as exc:
-        raise RuntimeError(f"{environment_name} must be a number") from exc
-    if not isfinite(value) or value <= 0:
-        raise RuntimeError(f"{environment_name} must be finite and positive")
-    return value
 
 
 class BackgroundRuntime:
@@ -135,18 +121,16 @@ def build_background_runtime(
     notification_coordinator: NotificationEvaluator,
     clock: Callable[[], datetime],
 ) -> BackgroundRuntime:
-    """Build the runtime from validated environment intervals."""
+    """Build the runtime from validated configuration.json intervals."""
+
+    from reminiscence.runtime_config import load_runtime_settings
+
+    settings = load_runtime_settings()
 
     return BackgroundRuntime(
         routine_scheduler,
         notification_coordinator,
         clock,
-        routine_interval_seconds=_positive_interval(
-            "REMINISCENCE_ROUTINE_TICK_SECONDS",
-            5.0,
-        ),
-        evaluation_interval_seconds=_positive_interval(
-            "REMINISCENCE_EVALUATION_SECONDS",
-            60.0,
-        ),
+        routine_interval_seconds=settings.routine_tick_seconds,
+        evaluation_interval_seconds=settings.evaluation_seconds,
     )

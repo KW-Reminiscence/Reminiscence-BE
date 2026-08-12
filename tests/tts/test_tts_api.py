@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from reminiscence.auth.dependencies import require_same_origin, require_tablet_session
 from reminiscence.main import create_app
+from reminiscence.runtime_config import RuntimeSettings
 from reminiscence.tts import api as tts_api
 from reminiscence.tts.api import get_speech_synthesizer
 from reminiscence.tts.models import (
@@ -110,9 +111,9 @@ def test_cold_start_initializes_supertonic_once(
         return synthesizer
 
     monkeypatch.setattr(
-        tts_api.SupertonicConfig,
-        "from_environment",
-        staticmethod(lambda: object()),
+        tts_api,
+        "load_runtime_settings",
+        RuntimeSettings,
     )
     monkeypatch.setattr(tts_api, "SupertonicSynthesizer", build)
     tts_api._build_speech_synthesizer.cache_clear()
@@ -153,9 +154,9 @@ def test_failed_initialization_is_cached(
         raise SpeechSynthesisUnavailableError("missing model")
 
     monkeypatch.setattr(
-        tts_api.SupertonicConfig,
-        "from_environment",
-        staticmethod(lambda: object()),
+        tts_api,
+        "load_runtime_settings",
+        RuntimeSettings,
     )
     monkeypatch.setattr(tts_api, "SupertonicSynthesizer", fail)
     tts_api._build_speech_synthesizer.cache_clear()

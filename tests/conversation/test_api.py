@@ -156,10 +156,29 @@ def start_session(client: TestClient) -> str:
 
 def test_default_recognizer_uses_codex_lb(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
-    monkeypatch.setenv("CODEX_LB_API_KEY", "proxy-secret")
-    monkeypatch.setenv("CODEX_LB_BASE_URL", "https://codex-lb.example/v1")
-    monkeypatch.delenv("ETRI_API_KEY", raising=False)
+    client_with(tmp_path)
+    configuration_path = tmp_path / "configuration.json"
+    configuration = json.loads(configuration_path.read_text(encoding="utf-8"))
+    configuration["runtime"] = {
+        "codex_lb": {"base_url": "https://codex-lb.example/v1"}
+    }
+    configuration_path.write_text(json.dumps(configuration), encoding="utf-8")
+    secret_path = tmp_path / "application-secrets.json"
+    secret_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "guardian_password": "guardian-password",
+                "tablet_pairing_code": "pairing-code",
+                "codex_lb_api_key": "proxy-secret",
+            }
+        ),
+        encoding="utf-8",
+    )
+    secret_path.chmod(0o600)
+    monkeypatch.setenv("REMINISCENCE_SECRETS_PATH", str(secret_path))
     get_speech_recognizer.cache_clear()
 
     try:
@@ -172,9 +191,29 @@ def test_default_recognizer_uses_codex_lb(
 
 def test_default_question_provider_uses_codex_lb(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
-    monkeypatch.setenv("CODEX_LB_API_KEY", "proxy-secret")
-    monkeypatch.setenv("CODEX_LB_BASE_URL", "https://codex-lb.example/v1")
+    client_with(tmp_path)
+    configuration_path = tmp_path / "configuration.json"
+    configuration = json.loads(configuration_path.read_text(encoding="utf-8"))
+    configuration["runtime"] = {
+        "codex_lb": {"base_url": "https://codex-lb.example/v1"}
+    }
+    configuration_path.write_text(json.dumps(configuration), encoding="utf-8")
+    secret_path = tmp_path / "application-secrets.json"
+    secret_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "guardian_password": "guardian-password",
+                "tablet_pairing_code": "pairing-code",
+                "codex_lb_api_key": "proxy-secret",
+            }
+        ),
+        encoding="utf-8",
+    )
+    secret_path.chmod(0o600)
+    monkeypatch.setenv("REMINISCENCE_SECRETS_PATH", str(secret_path))
     get_question_provider.cache_clear()
 
     try:
