@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, StringConstraints
 from starlette.concurrency import run_in_threadpool
 
+from reminiscence.auth.dependencies import SameOriginDependency, TabletSessionDependency
 from reminiscence.tts.models import (
     SpeechSynthesisUnavailableError,
     SpeechSynthesizer,
@@ -83,6 +84,8 @@ SynthesizerDependency = Annotated[
 async def synthesize_speech(
     payload: SpeechSynthesisRequest,
     synthesizer: SynthesizerDependency,
+    _: TabletSessionDependency,
+    __: SameOriginDependency,
 ) -> Response:
     """Return a non-persisted WAV that the tablet can play immediately."""
 

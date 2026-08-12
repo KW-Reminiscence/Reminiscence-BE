@@ -7,6 +7,7 @@ import threading
 import pytest
 from fastapi.testclient import TestClient
 
+from reminiscence.auth.dependencies import require_same_origin, require_tablet_session
 from reminiscence.main import create_app
 from reminiscence.tts import api as tts_api
 from reminiscence.tts.api import get_speech_synthesizer
@@ -33,10 +34,16 @@ class FakeSynthesizer:
         )
 
 
+def bypass_tablet_auth(application):  # type: ignore[no-untyped-def]
+    application.dependency_overrides[require_tablet_session] = lambda: None
+    application.dependency_overrides[require_same_origin] = lambda: None
+
+
 def test_speech_endpoint_returns_non_cached_wav() -> None:
     app = create_app()
     synthesizer = FakeSynthesizer()
     app.dependency_overrides[get_speech_synthesizer] = lambda: synthesizer
+    bypass_tablet_auth(app)
 
     response = TestClient(app).post(
         "/api/v1/tts/speech",
@@ -57,6 +64,7 @@ def test_speech_endpoint_rejects_blank_text_before_synthesis() -> None:
     app = create_app()
     synthesizer = FakeSynthesizer()
     app.dependency_overrides[get_speech_synthesizer] = lambda: synthesizer
+    bypass_tablet_auth(app)
 
     response = TestClient(app).post(
         "/api/v1/tts/speech",
@@ -71,6 +79,7 @@ def test_speech_endpoint_maps_model_failure_to_503() -> None:
     app = create_app()
     synthesizer = FakeSynthesizer(should_fail=True)
     app.dependency_overrides[get_speech_synthesizer] = lambda: synthesizer
+    bypass_tablet_auth(app)
 
     response = TestClient(app).post(
         "/api/v1/tts/speech",
