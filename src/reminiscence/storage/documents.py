@@ -290,19 +290,33 @@ def _validate_personal_state(root: dict[str, Any]) -> None:
 
 
 def _validate_notification_state(root: dict[str, Any]) -> None:
+    from reminiscence.notification.state import _parse_state
+
     _require_exact_keys(
         root,
         required=set(),
-        optional={"anomaly_notification_attempted", "updated_at"},
+        optional={
+            "anomaly_notification_attempted",
+            "delivery_status",
+            "attempt_count",
+            "updated_at",
+            "next_retry_at",
+            "last_error",
+        },
     )
-    attempted = root.get("anomaly_notification_attempted", False)
-    if not isinstance(attempted, bool):
-        raise JsonDocumentValidationError(
-            "anomaly_notification_attempted must be a boolean"
+    if "anomaly_notification_attempted" in root and any(
+        field in root
+        for field in (
+            "delivery_status",
+            "attempt_count",
+            "next_retry_at",
+            "last_error",
         )
-    updated_at = root.get("updated_at")
-    if updated_at is not None:
-        _aware_datetime(updated_at, "updated_at")
+    ):
+        raise JsonDocumentValidationError(
+            "legacy and current notification state fields must not be mixed"
+        )
+    _parse_state(root)
 
 
 def _validate_auth_sessions(root: dict[str, Any]) -> None:

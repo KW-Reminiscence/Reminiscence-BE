@@ -1,9 +1,10 @@
-"""At-most-once notification episode and API behavior."""
+"""Retryable notification episode state and internal API behavior."""
 
 from __future__ import annotations
 
+import json
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -32,7 +33,10 @@ from reminiscence.notification.service import (
     NotificationCoordinator,
     NotificationDeliveryStatus,
 )
-from reminiscence.notification.state import NotificationAttemptStore
+from reminiscence.notification.state import (
+    NotificationAttemptStore,
+    NotificationStateStatus,
+)
 from reminiscence.storage import JsonObjectStore
 
 SEOUL = ZoneInfo("Asia/Seoul")
@@ -168,13 +172,17 @@ def test_normal_state_resets_marker_for_next_anomaly(tmp_path: Path) -> None:
     assert len(sender.sent) == 2
 
 
-def test_failed_delivery_is_not_retried_in_same_episode(tmp_path: Path) -> None:
+def test_failed_delivery_retries_after_delay(tmp_path: Path) -> None:
     from reminiscence.notification.email_sender import GuardianEmailError
 
     sender = FakeEmailSender(fail=True)
     service = coordinator(
         tmp_path,
-        [AnomalyStatus.ANOMALOUS, AnomalyStatus.ANOMALOUS],
+        [
+            AnomalyStatus.ANOMALOUS,
+            AnomalyStatus.ANOMALOUS,
+            AnomalyStatus.ANOMALOUS,
+        ],
         sender,
     )
 
@@ -184,10 +192,50 @@ def test_failed_delivery_is_not_retried_in_same_episode(tmp_path: Path) -> None:
         pass
     else:
         raise AssertionError("expected delivery failure")
-    second = service.evaluate_and_notify(NOW)
+    before_retry = service.evaluate_and_notify(NOW + timedelta(minutes=4))
+    failed_state = json.loads(
+        (tmp_path / "notification_state.json").read_text(encoding="utf-8")
+    )
+    sender.fail = False
+    retried = service.evaluate_and_notify(NOW + timedelta(minutes=5))
 
-    assert second.notification_status is NotificationDeliveryStatus.SKIPPED
-    assert len(sender.sent) == 1
+    assert before_retry.notification_status is NotificationDeliveryStatus.SKIPPED
+    assert failed_state["delivery_status"] == "FAILED"
+    assert failed_state["attempt_count"] == 1
+    assert failed_state["next_retry_at"] == "2026-07-27T10:05:00+09:00"
+    assert failed_state["last_error"] == "GuardianEmailError"
+    assert retried.notification_status is NotificationDeliveryStatus.SENT
+    assert len(sender.sent) == 2
+    sent_state = json.loads(
+        (tmp_path / "notification_state.json").read_text(encoding="utf-8")
+    )
+    assert sent_state["delivery_status"] == "SENT"
+    assert sent_state["attempt_count"] == 2
+    assert sent_state["next_retry_at"] is None
+    assert sent_state["last_error"] is None
+
+
+def test_stale_pending_delivery_can_be_reclaimed(tmp_path: Path) -> None:
+    state_store = NotificationAttemptStore(
+        JsonObjectStore(tmp_path / "notification_state.json", missing_default={})
+    )
+
+    assert state_store.claim_attempt(
+        NOW,
+        pending_timeout=timedelta(minutes=10),
+    )
+    assert not state_store.claim_attempt(
+        NOW + timedelta(minutes=9, seconds=59),
+        pending_timeout=timedelta(minutes=10),
+    )
+    assert state_store.claim_attempt(
+        NOW + timedelta(minutes=10),
+        pending_timeout=timedelta(minutes=10),
+    )
+
+    state = state_store.load()
+    assert state.status is NotificationStateStatus.PENDING
+    assert state.attempt_count == 2
 
 
 def test_concurrent_coordinators_claim_one_delivery_attempt(

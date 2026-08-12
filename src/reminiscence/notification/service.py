@@ -1,11 +1,11 @@
-"""Coordinate anomaly evaluation and one guardian email attempt."""
+"""Coordinate anomaly evaluation and retryable guardian email delivery."""
 
 from __future__ import annotations
 
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Protocol
 
@@ -41,7 +41,7 @@ class AnomalyEvaluator(Protocol):
 
 
 class NotificationCoordinator:
-    """Attempt one email for each anomaly episode and never arbitrary text."""
+    """Deliver one email per anomaly episode with bounded retry timing."""
 
     def __init__(
         self,
@@ -49,18 +49,27 @@ class NotificationCoordinator:
         attempt_store: NotificationAttemptStore,
         config_loader: Callable[[], NotificationConfig],
         email_sender: GuardianEmailSender,
+        *,
+        retry_delay: timedelta = timedelta(minutes=5),
+        pending_timeout: timedelta = timedelta(minutes=10),
     ) -> None:
+        if retry_delay <= timedelta(0):
+            raise ValueError("retry_delay must be positive")
+        if pending_timeout <= timedelta(0):
+            raise ValueError("pending_timeout must be positive")
         self._anomaly_service = anomaly_service
         self._attempt_store = attempt_store
         self._config_loader = config_loader
         self._email_sender = email_sender
+        self._retry_delay = retry_delay
+        self._pending_timeout = pending_timeout
         self._coordination_lock = threading.RLock()
 
     def evaluate_and_notify(
         self,
         evaluated_at: datetime,
     ) -> NotificationEvaluationOutcome:
-        """Evaluate and perform at most one SMTP attempt per anomaly episode."""
+        """Evaluate and claim at most one SMTP attempt at the current time."""
 
         with self._coordination_lock:
             return self._evaluate_and_notify_locked(evaluated_at)
@@ -77,16 +86,28 @@ class NotificationCoordinator:
                 notification_status=NotificationDeliveryStatus.SKIPPED,
             )
         config = self._config_loader()
-        if not self._attempt_store.claim_attempt(evaluated_at):
+        if not self._attempt_store.claim_attempt(
+            evaluated_at,
+            pending_timeout=self._pending_timeout,
+        ):
             return NotificationEvaluationOutcome(
                 anomaly=anomaly,
                 notification_status=NotificationDeliveryStatus.SKIPPED,
             )
 
-        self._email_sender.send(
-            config,
-            anomaly.evaluation,
-        )
+        try:
+            self._email_sender.send(
+                config,
+                anomaly.evaluation,
+            )
+        except Exception as exc:
+            self._attempt_store.mark_failed(
+                evaluated_at,
+                retry_delay=self._retry_delay,
+                error_code=type(exc).__name__,
+            )
+            raise
+        self._attempt_store.mark_sent(evaluated_at)
         return NotificationEvaluationOutcome(
             anomaly=anomaly,
             notification_status=NotificationDeliveryStatus.SENT,

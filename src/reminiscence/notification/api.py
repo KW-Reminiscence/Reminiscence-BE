@@ -38,7 +38,7 @@ router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
 
 
 class NotificationEvaluationResponse(BaseModel):
-    """Result of one evaluation and at-most-once email decision."""
+    """Result of one evaluation and retry-aware email decision."""
 
     evaluated_at: datetime
     personal_status: AnomalyStatus
@@ -67,7 +67,7 @@ def get_notification_coordinator() -> NotificationCoordinator:
         NotificationAttemptStore(
             open_versioned_store(
                 _data_directory() / "notification_state.json",
-                missing_default={"anomaly_notification_attempted": False},
+                missing_default={},
             )
         ),
         load_notification_config,
