@@ -110,6 +110,16 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
         raise JsonSnapshotError(f"failed to restore JSON document: {path}") from exc
 
 
+def remove_file_durably(path: Path) -> None:
+    """Remove one file and durably persist its directory entry change."""
+
+    try:
+        path.unlink(missing_ok=True)
+        _fsync_directory(path.parent)
+    except OSError as exc:
+        raise JsonSnapshotError(f"failed to remove JSON document: {path}") from exc
+
+
 def _read_snapshot_documents(data_directory: Path) -> dict[str, bytes]:
     documents: dict[str, bytes] = {}
     for filename in BACKUP_FILENAMES:
@@ -249,7 +259,7 @@ def restore_snapshot(snapshot_directory: Path, data_directory: Path) -> None:
                 original = originals[filename]
                 try:
                     if original is None:
-                        path.unlink(missing_ok=True)
+                        remove_file_durably(path)
                     else:
                         atomic_write_bytes(path, original)
                 except (OSError, JsonSnapshotError) as rollback_exc:

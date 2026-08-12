@@ -20,6 +20,7 @@ from reminiscence.storage.snapshot import (
     JsonSnapshotError,
     atomic_write_bytes,
     exclusive_snapshot_lock,
+    remove_file_durably,
 )
 
 
@@ -116,7 +117,7 @@ def _rollback_documents(
         original = originals[filename]
         try:
             if original is None:
-                path.unlink(missing_ok=True)
+                remove_file_durably(path)
             else:
                 atomic_write_bytes(path, original)
         except (OSError, JsonSnapshotError) as exc:

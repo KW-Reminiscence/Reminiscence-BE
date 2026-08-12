@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import stat
 from pathlib import Path
 
 import pytest
@@ -62,6 +63,16 @@ def test_apply_versions_existing_and_creates_all_known_documents(
     assert json.loads(configuration_path.read_text(encoding="utf-8"))[
         "conversation"
     ] == {"suggestion_time": "14:00"}
+
+
+def test_apply_corrects_existing_data_directory_mode(tmp_path: Path) -> None:
+    data_directory = tmp_path / "data"
+    data_directory.mkdir(mode=0o755)
+    data_directory.chmod(0o755)
+
+    migrate_data_directory(data_directory, apply=True)
+
+    assert stat.S_IMODE(data_directory.stat().st_mode) == 0o750
 
 
 def test_migration_rejects_corrupt_json_without_creating_other_documents(

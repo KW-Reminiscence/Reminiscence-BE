@@ -13,6 +13,7 @@ from reminiscence.storage.snapshot import (
     BACKUP_FILENAMES,
     JsonSnapshotError,
     create_snapshot,
+    remove_file_durably,
     restore_snapshot,
     verify_snapshot,
 )
@@ -58,6 +59,21 @@ def test_snapshot_rejects_missing_required_document(tmp_path: Path) -> None:
 
     with pytest.raises(JsonSnapshotError, match="required JSON document"):
         create_snapshot(data_directory, tmp_path / "backups")
+
+
+def test_durable_remove_fsyncs_parent_directory(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "created.json"
+    path.write_text("{}", encoding="utf-8")
+    synced: list[Path] = []
+    monkeypatch.setattr(snapshot_module, "_fsync_directory", synced.append)
+
+    remove_file_durably(path)
+
+    assert not path.exists()
+    assert synced == [tmp_path]
 
 
 def test_verify_rejects_tampered_document_without_restoring(tmp_path: Path) -> None:
