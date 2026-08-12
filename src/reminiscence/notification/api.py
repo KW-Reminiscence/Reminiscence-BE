@@ -88,16 +88,11 @@ CoordinatorDependency = Annotated[
 CurrentTimeDependency = Annotated[datetime, Depends(get_current_time)]
 
 
-@router.post(
-    "/evaluate",
-    response_model=NotificationEvaluationResponse,
-    summary="Evaluate patterns and notify the guardian once",
-)
 async def evaluate_and_notify(
     coordinator: CoordinatorDependency,
     now: CurrentTimeDependency,
 ) -> NotificationEvaluationResponse:
-    """Run an internal evaluation without accepting arbitrary email content."""
+    """Internal helper retained for direct tests; not exposed through HTTP."""
 
     try:
         outcome = await run_in_threadpool(

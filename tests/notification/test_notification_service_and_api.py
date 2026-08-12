@@ -281,7 +281,7 @@ def test_invalid_configuration_does_not_consume_delivery_attempt(
     assert len(sender.sent) == 1
 
 
-def test_api_returns_delivery_result_and_detector_reason(
+def test_notification_evaluation_is_not_exposed_over_http(
     tmp_path: Path,
 ) -> None:
     sender = FakeEmailSender()
@@ -295,13 +295,12 @@ def test_api_returns_delivery_result_and_detector_reason(
 
     response = TestClient(app).post("/api/v1/notifications/evaluate")
 
-    assert response.status_code == 200
-    assert response.json()["notification_status"] == "SENT"
-    assert response.json()["reasons"] == ["아침 약 루틴 3회 연속 미응답"]
+    assert response.status_code == 404
+    assert sender.sent == []
 
 
 def test_notification_endpoint_is_documented() -> None:
-    assert "/api/v1/notifications/evaluate" in app.openapi()["paths"]
+    assert "/api/v1/notifications/evaluate" not in app.openapi()["paths"]
 
 
 def teardown_function() -> None:
