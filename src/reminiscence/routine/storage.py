@@ -13,7 +13,7 @@ from reminiscence.routine.models import (
     RoutinePolicy,
     RoutineState,
 )
-from reminiscence.storage import JsonObjectStore, JsonStorageError
+from reminiscence.storage import JsonStorageError, open_versioned_store
 
 
 class RoutineStorageError(RuntimeError):
@@ -226,11 +226,12 @@ class JsonRoutineStore:
     """Store routines without overwriting unrelated activity metric sections."""
 
     def __init__(self, configuration_path: Path, activity_path: Path) -> None:
-        self._configuration_store = JsonObjectStore(
+        self._configuration_store = open_versioned_store(
             configuration_path,
             missing_default={"routines": []},
+            read_only=True,
         )
-        self._activity_store = JsonObjectStore(
+        self._activity_store = open_versioned_store(
             activity_path,
             missing_default={"routine_executions": []},
         )

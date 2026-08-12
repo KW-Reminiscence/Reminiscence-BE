@@ -19,6 +19,7 @@ def build_scheduler(tmp_path: Path) -> RoutineScheduler:
     configuration_path.write_text(
         json.dumps(
             {
+                "schema_version": 1,
                 "routines": [
                     {
                         "id": "medication",

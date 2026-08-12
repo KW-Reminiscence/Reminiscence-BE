@@ -37,12 +37,14 @@ class JsonObjectStore:
         *,
         missing_default: Mapping[str, Any] | None = None,
         schema_version: int | None = None,
+        read_only: bool = False,
     ) -> None:
         if schema_version is not None and schema_version < 1:
             raise ValueError("schema_version must be a positive integer")
         self.path = path
         self._missing_default = dict(missing_default or {})
         self._schema_version = schema_version
+        self._read_only = read_only
         self._lock = _shared_lock(path)
 
     @property
@@ -60,12 +62,11 @@ class JsonObjectStore:
     def read(self) -> dict[str, Any]:
         """Return a detached JSON object."""
 
-        with (
-            self._lock,
-            self._snapshot_lock(exclusive=False),
-            self._file_lock(exclusive=False),
-        ):
-            return self._read_unlocked()
+        with self._lock:
+            if self._read_only:
+                return self._read_unlocked()
+            with self._snapshot_lock(exclusive=False), self._file_lock(exclusive=False):
+                return self._read_unlocked()
 
     def update(
         self,
@@ -73,6 +74,8 @@ class JsonObjectStore:
     ) -> dict[str, Any]:
         """Mutate and atomically persist an object while holding the path lock."""
 
+        if self._read_only:
+            raise JsonStorageError(f"JSON object is read-only: {self.path}")
         with (
             self._lock,
             self._snapshot_lock(exclusive=False),
@@ -87,6 +90,8 @@ class JsonObjectStore:
     def replace(self, value: Mapping[str, Any]) -> dict[str, Any]:
         """Replace the complete JSON object under an exclusive file lock."""
 
+        if self._read_only:
+            raise JsonStorageError(f"JSON object is read-only: {self.path}")
         replacement = deepcopy(dict(value))
         with (
             self._lock,

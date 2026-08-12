@@ -31,6 +31,7 @@ SEOUL = ZoneInfo("Asia/Seoul")
 @pytest.fixture
 def valid_config() -> dict[str, Any]:
     return {
+        "schema_version": 1,
         "care_recipient": {"name": "홍길동"},
         "guardian": {"email": "guardian@example.com"},
         "smtp": {
@@ -95,7 +96,7 @@ def test_loads_valid_notification_secret(
     [
         ("not-json", "valid JSON"),
         ("[]", "configuration"),
-        ('{"guardian": {}}', "care_recipient"),
+        ('{"schema_version": 1, "guardian": {}}', "care_recipient"),
     ],
 )
 def test_rejects_malformed_secret(

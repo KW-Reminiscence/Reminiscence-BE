@@ -51,7 +51,7 @@ from reminiscence.conversation.storage import (
     JsonConversationStore,
 )
 from reminiscence.conversation.suggestion import ConversationSuggestionPolicy
-from reminiscence.storage import JsonObjectStore, JsonStorageError
+from reminiscence.storage import JsonStorageError, open_versioned_store
 
 router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])
 
@@ -144,7 +144,7 @@ def get_conversation_service() -> ConversationService:
 
     return ConversationService(
         JsonConversationStore(
-            JsonObjectStore(
+            open_versioned_store(
                 _data_directory() / "activity_metrics.json",
                 missing_default={"conversation_sessions": []},
             )
@@ -189,9 +189,10 @@ def get_current_time() -> datetime:
 
 
 def _load_photo(photo_id: str | None) -> PhotoMemory:
-    root = JsonObjectStore(
+    root = open_versioned_store(
         _data_directory() / "configuration.json",
         missing_default={"photos": []},
+        read_only=True,
     ).read()
     try:
         photos = parse_photos(root.get("photos", []))
@@ -211,9 +212,10 @@ def _load_photo(photo_id: str | None) -> PhotoMemory:
 
 
 def _load_conversation_suggestion_time() -> time:
-    root = JsonObjectStore(
+    root = open_versioned_store(
         _data_directory() / "configuration.json",
         missing_default={},
+        read_only=True,
     ).read()
     conversation_value = root.get("conversation", {})
     if not isinstance(conversation_value, dict):

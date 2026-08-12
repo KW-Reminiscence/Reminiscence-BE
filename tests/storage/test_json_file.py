@@ -172,3 +172,19 @@ def test_processes_do_not_lose_concurrent_updates(tmp_path: Path) -> None:
     assert JsonObjectStore(path, schema_version=1).read()["count"] == (
         process_count * increments_per_process
     )
+
+
+def test_read_only_store_reads_without_creating_locks_and_rejects_writes(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "configuration.json"
+    path.write_text('{"schema_version": 1}', encoding="utf-8")
+    store = JsonObjectStore(path, schema_version=1, read_only=True)
+
+    assert store.read() == {"schema_version": 1}
+    assert not store.lock_path.exists()
+    assert not store.snapshot_lock_path.exists()
+    with pytest.raises(JsonStorageError, match="read-only"):
+        store.update(lambda value: value.update({"changed": True}))
+    with pytest.raises(JsonStorageError, match="read-only"):
+        store.replace({"changed": True})

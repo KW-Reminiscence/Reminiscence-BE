@@ -20,6 +20,7 @@ def write_configuration(path: Path) -> None:
     path.write_text(
         json.dumps(
             {
+                "schema_version": 1,
                 "photos": [{"path": "family.jpg"}],
                 "routines": [
                     {
@@ -154,7 +155,12 @@ def test_each_date_gets_a_distinct_execution(tmp_path: Path) -> None:
 def test_save_preserves_unrelated_activity_sections(tmp_path: Path) -> None:
     scheduler, activity_path = build_scheduler(tmp_path)
     activity_path.write_text(
-        json.dumps({"conversation_sessions": [{"session_id": "existing"}]}),
+        json.dumps(
+            {
+                "schema_version": 1,
+                "conversation_sessions": [{"session_id": "existing"}],
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -170,7 +176,7 @@ def test_removed_definition_does_not_corrupt_existing_history(tmp_path: Path) ->
     scheduler, activity_path = build_scheduler(tmp_path)
     scheduler.tick(at(9, 0))
     (tmp_path / "configuration.json").write_text(
-        json.dumps({"routines": []}),
+        json.dumps({"schema_version": 1, "routines": []}),
         encoding="utf-8",
     )
 
@@ -196,7 +202,9 @@ def test_changed_definition_does_not_change_active_execution_policy(
     root["routines"][0]["grace_minutes"] = 1
     root["routines"][0]["reminder_interval_minutes"] = 1
     root["routines"][0]["max_reminders"] = 0
-    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    configuration_path.write_text(
+        json.dumps({"schema_version": 1, **root}), encoding="utf-8"
+    )
     restarted = RoutineScheduler(
         JsonRoutineStore(configuration_path, activity_path),
         SEOUL,
@@ -217,7 +225,9 @@ def test_inactive_definition_does_not_create_execution(tmp_path: Path) -> None:
     write_configuration(configuration_path)
     root = json.loads(configuration_path.read_text(encoding="utf-8"))
     root["routines"][0]["active"] = False
-    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    configuration_path.write_text(
+        json.dumps({"schema_version": 1, **root}), encoding="utf-8"
+    )
     scheduler = RoutineScheduler(
         JsonRoutineStore(configuration_path, activity_path),
         SEOUL,
@@ -251,7 +261,9 @@ def test_legacy_execution_without_policy_uses_current_definition(
     root["routine_executions"][0].pop("policy")
     root["routine_executions"][0].pop("routine_name")
     root["routine_executions"][0].pop("category")
-    activity_path.write_text(json.dumps(root), encoding="utf-8")
+    activity_path.write_text(
+        json.dumps({"schema_version": 1, **root}), encoding="utf-8"
+    )
     restarted = RoutineScheduler(
         JsonRoutineStore(tmp_path / "configuration.json", activity_path),
         SEOUL,
@@ -269,7 +281,9 @@ def test_semantically_invalid_execution_is_rejected(tmp_path: Path) -> None:
     scheduler.tick(at(9, 0))
     root = json.loads(activity_path.read_text(encoding="utf-8"))
     root["routine_executions"][0]["state"] = "CONFIRMED"
-    activity_path.write_text(json.dumps(root), encoding="utf-8")
+    activity_path.write_text(
+        json.dumps({"schema_version": 1, **root}), encoding="utf-8"
+    )
 
     with pytest.raises(RoutineStorageError, match="requires confirmation fields"):
         scheduler.list_executions()
@@ -285,7 +299,9 @@ def test_overlapping_response_windows_are_rejected(tmp_path: Path) -> None:
     overlapping["category"] = "MEAL"
     overlapping["scheduled_time"] = "09:39"
     root["routines"].append(overlapping)
-    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    configuration_path.write_text(
+        json.dumps({"schema_version": 1, **root}), encoding="utf-8"
+    )
     store = JsonRoutineStore(configuration_path, tmp_path / "activity_metrics.json")
 
     with pytest.raises(RoutineStorageError, match="must not overlap"):
@@ -302,7 +318,9 @@ def test_touching_response_window_boundaries_are_allowed(tmp_path: Path) -> None
     touching["category"] = "MEAL"
     touching["scheduled_time"] = "09:40"
     root["routines"].append(touching)
-    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    configuration_path.write_text(
+        json.dumps({"schema_version": 1, **root}), encoding="utf-8"
+    )
     store = JsonRoutineStore(configuration_path, tmp_path / "activity_metrics.json")
 
     assert len(store.load_definitions()) == 2
@@ -316,7 +334,9 @@ def test_inactive_overlapping_definition_is_allowed(tmp_path: Path) -> None:
     inactive["id"] = "disabled-breakfast"
     inactive["active"] = False
     root["routines"].append(inactive)
-    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    configuration_path.write_text(
+        json.dumps({"schema_version": 1, **root}), encoding="utf-8"
+    )
     store = JsonRoutineStore(configuration_path, tmp_path / "activity_metrics.json")
 
     definitions = store.load_definitions()
@@ -350,7 +370,9 @@ def test_cross_week_response_window_overlap_is_rejected(tmp_path: Path) -> None:
         }
     )
     root["routines"] = [sunday, monday]
-    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    configuration_path.write_text(
+        json.dumps({"schema_version": 1, **root}), encoding="utf-8"
+    )
     store = JsonRoutineStore(configuration_path, tmp_path / "activity_metrics.json")
 
     with pytest.raises(RoutineStorageError, match="must not overlap"):
@@ -362,7 +384,9 @@ def test_non_boolean_active_flag_is_rejected(tmp_path: Path) -> None:
     write_configuration(configuration_path)
     root = json.loads(configuration_path.read_text(encoding="utf-8"))
     root["routines"][0]["active"] = 1
-    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    configuration_path.write_text(
+        json.dumps({"schema_version": 1, **root}), encoding="utf-8"
+    )
     store = JsonRoutineStore(configuration_path, tmp_path / "activity_metrics.json")
 
     with pytest.raises(RoutineStorageError, match="active must be a boolean"):
@@ -407,7 +431,9 @@ def test_weekday_filter_prevents_execution_creation(tmp_path: Path) -> None:
     write_configuration(configuration_path)
     root = json.loads(configuration_path.read_text(encoding="utf-8"))
     root["routines"][0]["weekdays"] = [1]
-    configuration_path.write_text(json.dumps(root), encoding="utf-8")
+    configuration_path.write_text(
+        json.dumps({"schema_version": 1, **root}), encoding="utf-8"
+    )
     scheduler = RoutineScheduler(
         JsonRoutineStore(configuration_path, activity_path),
         SEOUL,

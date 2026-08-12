@@ -32,7 +32,7 @@ from reminiscence.notification.state import (
     NotificationAttemptStore,
     NotificationStateError,
 )
-from reminiscence.storage import JsonObjectStore, JsonStorageError
+from reminiscence.storage import JsonStorageError, open_versioned_store
 
 router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
 
@@ -65,7 +65,7 @@ def get_notification_coordinator() -> NotificationCoordinator:
     return NotificationCoordinator(
         get_anomaly_service(),
         NotificationAttemptStore(
-            JsonObjectStore(
+            open_versioned_store(
                 _data_directory() / "notification_state.json",
                 missing_default={"anomaly_notification_attempted": False},
             )

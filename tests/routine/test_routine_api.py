@@ -21,6 +21,7 @@ def write_configuration(path: Path) -> None:
     path.write_text(
         json.dumps(
             {
+                "schema_version": 1,
                 "routines": [
                     {
                         "id": "morning-medication",
@@ -93,7 +94,7 @@ def test_active_prompt_keeps_snapshot_after_definition_is_removed(
     client = client_at(tmp_path, at(9, 0))
     first = client.get("/api/v1/routines/current")
     (tmp_path / "configuration.json").write_text(
-        json.dumps({"routines": []}),
+        json.dumps({"schema_version": 1, "routines": []}),
         encoding="utf-8",
     )
     app.dependency_overrides[get_current_time] = lambda: at(9, 5)

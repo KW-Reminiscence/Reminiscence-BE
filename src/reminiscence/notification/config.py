@@ -11,6 +11,7 @@ from typing import Any
 
 DEFAULT_NOTIFICATION_CONFIG_PATH = Path("/run/secrets/notification-config.json")
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+CURRENT_NOTIFICATION_CONFIG_SCHEMA_VERSION = 1
 
 
 class NotificationConfigError(ValueError):
@@ -93,6 +94,12 @@ def load_notification_config(path: Path | None = None) -> NotificationConfig:
         ) from exc
 
     root = _require_object(raw_config, "configuration")
+    schema_version = root.get("schema_version")
+    if (
+        schema_version != CURRENT_NOTIFICATION_CONFIG_SCHEMA_VERSION
+        or isinstance(schema_version, bool)
+    ):
+        raise NotificationConfigError("configuration.schema_version must be 1")
     care_recipient = _require_object(
         root.get("care_recipient"),
         "care_recipient",

@@ -30,7 +30,7 @@ from reminiscence.notification.state import NotificationAttemptStore
 from reminiscence.routine import RoutineState
 from reminiscence.routine.scheduler import RoutineScheduler
 from reminiscence.routine.storage import JsonRoutineStore
-from reminiscence.storage import JsonObjectStore
+from reminiscence.storage import JsonObjectStore, open_versioned_store
 
 SEOUL = ZoneInfo("Asia/Seoul")
 
@@ -72,6 +72,7 @@ def test_missed_routines_trigger_one_notification_without_losing_conversation(
     configuration_path.write_text(
         json.dumps(
             {
+                "schema_version": 1,
                 "routines": [
                     {
                         "id": "morning-medication",
@@ -95,7 +96,7 @@ def test_missed_routines_trigger_one_notification_without_losing_conversation(
     )
     conversation_service = ConversationService(
         JsonConversationStore(
-            JsonObjectStore(activity_path, missing_default={})
+            open_versioned_store(activity_path, missing_default={})
         ),
         id_factory=iter(["session-1", "turn-1"]).__next__,
     )

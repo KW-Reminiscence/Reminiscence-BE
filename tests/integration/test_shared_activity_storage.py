@@ -18,7 +18,7 @@ from reminiscence.conversation.models import (
 from reminiscence.routine import RoutineState
 from reminiscence.routine.models import RoutineExecution
 from reminiscence.routine.storage import JsonRoutineStore
-from reminiscence.storage import JsonObjectStore
+from reminiscence.storage import open_versioned_store
 
 SEOUL = ZoneInfo("Asia/Seoul")
 
@@ -32,7 +32,7 @@ def test_routine_and_conversation_writes_do_not_lose_each_other(
         activity_path,
     )
     conversation_store = JsonConversationStore(
-        JsonObjectStore(activity_path, missing_default={})
+        open_versioned_store(activity_path, missing_default={})
     )
     barrier = Barrier(2)
     count = 30

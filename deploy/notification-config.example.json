@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "care_recipient": {
     "name": "홍길동"
   },

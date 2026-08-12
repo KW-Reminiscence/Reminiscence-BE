@@ -96,6 +96,7 @@ def client_with(
     configuration_path.write_text(
         json.dumps(
             {
+                "schema_version": 1,
                 "photos": [
                     {
                         "id": "family-1",

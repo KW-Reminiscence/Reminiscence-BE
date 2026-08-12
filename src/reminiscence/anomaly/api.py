@@ -28,7 +28,7 @@ from reminiscence.anomaly.storage import (
     AnomalyStorageError,
     PersonalStateStore,
 )
-from reminiscence.storage import JsonObjectStore, JsonStorageError
+from reminiscence.storage import JsonStorageError, open_versioned_store
 
 router = APIRouter(prefix="/api/v1/anomaly", tags=["anomaly"])
 
@@ -92,13 +92,13 @@ def get_anomaly_service() -> AnomalyService:
     data_directory = _data_directory()
     return AnomalyService(
         ActivityMetricReader(
-            JsonObjectStore(
+            open_versioned_store(
                 data_directory / "activity_metrics.json",
                 missing_default={},
             )
         ),
         PersonalStateStore(
-            JsonObjectStore(
+            open_versioned_store(
                 data_directory / "personal_state.json",
                 missing_default={},
             )
