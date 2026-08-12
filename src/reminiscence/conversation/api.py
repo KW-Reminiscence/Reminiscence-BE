@@ -194,6 +194,21 @@ def get_current_time() -> datetime:
 
 
 def _load_photo(photo_id: str | None) -> PhotoMemory:
+    photos = load_configured_photos()
+    if photo_id is None:
+        return photos[0]
+    selected = next(
+        (photo for photo in photos if photo.photo_id == photo_id),
+        None,
+    )
+    if selected is None:
+        raise ConversationNotFoundError(f"photo not found: {photo_id}")
+    return selected
+
+
+def load_configured_photos() -> tuple[PhotoMemory, ...]:
+    """Load the strictly parsed family photo configuration."""
+
     root = open_versioned_store(
         _data_directory() / "configuration.json",
         missing_default={"photos": []},
@@ -205,15 +220,7 @@ def _load_photo(photo_id: str | None) -> PhotoMemory:
         raise ConversationStorageError(str(exc)) from exc
     if not photos:
         raise ConversationStorageError("at least one photo must be configured")
-    if photo_id is None:
-        return photos[0]
-    selected = next(
-        (photo for photo in photos if photo.photo_id == photo_id),
-        None,
-    )
-    if selected is None:
-        raise ConversationNotFoundError(f"photo not found: {photo_id}")
-    return selected
+    return photos
 
 
 def _load_conversation_suggestion_time() -> time:
@@ -248,7 +255,7 @@ def _speech_response(value: SpeechText) -> SpeechTextResponse:
     )
 
 
-def _photo_response(photo: PhotoMemory) -> PhotoMemoryResponse:
+def photo_response(photo: PhotoMemory) -> PhotoMemoryResponse:
     return PhotoMemoryResponse(
         id=photo.photo_id,
         image_base64=photo.image_base64,
@@ -272,6 +279,25 @@ def _summary_response(session: ConversationSession) -> ConversationSummaryRespon
         average_utterance_chars=summary.average_utterance_chars,
         average_turn_duration_seconds=summary.average_turn_duration_seconds,
         no_response_count=summary.no_response_count,
+    )
+
+
+def build_conversation_suggestion(
+    service: ConversationService,
+    now: datetime,
+) -> ConversationSuggestionResponse:
+    """Build the shared daily suggestion response for tablet surfaces."""
+
+    outcome = ConversationSuggestionPolicy(
+        _load_conversation_suggestion_time()
+    ).evaluate(now, service.list_sessions())
+    text = "오늘 사진을 보며 이야기 나눠 보실래요?"
+    return ConversationSuggestionResponse(
+        suggested=outcome.suggested,
+        scheduled_time=outcome.scheduled_time,
+        display_text=text if outcome.suggested else None,
+        spoken_text=text if outcome.suggested else None,
+        start_label="이야기 시작하기" if outcome.suggested else None,
     )
 
 
@@ -311,22 +337,12 @@ async def get_conversation_suggestion(
     """Offer a daily session without treating a dismissed offer as an anomaly."""
 
     try:
-        outcome = ConversationSuggestionPolicy(
-            _load_conversation_suggestion_time()
-        ).evaluate(now, service.list_sessions())
+        return build_conversation_suggestion(service, now)
     except (ConversationStorageError, JsonStorageError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
-    text = "오늘 사진을 보며 이야기 나눠 보실래요?"
-    return ConversationSuggestionResponse(
-        suggested=outcome.suggested,
-        scheduled_time=outcome.scheduled_time,
-        display_text=text if outcome.suggested else None,
-        spoken_text=text if outcome.suggested else None,
-        start_label="이야기 시작하기" if outcome.suggested else None,
-    )
 
 
 @router.post(
@@ -369,7 +385,7 @@ async def start_conversation(
     return StartConversationResponse(
         session_id=session.session_id,
         status=session.status,
-        photo=_photo_response(photo),
+        photo=photo_response(photo),
         question=_speech_response(question),
     )
 

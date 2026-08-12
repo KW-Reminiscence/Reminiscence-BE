@@ -36,6 +36,7 @@ from reminiscence.routine.api import (
 from reminiscence.runtime import build_background_runtime
 from reminiscence.storage.instance_lock import SingleInstanceLock
 from reminiscence.storage.migration import validate_data_directory
+from reminiscence.tablet.api import router as tablet_router
 from reminiscence.tts.api import router as tts_router
 
 
@@ -127,6 +128,7 @@ def create_app(cors_origins: tuple[str, ...] | None = None) -> FastAPI:
     application.add_middleware(RequestRateLimitMiddleware)
     application.include_router(health_router)
     application.include_router(auth_router)
+    application.include_router(tablet_router)
     application.include_router(routine_router)
     application.include_router(conversation_router)
     application.include_router(anomaly_router)

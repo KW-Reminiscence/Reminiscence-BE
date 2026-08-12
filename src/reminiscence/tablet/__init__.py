@@ -1,0 +1,2 @@
+"""Integrated tablet home state."""
+

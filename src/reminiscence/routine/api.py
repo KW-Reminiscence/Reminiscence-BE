@@ -142,6 +142,31 @@ def _execution_response(execution: RoutineExecution) -> RoutineExecutionResponse
     )
 
 
+def build_current_routine_prompts(
+    scheduler: RoutineScheduler,
+    now: datetime,
+) -> list[RoutinePromptResponse]:
+    """Advance routine state and build the tablet presentation snapshot."""
+
+    scheduler.tick(now)
+    definitions = {
+        definition.routine_id: definition for definition in scheduler.list_definitions()
+    }
+    prompts = []
+    for execution in scheduler.list_executions():
+        if execution.state is not RoutineState.REMINDING:
+            continue
+        definition = definitions.get(execution.routine_id)
+        if (
+            definition is None
+            and execution.routine_name is None
+            and execution.category is None
+        ):
+            continue
+        prompts.append(_prompt_response(definition, execution))
+    return prompts
+
+
 SchedulerDependency = Annotated[RoutineScheduler, Depends(get_routine_scheduler)]
 CurrentTimeDependency = Annotated[datetime, Depends(get_current_time)]
 
@@ -159,23 +184,7 @@ async def get_current_routines(
     """Advance due transitions and return prompts the tablet should display."""
 
     try:
-        scheduler.tick(now)
-        definitions = {
-            definition.routine_id: definition
-            for definition in scheduler.list_definitions()
-        }
-        prompts = []
-        for execution in scheduler.list_executions():
-            if execution.state is not RoutineState.REMINDING:
-                continue
-            definition = definitions.get(execution.routine_id)
-            if (
-                definition is None
-                and execution.routine_name is None
-                and execution.category is None
-            ):
-                continue
-            prompts.append(_prompt_response(definition, execution))
+        prompts = build_current_routine_prompts(scheduler, now)
     except (RoutineStorageError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
