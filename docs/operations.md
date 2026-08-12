@@ -51,16 +51,19 @@ secret은 `600`, production과 data directory는 `750`이어야 합니다.
 offline 전환합니다. 정상 배포 snapshot은 strict current schema만 받으므로,
 legacy 원본은 별도 directory에 그대로 보존해야 합니다.
 
-1. maintenance flag를 만들고 기존 API를 중지합니다.
-2. `data` 전체를 timestamp가 붙은 `legacy-pre-migration-*` directory에
-   파일 속성을 보존해 복사합니다.
-3. candidate API digest image의 migration CLI를 `--apply`로 명시 실행합니다.
-4. `configuration.json`에 production `runtime`과 실제 사진·일정이 있는지
+1. `APPLY_JSON_MIGRATIONS=1`로 일반 digest 배포를 시작합니다.
+2. script가 maintenance에 진입하고 기존 API를 중지합니다.
+3. schema와 무관한 `legacy_snapshot`이 모든 JSON 원본, 정확한 파일 목록과
+   SHA-256을 atomic directory로 보존합니다.
+4. candidate migration CLI가 versioned JSON을 생성하고 strict preflight와
+   실제 TTS smoke를 통과해야 두 container를 시작합니다.
+5. `configuration.json`에 production `runtime`과 실제 사진·일정이 있는지
    확인합니다.
-5. candidate preflight가 성공한 뒤 일반 digest 배포를 실행합니다.
 
-중간 실패 시 새 API를 시작하지 말고 legacy directory를 이용해 수동 복구한 뒤
-기존 API를 재기동합니다. 손상된 JSON을 기본값으로 덮어써서는 안 됩니다.
+public traffic 전 중간 실패 시 script가 legacy snapshot의 정확한 파일 목록까지
+복구하고 이전 release를 검증합니다. snapshot restore나 이전 API·web smoke가
+실패하면 maintenance를 유지하므로 수동 조사해야 합니다. 손상된 JSON을
+기본값으로 덮어써서는 안 됩니다.
 
 ## 3. Host Nginx와 Cloudflare
 
