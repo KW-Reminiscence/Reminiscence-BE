@@ -54,3 +54,15 @@ def test_nginx_rate_limits_abuse_prone_public_and_media_routes() -> None:
     assert "limit_req zone=reminiscence_turn" in nginx
     assert "limit_req zone=reminiscence_tts" in nginx
     assert "limit_req_status 429;" in nginx
+
+
+def test_nginx_uses_a_host_flag_for_atomic_maintenance_entry() -> None:
+    nginx = _nginx()
+
+    assert (
+        "if (-f /home/ubuntu/apps/reminiscence/production/maintenance.flag)"
+        in nginx
+    )
+    assert "error_page 503 @maintenance;" in nginx
+    assert "location @maintenance" in nginx
+    assert "잠시 점검 중입니다" in nginx
