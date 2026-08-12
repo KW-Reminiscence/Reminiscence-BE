@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Reminiscence isolated restore drill monthly
+
+[Timer]
+OnCalendar=*-*-01 04:30:00 Asia/Seoul
+Persistent=true
+RandomizedDelaySec=30m
+Unit=reminiscence-restore-drill.service
+
+[Install]
+WantedBy=timers.target
