@@ -16,6 +16,7 @@ from reminiscence.conversation.models import (
     ConversationTurnMetric,
 )
 from reminiscence.conversation.storage import (
+    ConversationStorageConflictError,
     ConversationStorageNotFoundError,
     JsonConversationStore,
 )
@@ -65,7 +66,10 @@ class ConversationService:
             status=ConversationStatus.ACTIVE,
             turns=(),
         )
-        self._store.save_session(session)
+        try:
+            self._store.create_session(session)
+        except ConversationStorageConflictError as exc:
+            raise ConversationStateError(str(exc)) from exc
         return session
 
     def record_turn(
@@ -74,10 +78,13 @@ class ConversationService:
         recognition: RecognitionResult,
         turn_duration_seconds: float,
         recorded_at: datetime,
+        turn_id: str | None = None,
     ) -> ConversationTurnMetric:
         """Reduce a transient transcript to metrics and discard the text."""
 
         _require_aware(recorded_at, "recorded_at")
+        if turn_id is not None and not turn_id.strip():
+            raise ValueError("turn_id must not be blank")
         if (
             not isfinite(turn_duration_seconds)
             or turn_duration_seconds < 0
@@ -88,13 +95,21 @@ class ConversationService:
 
         def append_turn(session: ConversationSession) -> ConversationSession:
             nonlocal metric
+            requested_id = turn_id or self._id_factory()
+            existing = next(
+                (turn for turn in session.turns if turn.turn_id == requested_id),
+                None,
+            )
+            if existing is not None:
+                metric = existing
+                return session
             self._require_active(session)
             if recorded_at < session.started_at:
                 raise ValueError("recorded_at must not be before started_at")
             utterance_chars = len("".join(recognition.transcript.split()))
             no_response = utterance_chars == 0
             metric = ConversationTurnMetric(
-                turn_id=self._id_factory(),
+                turn_id=requested_id,
                 recorded_at=recorded_at,
                 utterance_chars=utterance_chars,
                 turn_duration_seconds=turn_duration_seconds,
@@ -117,6 +132,16 @@ class ConversationService:
             raise RuntimeError("conversation turn update produced no metric")
         return metric
 
+    def get_turn(
+        self,
+        session_id: str,
+        turn_id: str,
+    ) -> ConversationTurnMetric | None:
+        """Return an already reduced turn without invoking providers."""
+
+        session = self.get_session(session_id)
+        return next((turn for turn in session.turns if turn.turn_id == turn_id), None)
+
     def complete_session(
         self,
         session_id: str,
@@ -127,7 +152,8 @@ class ConversationService:
         _require_aware(completed_at, "completed_at")
 
         def complete(session: ConversationSession) -> ConversationSession:
-            self._require_active(session)
+            if session.status is ConversationStatus.COMPLETED:
+                return session
             if completed_at < session.started_at:
                 raise ValueError("completed_at must not be before started_at")
             return replace(

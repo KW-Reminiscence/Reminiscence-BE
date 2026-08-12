@@ -35,6 +35,7 @@ from reminiscence.storage import JsonObjectStore
 SEOUL = ZoneInfo("Asia/Seoul")
 ORIGINAL_DATA_DIRECTORY = os.environ.get("REMINISCENCE_DATA_DIR")
 PHOTO_BASE64 = base64.b64encode(b"\x89PNG\r\n\x1a\nphoto").decode("ascii")
+TURN_HEADERS = {"content-type": "audio/wav", "X-Turn-ID": "client-turn-1"}
 
 
 class FakeRecognizer:
@@ -222,6 +223,18 @@ def test_start_passes_photo_context_to_question_provider(tmp_path: Path) -> None
     assert questions.initial_photos[0].people == ("딸 영희", "손자 민준")
 
 
+def test_start_rejects_a_second_active_session(tmp_path: Path) -> None:
+    client, _, _ = client_with(tmp_path)
+    start_session(client)
+
+    response = client.post(
+        "/api/v1/conversations/sessions",
+        json={"source": "SCHEDULED"},
+    )
+
+    assert response.status_code == 409
+
+
 def test_suggestion_returns_synthesizable_text_at_scheduled_time(
     tmp_path: Path,
 ) -> None:
@@ -271,7 +284,7 @@ def test_turn_reduces_audio_to_metrics_without_returning_or_storing_text(
         f"/api/v1/conversations/sessions/{session_id}/turns",
         params={"turn_duration_seconds": 4},
         content=b"wav-audio",
-        headers={"content-type": "audio/wav"},
+        headers=TURN_HEADERS,
     )
 
     assert response.status_code == 200
@@ -291,6 +304,34 @@ def test_turn_reduces_audio_to_metrics_without_returning_or_storing_text(
     assert turn_count == 1
 
 
+def test_duplicate_turn_id_skips_providers_and_metrics(tmp_path: Path) -> None:
+    questions = FakeQuestionProvider()
+    client, activity_path, recognizer = client_with(tmp_path, questions=questions)
+    session_id = start_session(client)
+    first = client.post(
+        f"/api/v1/conversations/sessions/{session_id}/turns",
+        params={"turn_duration_seconds": 4},
+        content=b"first-wav",
+        headers=TURN_HEADERS,
+    )
+
+    repeated = client.post(
+        f"/api/v1/conversations/sessions/{session_id}/turns",
+        params={"turn_duration_seconds": 99},
+        content=b"repeated-wav",
+        headers=TURN_HEADERS,
+    )
+
+    assert first.status_code == 200
+    assert repeated.status_code == 200
+    assert repeated.json()["turn_id"] == first.json()["turn_id"]
+    assert repeated.json()["utterance_chars"] == first.json()["utterance_chars"]
+    assert recognizer.calls == [(b"first-wav", "audio/wav")]
+    assert len(questions.follow_ups) == 1
+    persisted = json.loads(activity_path.read_text(encoding="utf-8"))
+    assert len(persisted["conversation_sessions"][0]["turns"]) == 1
+
+
 def test_question_failure_does_not_persist_turn(tmp_path: Path) -> None:
     questions = FakeQuestionProvider(
         QuestionGenerationUnavailableError("provider unavailable")
@@ -303,7 +344,7 @@ def test_question_failure_does_not_persist_turn(tmp_path: Path) -> None:
         f"/api/v1/conversations/sessions/{session_id}/turns",
         params={"turn_duration_seconds": 4},
         content=b"wav",
-        headers={"content-type": "audio/wav"},
+        headers=TURN_HEADERS,
     )
 
     assert response.status_code == 503
@@ -334,7 +375,7 @@ def test_whitespace_transcript_is_recorded_as_no_response(tmp_path: Path) -> Non
         f"/api/v1/conversations/sessions/{session_id}/turns",
         params={"turn_duration_seconds": 10},
         content=b"wav",
-        headers={"content-type": "audio/wav"},
+        headers=TURN_HEADERS,
     )
 
     assert response.status_code == 200
@@ -349,7 +390,7 @@ def test_complete_returns_metrics_only_summary(tmp_path: Path) -> None:
         f"/api/v1/conversations/sessions/{session_id}/turns",
         params={"turn_duration_seconds": 4},
         content=b"wav",
-        headers={"content-type": "audio/wav"},
+        headers=TURN_HEADERS,
     )
     app.dependency_overrides[get_current_time] = lambda: at() + timedelta(minutes=1)
 
@@ -365,6 +406,20 @@ def test_complete_returns_metrics_only_summary(tmp_path: Path) -> None:
     assert "transcript" not in payload
 
 
+def test_complete_returns_the_original_summary_when_repeated(tmp_path: Path) -> None:
+    client, _, _ = client_with(tmp_path)
+    session_id = start_session(client)
+    app.dependency_overrides[get_current_time] = lambda: at() + timedelta(minutes=1)
+    first = client.post(f"/api/v1/conversations/sessions/{session_id}/complete")
+    app.dependency_overrides[get_current_time] = lambda: at() + timedelta(minutes=2)
+
+    repeated = client.post(f"/api/v1/conversations/sessions/{session_id}/complete")
+
+    assert first.status_code == 200
+    assert repeated.status_code == 200
+    assert repeated.json() == first.json()
+
+
 def test_completed_session_rejects_another_turn(tmp_path: Path) -> None:
     client, _, recognizer = client_with(tmp_path)
     session_id = start_session(client)
@@ -374,7 +429,7 @@ def test_completed_session_rejects_another_turn(tmp_path: Path) -> None:
         f"/api/v1/conversations/sessions/{session_id}/turns",
         params={"turn_duration_seconds": 1},
         content=b"wav",
-        headers={"content-type": "audio/wav"},
+        headers=TURN_HEADERS,
     )
 
     assert response.status_code == 409
@@ -388,7 +443,7 @@ def test_unknown_session_is_rejected_before_asr(tmp_path: Path) -> None:
         "/api/v1/conversations/sessions/missing/turns",
         params={"turn_duration_seconds": 1},
         content=b"wav",
-        headers={"content-type": "audio/wav"},
+        headers=TURN_HEADERS,
     )
 
     assert response.status_code == 404
@@ -441,7 +496,7 @@ def test_unsupported_audio_type_is_rejected(tmp_path: Path) -> None:
         f"/api/v1/conversations/sessions/{session_id}/turns",
         params={"turn_duration_seconds": 1},
         content=b"webm",
-        headers={"content-type": "audio/webm"},
+        headers={"content-type": "audio/webm", "X-Turn-ID": "client-turn-1"},
     )
 
     assert response.status_code == 415
@@ -455,7 +510,7 @@ def test_oversized_audio_is_rejected_before_asr(tmp_path: Path) -> None:
         f"/api/v1/conversations/sessions/{session_id}/turns",
         params={"turn_duration_seconds": 1},
         content=b"x" * (MAX_AUDIO_BYTES + 1),
-        headers={"content-type": "audio/wav"},
+        headers=TURN_HEADERS,
     )
 
     assert response.status_code == 413
@@ -473,6 +528,7 @@ def test_invalid_content_length_is_rejected_before_asr(tmp_path: Path) -> None:
         headers={
             "content-type": "audio/wav",
             "content-length": "invalid",
+            "X-Turn-ID": "client-turn-1",
         },
     )
 

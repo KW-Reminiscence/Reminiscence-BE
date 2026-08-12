@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Annotated
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Request, status
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
@@ -287,6 +287,15 @@ QuestionProviderDependency = Annotated[
 CurrentTimeDependency = Annotated[datetime, Depends(get_current_time)]
 AudioBody = Annotated[bytes, Body(media_type="audio/wav")]
 TurnDuration = Annotated[float, Query(ge=0, le=300)]
+ClientTurnId = Annotated[
+    str,
+    Header(
+        alias="X-Turn-ID",
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+    ),
+]
 
 
 @router.get(
@@ -342,6 +351,11 @@ async def start_conversation(
         session = service.start_session(payload.source, photo.photo_id, now)
     except ConversationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConversationStateError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
     except QuestionGenerationUnavailableError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -370,6 +384,7 @@ async def record_conversation_turn(
     request: Request,
     audio: AudioBody,
     turn_duration_seconds: TurnDuration,
+    turn_id: ClientTurnId,
     _: TabletSessionDependency,
     __: SameOriginDependency,
     service: ConversationServiceDependency,
@@ -391,6 +406,19 @@ async def record_conversation_turn(
             detail="audio must not be empty",
         )
     try:
+        existing = service.get_turn(session_id, turn_id)
+        if existing is not None:
+            return TurnMetricResponse(
+                turn_id=existing.turn_id,
+                utterance_chars=existing.utterance_chars,
+                turn_duration_seconds=existing.turn_duration_seconds,
+                chars_per_second=existing.chars_per_second,
+                no_response=existing.no_response,
+                next_question=SpeechTextResponse(
+                    display_text="이어서 이야기해 주세요.",
+                    spoken_text="이어서 이야기해 주세요.",
+                ),
+            )
         active_session = service.require_active_session(session_id)
         photo = _load_photo(active_session.photo_id)
         recognition = await run_in_threadpool(
@@ -409,6 +437,7 @@ async def record_conversation_turn(
             recognition,
             turn_duration_seconds,
             now,
+            turn_id,
         )
     except ConversationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

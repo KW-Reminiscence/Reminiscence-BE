@@ -215,6 +215,60 @@ def test_completed_session_rejects_more_turns(tmp_path: Path) -> None:
     assert completed.completed_at == now() + timedelta(minutes=1)
 
 
+def test_complete_session_is_idempotent(tmp_path: Path) -> None:
+    service, _ = service_at(tmp_path)
+    session = service.start_session(ConversationSource.VOLUNTARY, None, now())
+    first = service.complete_session(
+        session.session_id,
+        now() + timedelta(minutes=1),
+    )
+
+    repeated = service.complete_session(
+        session.session_id,
+        now() + timedelta(minutes=2),
+    )
+
+    assert repeated == first
+    assert repeated.completed_at == now() + timedelta(minutes=1)
+
+
+def test_duplicate_client_turn_id_returns_existing_metric(tmp_path: Path) -> None:
+    service, _ = service_at(tmp_path)
+    session = service.start_session(ConversationSource.VOLUNTARY, None, now())
+    first = service.record_turn(
+        session.session_id,
+        recognition("첫 응답"),
+        1,
+        now() + timedelta(seconds=1),
+        "client-turn-1",
+    )
+
+    repeated = service.record_turn(
+        session.session_id,
+        recognition("덮어쓰면 안 되는 응답"),
+        5,
+        now() + timedelta(seconds=2),
+        "client-turn-1",
+    )
+
+    assert repeated == first
+    assert service.get_session(session.session_id).turns == (first,)
+
+
+def test_only_one_active_session_is_allowed(tmp_path: Path) -> None:
+    service, _ = service_at(tmp_path)
+    first = service.start_session(ConversationSource.VOLUNTARY, None, now())
+
+    with pytest.raises(ConversationStateError, match="already exists"):
+        service.start_session(
+            ConversationSource.SCHEDULED,
+            None,
+            now() + timedelta(seconds=1),
+        )
+
+    assert service.list_sessions() == (first,)
+
+
 def test_unknown_session_is_rejected(tmp_path: Path) -> None:
     service, _ = service_at(tmp_path)
 

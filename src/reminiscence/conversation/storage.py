@@ -24,6 +24,10 @@ class ConversationStorageNotFoundError(LookupError):
     """Raised when an atomic session update cannot find its target."""
 
 
+class ConversationStorageConflictError(ValueError):
+    """Raised when an atomic lifecycle invariant would be violated."""
+
+
 def _required_string(value: Any, field_name: str) -> str:
     if not isinstance(value, str) or not value:
         raise ConversationStorageError(f"{field_name} must be a non-empty string")
@@ -203,6 +207,32 @@ class JsonConversationStore:
             updated.sort(key=lambda current: (current.started_at, current.session_id))
             root["conversation_sessions"] = [
                 _serialize_session(current) for current in updated
+            ]
+
+        self._json_store.update(mutate)
+
+    def create_session(self, session: ConversationSession) -> None:
+        """Insert one session only when no other active session exists."""
+
+        def mutate(root: dict[str, Any]) -> None:
+            sessions_value = root.get("conversation_sessions", [])
+            if not isinstance(sessions_value, list):
+                raise ConversationStorageError(
+                    "conversation_sessions must be an array"
+                )
+            sessions = [_parse_session(value) for value in sessions_value]
+            if any(current.status is ConversationStatus.ACTIVE for current in sessions):
+                raise ConversationStorageConflictError(
+                    "an active conversation session already exists"
+                )
+            if any(current.session_id == session.session_id for current in sessions):
+                raise ConversationStorageConflictError(
+                    f"conversation session id already exists: {session.session_id}"
+                )
+            sessions.append(session)
+            sessions.sort(key=lambda current: (current.started_at, current.session_id))
+            root["conversation_sessions"] = [
+                _serialize_session(current) for current in sessions
             ]
 
         self._json_store.update(mutate)
