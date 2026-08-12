@@ -422,6 +422,10 @@ def test_active_session_does_not_block_later_zero_participation_days(
     activity = json.loads(activity_path.read_text(encoding="utf-8"))
     assert activity["participation_observations"] == [
         {
+            "target_date": (NOW.date() - timedelta(days=1)).isoformat(),
+            "recent_7_day_user_turn_count": 0,
+        },
+        {
             "target_date": NOW.date().isoformat(),
             "recent_7_day_user_turn_count": 0,
         }
