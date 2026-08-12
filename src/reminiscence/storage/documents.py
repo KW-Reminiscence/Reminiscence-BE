@@ -306,19 +306,21 @@ def _validate_notification_state(root: dict[str, Any]) -> None:
 
 
 def _validate_auth_sessions(root: dict[str, Any]) -> None:
+    from reminiscence.auth.storage import _parse_session
+
     _require_exact_keys(root, required={"sessions"})
-    if _require_list(root, "sessions"):
-        raise JsonDocumentValidationError(
-            "auth sessions require the stage 3 schema migration"
-        )
+    sessions = tuple(_parse_session(value) for value in _require_list(root, "sessions"))
+    hashes = [session["token_hash"] for session in sessions]
+    if len(hashes) != len(set(hashes)):
+        raise JsonDocumentValidationError("auth session token hashes must be unique")
 
 
 def _validate_auth_attempts(root: dict[str, Any]) -> None:
+    from reminiscence.auth.storage import _parse_attempt
+
     _require_exact_keys(root, required={"attempts"})
-    if _require_list(root, "attempts"):
-        raise JsonDocumentValidationError(
-            "auth attempts require the stage 3 schema migration"
-        )
+    for value in _require_list(root, "attempts"):
+        _parse_attempt(value)
 
 
 DOCUMENT_SPECS = (
