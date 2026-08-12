@@ -1,6 +1,13 @@
 name: CI/CD
 
 on:
+  workflow_dispatch:
+    inputs:
+      apply_json_migrations:
+        description: Apply the reviewed JSON migration before release
+        required: true
+        type: boolean
+        default: false
   pull_request:
     branches:
       - main
@@ -48,7 +55,7 @@ jobs:
 
   build:
     name: Build and publish image
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     needs: verify
     runs-on: ubuntu-latest
     permissions:
@@ -153,7 +160,9 @@ jobs:
 
   deploy:
     name: Deploy
-    if: github.event_name == 'push'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && vars.ENABLE_PRODUCTION_DEPLOY == 'true')
     needs: build
     runs-on: [self-hosted, Linux, ARM64, reminiscence]
     concurrency:
@@ -169,6 +178,8 @@ jobs:
       API_COMMIT: ${{ needs.build.outputs.api-commit }}
       WEB_COMMIT: ${{ needs.build.outputs.web-commit }}
       OPENAPI_SHA256: ${{ needs.build.outputs.openapi-sha256 }}
+      APPLY_JSON_MIGRATIONS: >-
+        ${{ github.event_name == 'workflow_dispatch' && inputs.apply_json_migrations && '1' || '0' }}
 
     steps:
       - name: Check out deployment configuration

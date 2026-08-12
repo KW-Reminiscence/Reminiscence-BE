@@ -1,23 +1,38 @@
-"""Static validation for the production-only GitHub Actions workflow."""
+"""Static validation for the production GitHub Actions workflow."""
 
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_ci_cd_runs_only_for_main() -> None:
+def test_ci_cd_runs_for_main_and_explicit_manual_release() -> None:
     workflow = (
         PROJECT_ROOT / ".github/workflows/ci-cd.yml"
     ).read_text(encoding="utf-8")
 
     assert workflow.count("      - main") == 2
     assert "      - develop" not in workflow
-    assert "workflow_dispatch:" not in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "apply_json_migrations:" in workflow
+    assert "type: boolean" in workflow
     assert "./scripts/deploy.sh production" in workflow
     assert '"${API_IMAGE_REFERENCE}" "${WEB_IMAGE_REFERENCE}"' in workflow
     assert '"${API_COMMIT}" "${WEB_COMMIT}" "${OPENAPI_SHA256}"' in workflow
     assert "DEPLOYMENT_ENVIRONMENT:" not in workflow
     assert "uv run python scripts/export_openapi.py --check" in workflow
+
+
+def test_production_deploy_requires_gate_or_manual_dispatch() -> None:
+    workflow = (
+        PROJECT_ROOT / ".github/workflows/ci-cd.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "vars.ENABLE_PRODUCTION_DEPLOY == 'true'" in workflow
+    assert "github.event_name == 'workflow_dispatch'" in workflow
+    assert "github.event_name != 'pull_request'" in workflow
+    assert "inputs.apply_json_migrations" in workflow
+    assert "APPLY_JSON_MIGRATIONS:" in workflow
+    assert "&& '1' || '0'" in workflow
 
 
 def test_workflow_deploys_api_and_web_by_immutable_digest() -> None:
