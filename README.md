@@ -149,13 +149,13 @@ SMTP 발송은 episode당 한 번 성공할 때까지 제한된 간격으로 재
 상태는 `PENDING`, `FAILED`, `SENT`로 JSON에 저장됩니다. 이메일에는 저장된 탐지 근거와 비의료 안내만
 포함되며 API가 임의 제목이나 본문을 받지 않습니다.
 
-`deploy/notification-config.example.json`을 저장소 밖의 안전한 위치에 복사한
-뒤 보호자 이메일과 Gmail App Password를 입력합니다.
+`deploy/application-secrets.example.json`을 저장소 밖의 안전한 위치에 복사한
+뒤 인증 정보, codex-lb key, 보호자 이메일과 Gmail App Password를 입력합니다.
 
 ```bash
-cp deploy/notification-config.example.json /tmp/notification-config.json
-chmod 600 /tmp/notification-config.json
-export NOTIFICATION_CONFIG_PATH=/tmp/notification-config.json
+cp deploy/application-secrets.example.json /tmp/application-secrets.json
+chmod 600 /tmp/application-secrets.json
+export REMINISCENCE_SECRETS_PATH=/tmp/application-secrets.json
 ```
 
 일반 Google 계정 비밀번호를 `app_password`에 넣으면 안 됩니다. Gmail 계정에
@@ -186,12 +186,10 @@ export NOTIFICATION_CONFIG_PATH=/tmp/notification-config.json
 ```text
 configuration.json은 data/configuration.json에 배치
 application-secrets.json은 mode 0600으로 배치
-notification-config.json은 mode 0600으로 배치
 ```
 
-`application-secrets.json`에는 보호자 비밀번호, Tablet pairing code와
-codex-lb proxy key가, `notification-config.json`에는 SMTP
-App Password와 보호자 이메일이 있으므로 Git에 커밋하지 않습니다. 배포 시
+`application-secrets.json`에는 보호자 비밀번호, Tablet pairing code,
+codex-lb proxy key, SMTP App Password와 보호자 이메일이 있으므로 Git에 커밋하지 않습니다. 배포 시
 `/data`와 Supertonic model directory만 쓰기 가능한 bind mount로 연결되고
 나머지 컨테이너 파일 시스템은 읽기 전용으로 유지됩니다.
 
