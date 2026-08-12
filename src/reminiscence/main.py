@@ -22,7 +22,10 @@ from reminiscence.notification.api import (
 from reminiscence.notification.api import (
     router as notification_router,
 )
-from reminiscence.request_limits import ConversationAudioLimitMiddleware
+from reminiscence.request_limits import (
+    ConversationAudioLimitMiddleware,
+    RequestRateLimitMiddleware,
+)
 from reminiscence.routine.api import (
     get_current_time,
     get_routine_scheduler,
@@ -121,6 +124,7 @@ def create_app(cors_origins: tuple[str, ...] | None = None) -> FastAPI:
         ConversationAudioLimitMiddleware,
         max_audio_bytes=MAX_AUDIO_BYTES,
     )
+    application.add_middleware(RequestRateLimitMiddleware)
     application.include_router(health_router)
     application.include_router(auth_router)
     application.include_router(routine_router)

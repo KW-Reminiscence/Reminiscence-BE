@@ -4,12 +4,108 @@ from __future__ import annotations
 
 import json
 import re
+import threading
+import time
+from collections.abc import Callable
+from dataclasses import dataclass
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 _CONVERSATION_TURN_PATH = re.compile(
     r"^/api/v1/conversations/sessions/[^/]+/turns$"
 )
+
+
+@dataclass(frozen=True, slots=True)
+class RateLimitRule:
+    """One fixed-window request budget for a path pattern."""
+
+    pattern: re.Pattern[str]
+    maximum_requests: int
+    window_seconds: int
+
+    def __post_init__(self) -> None:
+        if self.maximum_requests <= 0 or self.window_seconds <= 0:
+            raise ValueError("rate limit values must be positive")
+
+
+DEFAULT_RATE_LIMIT_RULES = (
+    RateLimitRule(
+        re.compile(r"^/api/v1/auth/(guardian/login|tablet/pair)$"),
+        10,
+        60,
+    ),
+    RateLimitRule(_CONVERSATION_TURN_PATH, 30, 60),
+    RateLimitRule(re.compile(r"^/api/v1/tts/speech$"), 60, 60),
+)
+
+
+class RequestRateLimitMiddleware:
+    """Bound abuse-prone POST routes per effective client address."""
+
+    def __init__(
+        self,
+        app: ASGIApp,
+        *,
+        rules: tuple[RateLimitRule, ...] = DEFAULT_RATE_LIMIT_RULES,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self._app = app
+        self._rules = rules
+        self._clock = clock
+        self._lock = threading.Lock()
+        self._windows: dict[tuple[str, str], tuple[float, int]] = {}
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        rule = self._rule(scope)
+        if rule is None:
+            await self._app(scope, receive, send)
+            return
+        client = scope.get("client")
+        address = client[0] if client else "unknown"
+        now = self._clock()
+        key = (address, rule.pattern.pattern)
+        with self._lock:
+            started_at, count = self._windows.get(key, (now, 0))
+            if now - started_at >= rule.window_seconds:
+                started_at, count = now, 0
+            if count >= rule.maximum_requests:
+                retry_after = max(1, int(rule.window_seconds - (now - started_at)))
+                limited = True
+            else:
+                self._windows[key] = (started_at, count + 1)
+                retry_after = 0
+                limited = False
+        if limited:
+            await self._send_limited(send, retry_after)
+            return
+        await self._app(scope, receive, send)
+
+    def _rule(self, scope: Scope) -> RateLimitRule | None:
+        if scope["type"] != "http" or scope.get("method") != "POST":
+            return None
+        path = scope.get("path", "")
+        return next(
+            (rule for rule in self._rules if rule.pattern.fullmatch(path)),
+            None,
+        )
+
+    @staticmethod
+    async def _send_limited(send: Send, retry_after: int) -> None:
+        body = b'{"detail":"request rate limit exceeded"}'
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 429,
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(body)).encode("ascii")),
+                    (b"retry-after", str(retry_after).encode("ascii")),
+                    (b"cache-control", b"no-store"),
+                ],
+            }
+        )
+        await send({"type": "http.response.body", "body": body})
 
 
 class _RequestBodyTooLarge(Exception):
