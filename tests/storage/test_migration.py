@@ -169,6 +169,31 @@ def test_strict_validation_requires_migration_and_known_shapes(tmp_path: Path) -
 
 
 @pytest.mark.parametrize(
+    "filename",
+    [
+        "configuration.json",
+        "activity_metrics.json",
+        "auth_sessions.json",
+        "auth_attempts.json",
+    ],
+)
+def test_current_schema_does_not_fill_missing_required_fields(
+    tmp_path: Path,
+    filename: str,
+) -> None:
+    migrate_data_directory(tmp_path, apply=True)
+    path = tmp_path / filename
+    path.write_text(json.dumps({"schema_version": 1}), encoding="utf-8")
+
+    with pytest.raises(JsonMigrationError, match="missing fields"):
+        validate_data_directory(tmp_path)
+
+    with pytest.raises(JsonMigrationError, match="missing fields"):
+        migrate_data_directory(tmp_path, apply=True)
+    assert json.loads(path.read_text(encoding="utf-8")) == {"schema_version": 1}
+
+
+@pytest.mark.parametrize(
     ("filename", "invalid_root", "message"),
     [
         (

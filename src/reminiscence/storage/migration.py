@@ -60,9 +60,13 @@ def plan_document_migration(data_directory: Path, spec: DocumentSpec) -> Migrati
         raise JsonMigrationError(
             f"unsupported schema_version for {path}: {existing_version!r}"
         )
-    merged = {**spec.defaults, **root}
+    candidate = (
+        {**spec.defaults, **root}
+        if created or existing_version is None
+        else root
+    )
     try:
-        spec.validate(merged)
+        spec.validate(candidate)
     except (JsonDocumentValidationError, RuntimeError, ValueError) as exc:
         raise JsonMigrationError(f"invalid document {path}: {exc}") from exc
     return MigrationResult(
@@ -82,9 +86,13 @@ def _prepared_document(data_directory: Path, spec: DocumentSpec) -> tuple[Migrat
         raise JsonMigrationError(
             f"unsupported schema_version for {path}: {existing_version!r}"
         )
-    merged = {**spec.defaults, **root, "schema_version": CURRENT_SCHEMA_VERSION}
+    candidate = (
+        {**spec.defaults, **root, "schema_version": CURRENT_SCHEMA_VERSION}
+        if created or existing_version is None
+        else root
+    )
     try:
-        spec.validate(merged)
+        spec.validate(candidate)
     except (JsonDocumentValidationError, RuntimeError, ValueError) as exc:
         raise JsonMigrationError(f"invalid document {path}: {exc}") from exc
     return (
@@ -93,7 +101,7 @@ def _prepared_document(data_directory: Path, spec: DocumentSpec) -> tuple[Migrat
             changed=created or existing_version is None,
             created=created,
         ),
-        (json.dumps(merged, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+        (json.dumps(candidate, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
     )
 
 
