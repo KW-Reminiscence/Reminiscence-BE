@@ -93,7 +93,7 @@ readonly snapshot_kind
 
 had_active_deployment=false
 deployment_swapped=false
-migration_applied=false
+migration_attempted=false
 traffic_released=false
 
 compose() {
@@ -177,7 +177,7 @@ rollback() {
     touch "${maintenance_flag}"
     rm -f "${next_env_file}" "${next_manifest_file}"
 
-    if [[ "${migration_applied}" == true && "${traffic_released}" == true ]]; then
+    if [[ "${migration_attempted}" == true && "${traffic_released}" == true ]]; then
         echo "Migration received public traffic; automatic data and image rollback is unsafe." >&2
         echo "Maintenance remains enabled. Follow the manual recovery runbook." >&2
         exit "${exit_code}"
@@ -187,7 +187,7 @@ rollback() {
         compose "${active_env_file}" "${compose_file}" down --remove-orphans || true
     fi
 
-    if [[ "${migration_applied}" == true ]]; then
+    if [[ "${migration_attempted}" == true ]]; then
         if ! run_storage_tool python -m reminiscence.storage.legacy_snapshot restore \
             "/backups/${release_id}" --data-dir /data; then
             echo "Snapshot restore failed; maintenance remains enabled." >&2
@@ -282,9 +282,9 @@ if [[ "${apply_json_migrations}" == "1" ]]; then
     run_storage_tool \
         python -m reminiscence.storage.legacy_snapshot create \
         --data-dir /data --backup-dir /backups --snapshot-id "${release_id}"
+    migration_attempted=true
     run_storage_tool \
         python -m reminiscence.storage.migration --data-dir /data --apply
-    migration_applied=true
 else
     run_storage_tool \
         python -m reminiscence.storage.snapshot create \

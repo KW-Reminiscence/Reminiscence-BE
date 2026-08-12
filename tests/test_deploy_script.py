@@ -56,8 +56,26 @@ def test_deploy_script_rolls_back_both_images_and_migrated_data_before_traffic()
     assert "docker-compose.previous.yml" in deploy_script
     assert "reminiscence.storage.legacy_snapshot restore" in deploy_script
     assert "Snapshot restore failed; maintenance remains enabled." in deploy_script
-    assert 'migration_applied}" == true && "${traffic_released}" == true' in deploy_script
+    assert 'migration_attempted}" == true && "${traffic_released}" == true' in deploy_script
     assert "automatic data and image rollback is unsafe" in deploy_script
+
+
+def test_deploy_script_restores_legacy_snapshot_after_any_migration_attempt() -> None:
+    deploy_script = (PROJECT_ROOT / "scripts/deploy.sh").read_text(encoding="utf-8")
+
+    snapshot = deploy_script.index("reminiscence.storage.legacy_snapshot create")
+    attempted = deploy_script.index("migration_attempted=true", snapshot)
+    migration = deploy_script.index(
+        "reminiscence.storage.migration --data-dir /data --apply", attempted
+    )
+    rollback = deploy_script.index("rollback()")
+    restore_guard = deploy_script.index(
+        'if [[ "${migration_attempted}" == true ]]', rollback
+    )
+    restore = deploy_script.index("reminiscence.storage.legacy_snapshot restore", restore_guard)
+
+    assert snapshot < attempted < migration
+    assert rollback < restore_guard < restore
 
 
 def test_deploy_script_keeps_maintenance_when_previous_release_is_not_healthy() -> None:
