@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import stat
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-DEFAULT_NOTIFICATION_CONFIG_PATH = Path("/run/secrets/notification-config.json")
+from reminiscence.auth.secrets import (
+    DEFAULT_APPLICATION_SECRETS_PATH,
+    get_application_secrets_path,
+)
+
+DEFAULT_NOTIFICATION_CONFIG_PATH = DEFAULT_APPLICATION_SECRETS_PATH
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 CURRENT_NOTIFICATION_CONFIG_SCHEMA_VERSION = 1
 
@@ -56,8 +60,7 @@ class NotificationConfig:
 def get_notification_config_path() -> Path:
     """Return the configured secret path without reading it."""
 
-    configured_path = os.environ.get("NOTIFICATION_CONFIG_PATH")
-    return Path(configured_path) if configured_path else DEFAULT_NOTIFICATION_CONFIG_PATH
+    return get_application_secrets_path()
 
 
 def _require_object(value: Any, field_name: str) -> dict[str, Any]:

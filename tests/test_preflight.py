@@ -35,7 +35,6 @@ def configure_valid_runtime(
     }
     configuration_path.write_text(json.dumps(configuration), encoding="utf-8")
     application_secrets = tmp_path / "application-secrets.json"
-    notification_config = tmp_path / "notification-config.json"
     write_secret_json(
         application_secrets,
         {
@@ -43,12 +42,6 @@ def configure_valid_runtime(
             "guardian_password": "guardian-password",
             "tablet_pairing_code": "pairing-code",
             "codex_lb_api_key": "codex-lb-key",
-        },
-    )
-    write_secret_json(
-        notification_config,
-        {
-            "schema_version": 1,
             "care_recipient": {"name": "홍길동"},
             "guardian": {"email": "guardian@example.com"},
             "smtp": {
@@ -62,7 +55,6 @@ def configure_valid_runtime(
     )
     monkeypatch.setenv("REMINISCENCE_DATA_DIR", str(tmp_path))
     monkeypatch.setenv("REMINISCENCE_SECRETS_PATH", str(application_secrets))
-    monkeypatch.setenv("NOTIFICATION_CONFIG_PATH", str(notification_config))
     return application_secrets
 
 
