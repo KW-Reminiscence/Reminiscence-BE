@@ -29,7 +29,8 @@ def test_production_deploy_requires_gate_or_manual_dispatch() -> None:
 
     assert "vars.ENABLE_PRODUCTION_DEPLOY == 'true'" in workflow
     assert "github.event_name == 'workflow_dispatch'" in workflow
-    assert "github.event_name != 'pull_request'" in workflow
+    assert "github.event_name != 'pull_request' && github.ref == 'refs/heads/main'" in workflow
+    assert workflow.count("github.ref == 'refs/heads/main'") == 2
     assert "inputs.apply_json_migrations" in workflow
     assert "APPLY_JSON_MIGRATIONS:" in workflow
     assert "&& '1' || '0'" in workflow
