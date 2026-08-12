@@ -34,26 +34,16 @@ uv run uvicorn reminiscence.main:app --reload
 ```
 
 API 문서는 `http://127.0.0.1:8000/docs`에서 확인할 수 있습니다.
-앱은 `.env`를 암묵적으로 읽지 않습니다. 로컬에서 환경 파일을 쓰려면
-`deploy/runtime.env.example`을 바탕으로 Git에서 제외된 `.env`를 만든 뒤 다음처럼
-명시합니다.
-
-```bash
-uv run uvicorn reminiscence.main:app --reload --env-file .env
-```
+애플리케이션 설정은 `.env`가 아니라 versioned JSON에서 읽습니다.
 
 ### 로컬 데이터와 음성 설정
 
 `deploy/configuration.example.json`을 `data/configuration.json`으로 복사하고
-base64 사진, 회상 정보와 루틴을 수정합니다. 다음 환경변수로 데이터 경로와 시간대를 바꿀 수
-있습니다.
+base64 사진, 회상 정보, 루틴과 `runtime` 설정을 수정합니다. 환경변수는 JSON
+파일을 찾기 위한 bootstrap path에만 사용합니다.
 
 ```bash
 export REMINISCENCE_DATA_DIR=./data
-export REMINISCENCE_TIMEZONE=Asia/Seoul
-export REMINISCENCE_ROUTINE_TICK_SECONDS=5
-export REMINISCENCE_EVALUATION_SECONDS=60
-export REMINISCENCE_ANOMALY_CONFIRMATION_COUNT=3
 ```
 
 `configuration.json`의 `conversation.suggestion_time`에는 매일 회상 대화를
@@ -73,14 +63,15 @@ routine을 삭제해도 기존 응답 창은 변하지 않습니다. 같은 요�
 응답 창이 겹치는 설정은 서버가 거부하며, 한 응답 창의 종료 시각과 다음 시작
 시각이 같은 것은 허용합니다.
 
-회상 대화 ASR을 사용하려면 `deploy/runtime.env.example`의 항목을 실제
-환경변수로 설정합니다. 태블릿은 `audio/wav`를 전송해야 합니다. 서버는
+회상 대화 ASR을 사용하려면 `configuration.json`의 `runtime.codex_lb`와
+mode 0600인 `application-secrets.json`의 `codex_lb_api_key`를 설정합니다.
+태블릿은 `audio/wav`를 전송해야 합니다. 서버는
 codex-lb의 OpenAI 호환 `POST /v1/audio/transcriptions`에 정규화한 WAV와 고정
-model `gpt-4o-transcribe`를 전송합니다. `CODEX_LB_BASE_URL`은 `/v1`까지 포함한
-URL이고 `CODEX_LB_API_KEY`에는 codex-lb proxy key를 설정합니다.
+model `gpt-4o-transcribe`를 전송합니다. `runtime.codex_lb.base_url`은 `/v1`까지 포함한
+URL입니다.
 
 회상 질문은 같은 codex-lb의 `POST /v1/responses`를 사용합니다. 기본
-`gpt-5.6-sol` 모델은 `CODEX_LB_RESPONSE_MODEL`로 바꿀 수 있습니다. 서버는
+`gpt-5.6-sol` 모델은 `runtime.codex_lb.response_model`로 바꿀 수 있습니다. 서버는
 초기에는 고정형 열린 질문을 반환합니다. 사용자 답변 이후에는 base64 사진을
 `input_image` data URL로, 위치·인물·사건·설명과 현재 답변을 텍스트로 전달해
 LLM 후속 질문을 생성합니다. 요청에는 `store: false`를 사용하며 provider 응답
@@ -113,9 +104,9 @@ codex-lb 응답의 `text`는 글자 수와 시간 지표로 즉시 축약하며,
 인터넷 연결이 필요하지 않습니다.
 
 기본 설정은 한국어, `F1` voice, 0.9배속, 8 inference steps이며
-`deploy/runtime.env.example`의 `SUPERTONIC_*` 환경변수로 조정할 수 있습니다.
+`configuration.json`의 `runtime.supertonic`으로 조정할 수 있습니다.
 client가 voice나 inference parameter를 임의로 선택하지 못하도록 API에는
-합성할 text만 받습니다. `SUPERTONIC_MAX_TEXT_CHARS`는 1~500 범위이고 API
+합성할 text만 받습니다. `max_text_chars`는 1~500 범위이고 API
 절대 상한은 500자입니다.
 
 ```bash
@@ -126,7 +117,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/tts/speech \
 ```
 
 실제 model weights까지 포함한 한국어 합성 검증은 다음 명령으로 실행합니다.
-`SUPERTONIC_MODEL_DIR` 등 `SUPERTONIC_*` 값이 먼저 설정되어 있어야 합니다.
+`REMINISCENCE_DATA_DIR`가 실제 `configuration.json`을 가리켜야 합니다.
 
 ```bash
 RUN_SUPERTONIC_SMOKE=1 uv run pytest tests/tts/test_supertonic_smoke.py
@@ -142,21 +133,9 @@ Supertonic SDK 코드는 MIT, Supertonic 3 model weights는 사용 제한과 표
 
 ### 태블릿 웹앱 연결
 
-Raspberry Pi에서 웹앱과 API를 같은 origin으로 제공하면 CORS 설정이 필요하지
-않습니다. Vercel처럼 다른 origin에서 웹앱을 제공하면 정확한 HTTPS origin을
-쉼표로 구분해 설정합니다.
-
-```bash
-export REMINISCENCE_CORS_ORIGINS=https://your-tablet.vercel.app
-```
-
-태블릿에서 `file://`로 직접 연 HTML이 꼭 필요하면 브라우저가 보내는 `null`
-origin을 명시할 수 있습니다. 다만 마이크 권한은 브라우저와 설치 방식에 따라
-제한될 수 있으므로 실제 운영은 HTTPS 웹앱을 권장합니다.
-
-```bash
-export REMINISCENCE_CORS_ORIGINS=null
-```
+Raspberry Pi에서 웹앱과 API를 같은 origin으로 제공하면
+`runtime.cors_origins`는 빈 배열로 둡니다. 별도 웹 origin이 필요한 개발
+환경에서만 정확한 HTTP(S) origin을 배열에 추가합니다.
 
 `*` wildcard는 허용하지 않습니다. HTTPS Vercel 화면에서 HTTP API를 호출하면
 브라우저가 mixed content로 차단하므로 Raspberry Pi API도 HTTPS endpoint로
@@ -166,8 +145,8 @@ reverse proxy 또는 tunnel 계층의 접근 제어를 별도로 적용해야 �
 ## 보호자 이메일 알림
 
 이상 평가는 루틴과 회상 대화 모델을 분리하며, 현재 상태가 `ANOMALOUS`인 한
-SMTP 발송은 한 번만 시도합니다. 발송 실패 자동 재시도와 과거 발송 이력은
-MVP 범위에 포함하지 않습니다. 이메일에는 저장된 탐지 근거와 비의료 안내만
+SMTP 발송은 episode당 한 번 성공할 때까지 제한된 간격으로 재시도합니다.
+상태는 `PENDING`, `FAILED`, `SENT`로 JSON에 저장됩니다. 이메일에는 저장된 탐지 근거와 비의료 안내만
 포함되며 API가 임의 제목이나 본문을 받지 않습니다.
 
 `deploy/notification-config.example.json`을 저장소 밖의 안전한 위치에 복사한
@@ -181,8 +160,7 @@ export NOTIFICATION_CONFIG_PATH=/tmp/notification-config.json
 
 일반 Google 계정 비밀번호를 `app_password`에 넣으면 안 됩니다. Gmail 계정에
 2단계 인증을 활성화하고 발급한 App Password만 사용합니다. 설정 파일이 없거나
-잘못되어도 API 서버와 `/health`는 기동되지만, 알림 평가 요청은 `503`을
-반환합니다.
+잘못되면 container preflight와 readiness가 실패합니다.
 
 주요 endpoint는 다음과 같습니다.
 
@@ -196,9 +174,10 @@ export NOTIFICATION_CONFIG_PATH=/tmp/notification-config.json
 | `POST` | `/api/v1/conversations/sessions/{session_id}/turns` | WAV 인식·지표 저장 후 LLM 후속 질문 반환 |
 | `POST` | `/api/v1/conversations/sessions/{session_id}/complete` | 세션 완료와 요약 반환 |
 | `POST` | `/api/v1/tts/speech` | `spoken_text`를 Supertonic 3 WAV로 합성 |
-| `POST` | `/api/v1/anomaly/evaluate` | 개인별 루틴·대화 모델 평가 |
 | `GET` | `/api/v1/anomaly/state` | 저장된 현재 상태와 근거 조회 |
-| `POST` | `/api/v1/notifications/evaluate` | 평가 후 anomaly episode당 이메일 1회 시도 |
+| `GET` | `/api/v1/tablet/state` | 사진·루틴·대화 권유 통합 상태 반환 |
+| `GET` | `/api/health/live` | process liveness 반환 |
+| `GET` | `/api/health/ready` | JSON·TTS·background readiness 반환 |
 
 ## Raspberry Pi 배포 파일
 
@@ -206,25 +185,24 @@ export NOTIFICATION_CONFIG_PATH=/tmp/notification-config.json
 
 ```text
 configuration.json은 data/configuration.json에 배치
+application-secrets.json은 mode 0600으로 배치
 notification-config.json은 mode 0600으로 배치
-runtime.env는 mode 0600으로 배치
 ```
 
-`runtime.env`에는 codex-lb proxy key가, `notification-config.json`에는 SMTP
+`application-secrets.json`에는 보호자 비밀번호, Tablet pairing code와
+codex-lb proxy key가, `notification-config.json`에는 SMTP
 App Password와 보호자 이메일이 있으므로 Git에 커밋하지 않습니다. 배포 시
 `/data`와 Supertonic model directory만 쓰기 가능한 bind mount로 연결되고
 나머지 컨테이너 파일 시스템은 읽기 전용으로 유지됩니다.
 
 API 프로세스는 태블릿 polling 여부와 관계없이 루틴 상태를 기본 5초마다
 전이하고 개인 이상 및 알림을 기본 60초마다 평가합니다. 두 간격은
-`runtime.env`에서 조정할 수 있으며 0 이하·NaN·무한대는 기동 시 거부합니다.
-candidate anomaly는 기본 3회 연속 관찰된 뒤 확정되며
-`REMINISCENCE_ANOMALY_CONFIRMATION_COUNT`로 양의 정수 범위에서 조정합니다.
+`configuration.json`에서 조정할 수 있으며 0 이하·NaN·무한대는 기동 시 거부합니다.
 
 Nginx는 일반 요청 본문을 1 MiB로 제한하고 대화 WAV route만 10 MiB까지
 허용합니다. Raspberry Pi의 Supertonic cold start를 고려해 upstream 응답
 timeout은 300초입니다. production API는
-`https://reminiscence-api.leehyowon14.dev`에서 제공합니다.
+same-origin `https://reminiscence.leehyowon14.dev/api/`에서 제공합니다.
 
 `.github/workflows/ci-cd.yml`은 `main` 대상 pull request에서 테스트, lint,
 type check를 수행합니다. `main` push에서는 같은 검증을 통과한 ARM64 image를
