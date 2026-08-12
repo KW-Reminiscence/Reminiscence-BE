@@ -5,7 +5,7 @@
     "surface": "report",
     "title": "Reminiscence 개발 완성 보고서",
     "description": "확정 기획안 v1.4를 기준으로 두 저장소의 7단계 완성 작업, 검증 결과와 production 인수 잔여 조건을 정리한 보고서",
-    "generatedAt": "2026-08-12T20:30:15Z",
+    "generatedAt": "2026-08-12T21:03:25Z",
     "cards": [
       {
         "id": "stage_card",
@@ -302,7 +302,7 @@
       {
         "id": "executive_summary",
         "type": "markdown",
-        "body": "## Executive Summary\n\n- **개발 완성도는 demo 수준에서 appliance beta 코드 수준으로 올라갔습니다.** 확정 기획안 v1.4의 이상 탐지, JSON-only 영속성·설정, Guardian·Tablet 인증, 통합 홈과 대화 흐름, same-origin 배포 경계를 구현했습니다.\n- **계획한 7단계는 모두 구현과 독립 코드리뷰를 통과했습니다.** 각 단계의 P0/P1 지적을 다음 단계 전에 보완했고, 최종 Stage 7 리뷰도 P0/P1 없음으로 판정됐습니다.\n- **로컬 품질 게이트는 통과했습니다.** Backend, Frontend, browser E2E, OpenAPI 계약과 ARM64 대상 container build를 확인했습니다.\n- **production 인수만 외부 입력 대기입니다.** rpi5-server의 실제 application-secrets.json, 최종 사진·루틴 설정, SMTP와 HTTPS hardware smoke가 준비돼야 reminiscence.leehyowon14.dev 전환을 안전하게 실행할 수 있습니다."
+        "body": "## Executive Summary\n\n- **개발 완성도는 demo 수준에서 appliance beta 코드 수준으로 올라갔습니다.** 확정 기획안 v1.4의 이상 탐지, JSON-only 영속성·설정, Guardian·Tablet 인증, 통합 홈과 대화 흐름, same-origin 배포 경계를 구현했습니다.\n- **계획한 7단계는 모두 구현과 독립 코드리뷰를 통과했습니다.** 각 단계의 P0/P1 지적을 다음 단계 전에 보완했고, 최종 Stage 7 리뷰도 P0/P1 없음으로 판정됐습니다.\n- **로컬과 GitHub release 품질 게이트를 통과했습니다.** Backend, Frontend, browser E2E, OpenAPI 계약을 재검증하고 API·Web ARM64 release image를 게시했습니다.\n- **production 인수만 외부 입력 대기입니다.** rpi5-server의 실제 application-secrets.json, 최종 사진·루틴 설정, SMTP와 HTTPS hardware smoke가 준비돼야 reminiscence.leehyowon14.dev 전환을 안전하게 실행할 수 있습니다."
       },
       {
         "id": "headline_metrics_intro",
@@ -378,13 +378,13 @@
       {
         "id": "caveats",
         "type": "markdown",
-        "body": "## Caveats and Assumptions\n\n- 현재 rpi5-server의 legacy 서비스는 변경하지 않았습니다. 새 secret과 설정 없이 CI/CD를 시작하면 production deploy가 fail-closed 되므로 의도적으로 push·전환을 보류했습니다.\n- Supertonic을 포함한 API image build는 통과했지만, real model smoke 1건은 production configuration이 없어 skip 상태입니다. 배포 script가 candidate traffic 공개 전에 이를 필수 실행합니다.\n- 실제 SMTP 발송, Cloudflare 경유 HTTPS, Tablet microphone과 장시간 JSON 운영 안정성은 로컬 mock·browser E2E가 대체할 수 없는 실환경 인수 항목입니다.\n- host 점검 과정에서 legacy secret이 존재한 흔적을 확인했습니다. 값은 보고서에 포함하지 않았으며 production 전환 시 기존 API key와 tunnel credential 회전을 권장합니다.\n- 이 보고서는 정확한 단계·상태 확인이 목적이므로 비교를 왜곡할 수 있는 장식적 chart 대신 source-backed audit table을 사용했습니다."
+        "body": "## Caveats and Assumptions\n\n- 코드와 API·Web ARM64 release image는 게시했습니다. 현재 rpi5-server의 legacy 서비스는 변경하지 않았고, production gate를 비활성 상태로 유지해 deploy job이 의도대로 skip됐습니다.\n- Supertonic을 포함한 API image build는 통과했지만, real model smoke 1건은 production configuration이 없어 skip 상태입니다. 배포 script가 candidate traffic 공개 전에 이를 필수 실행합니다.\n- 실제 SMTP 발송, Cloudflare 경유 HTTPS, Tablet microphone과 장시간 JSON 운영 안정성은 로컬 mock·browser E2E가 대체할 수 없는 실환경 인수 항목입니다.\n- host 점검 과정에서 legacy secret이 존재한 흔적을 확인했습니다. 값은 보고서에 포함하지 않았으며 production 전환 시 기존 API key와 tunnel credential 회전을 권장합니다.\n- 이 보고서는 정확한 단계·상태 확인이 목적이므로 비교를 왜곡할 수 있는 장식적 chart 대신 source-backed audit table을 사용했습니다."
       }
     ]
   },
   "snapshot": {
     "version": 1,
-    "generatedAt": "2026-08-12T20:30:15Z",
+    "generatedAt": "2026-08-12T21:03:25Z",
     "status": "partial",
     "datasets": {
       "stage_metric": [
@@ -570,8 +570,8 @@
           "order": 6,
           "scope": "Container · Ops",
           "gate": "FE/API ARM64-compatible image · deploy review",
-          "result": "build 및 P0/P1 review 통과",
-          "note": "runtime UID 1000, non-root, exact digest contract"
+          "result": "GitHub publish 및 P0/P1 review 통과",
+          "note": "API·Web ARM64 release image, runtime UID 1000, exact digest contract"
         }
       ],
       "history_periods": [
@@ -605,7 +605,7 @@
         "engine": "filesystem",
         "query": "read docs/completion-plan.md",
         "description": "확정 요구사항, 7단계 범위, 품질 게이트와 외부 입력을 검토",
-        "executed_at": "2026-08-12T20:30:15Z",
+        "executed_at": "2026-08-12T21:03:25Z",
         "language": "text",
         "tables_used": [
           "docs/completion-plan.md"
@@ -690,7 +690,7 @@
         "engine": "shell+review",
         "query": "run repository quality gates, container builds, and stage review checks",
         "description": "BE·FE 최종 품질 게이트와 운영 release review 결과를 결합",
-        "executed_at": "2026-08-12T20:30:15Z",
+        "executed_at": "2026-08-12T21:03:25Z",
         "language": "shell",
         "tables_used": [
           "Reminiscence-BE",

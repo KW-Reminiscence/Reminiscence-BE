@@ -34,9 +34,9 @@ html:not([data-portable-source-tooltips-ready]) .portable-chart-summary>.portabl
 </style>
 </head>
 <body>
-<main id="data-analytics-portable-fallback" class="portable-fallback" data-portable-fallback="true" data-portable-surface="report"><header class="portable-page-header"><div class="portable-page-heading"><p class="portable-surface-label">Data Analytics report</p><h1>Reminiscence 개발 완성 보고서</h1><p class="portable-description">확정 기획안 v1.4를 기준으로 두 저장소의 7단계 완성 작업, 검증 결과와 production 인수 잔여 조건을 정리한 보고서</p></div><div class="portable-page-meta"><time datetime="2026-08-12T20:30:15Z">Aug 12, 2026, 8:30 PM UTC</time></div></header><section class="portable-notice" aria-labelledby="portable-access-issues"><h2 id="portable-access-issues">Data access issues</h2><ul><li><strong>production acceptance:</strong> rpi5-server의 실제 application-secrets.json, 최종 사진·routine 설정과 SMTP가 없어 live 배포·실발송 인수를 아직 실행할 수 없습니다.</li></ul></section><div class="portable-block-stack">
+<main id="data-analytics-portable-fallback" class="portable-fallback" data-portable-fallback="true" data-portable-surface="report"><header class="portable-page-header"><div class="portable-page-heading"><p class="portable-surface-label">Data Analytics report</p><h1>Reminiscence 개발 완성 보고서</h1><p class="portable-description">확정 기획안 v1.4를 기준으로 두 저장소의 7단계 완성 작업, 검증 결과와 production 인수 잔여 조건을 정리한 보고서</p></div><div class="portable-page-meta"><time datetime="2026-08-12T21:03:25Z">Aug 12, 2026, 9:03 PM UTC</time></div></header><section class="portable-notice" aria-labelledby="portable-access-issues"><h2 id="portable-access-issues">Data access issues</h2><ul><li><strong>production acceptance:</strong> rpi5-server의 실제 application-secrets.json, 최종 사진·routine 설정과 SMTP가 없어 live 배포·실발송 인수를 아직 실행할 수 없습니다.</li></ul></section><div class="portable-block-stack">
 <div class="portable-block portable-layout-full" data-artifact-block-id="executive_summary" data-artifact-block-type="markdown" data-layout="full"><section class="portable-markdown"><h2>Executive Summary</h2>
-<ul><li><strong>개발 완성도는 demo 수준에서 appliance beta 코드 수준으로 올라갔습니다.</strong> 확정 기획안 v1.4의 이상 탐지, JSON-only 영속성·설정, Guardian·Tablet 인증, 통합 홈과 대화 흐름, same-origin 배포 경계를 구현했습니다.</li><li><strong>계획한 7단계는 모두 구현과 독립 코드리뷰를 통과했습니다.</strong> 각 단계의 P0/P1 지적을 다음 단계 전에 보완했고, 최종 Stage 7 리뷰도 P0/P1 없음으로 판정됐습니다.</li><li><strong>로컬 품질 게이트는 통과했습니다.</strong> Backend, Frontend, browser E2E, OpenAPI 계약과 ARM64 대상 container build를 확인했습니다.</li><li><strong>production 인수만 외부 입력 대기입니다.</strong> rpi5-server의 실제 application-secrets.json, 최종 사진·루틴 설정, SMTP와 HTTPS hardware smoke가 준비돼야 reminiscence.leehyowon14.dev 전환을 안전하게 실행할 수 있습니다.</li></ul></section></div>
+<ul><li><strong>개발 완성도는 demo 수준에서 appliance beta 코드 수준으로 올라갔습니다.</strong> 확정 기획안 v1.4의 이상 탐지, JSON-only 영속성·설정, Guardian·Tablet 인증, 통합 홈과 대화 흐름, same-origin 배포 경계를 구현했습니다.</li><li><strong>계획한 7단계는 모두 구현과 독립 코드리뷰를 통과했습니다.</strong> 각 단계의 P0/P1 지적을 다음 단계 전에 보완했고, 최종 Stage 7 리뷰도 P0/P1 없음으로 판정됐습니다.</li><li><strong>로컬과 GitHub release 품질 게이트를 통과했습니다.</strong> Backend, Frontend, browser E2E, OpenAPI 계약을 재검증하고 API·Web ARM64 release image를 게시했습니다.</li><li><strong>production 인수만 외부 입력 대기입니다.</strong> rpi5-server의 실제 application-secrets.json, 최종 사진·루틴 설정, SMTP와 HTTPS hardware smoke가 준비돼야 reminiscence.leehyowon14.dev 전환을 안전하게 실행할 수 있습니다.</li></ul></section></div>
 <div class="portable-block portable-layout-full" data-artifact-block-id="headline_metrics_intro" data-artifact-block-type="markdown" data-layout="full"><section class="portable-markdown"><h2>구현과 검증은 완료됐고, 운영 전환은 입력 대기입니다</h2>
 <p>아래 수치는 최종 로컬 실행과 단계별 review를 기준으로 합니다. 테스트 수는 수집된 전체 항목이 아니라 실제 통과 수이며, Supertonic real-asset smoke 1건은 production runtime 설정이 없어 의도적으로 skip됐습니다.</p></section></div>
 <div class="portable-block portable-layout-full" data-artifact-block-id="headline_metrics" data-artifact-block-type="metric-strip" data-layout="full"><section class="portable-metric-grid"><article class="portable-metric-card" data-artifact-id="metric:headline_metrics:stage_card" data-artifact-kind="card" data-card-id="stage_card"><p class="portable-metric-label">구현·검토 완료 단계</p><p class="portable-metric-value"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-1"><span class="portable-source-value-text">7</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-1" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 7</span><strong>Source: 두 저장소 구현 및 단계별 review 근거</strong><span class="portable-source-meta">Tables: Reminiscence-BE/src, Reminiscence-BE/tests, Reminiscence-FE/src, Reminiscence-FE/e2e</span></span></span></p><p class="portable-card-description">계획서에 정의한 구현·검토 단계 중 P0/P1 없이 완료된 단계</p><div class="portable-inline-source portable-source-summary" data-source-id="implementation_verification"><div class="portable-inline-source-content portable-source-summary-content"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 구현·검토 완료 단계</span><span class="portable-source-context">계획서에 정의한 구현·검토 단계 중 P0/P1 없이 완료된 단계</span><strong>Source: 두 저장소 구현 및 단계별 review 근거</strong><span class="portable-source-meta">Tables: Reminiscence-BE/src, Reminiscence-BE/tests, Reminiscence-FE/src, Reminiscence-FE/e2e</span><p class="portable-source-description-data">두 저장소의 단계별 구현 diff와 독립 review 판정을 대조</p></div></div></article><article class="portable-metric-card" data-artifact-id="metric:headline_metrics:backend_test_card" data-artifact-kind="card" data-card-id="backend_test_card"><p class="portable-metric-label">Backend 테스트 통과</p><p class="portable-metric-value"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-2"><span class="portable-source-value-text">439</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-2" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 439</span><strong>Source: Backend 최종 품질 게이트</strong><span class="portable-source-meta">Tables: tests, src/reminiscence, openapi.json</span></span></span></p><p class="portable-card-description">2026년 8월 13일 최종 로컬 pytest 실행에서 통과한 테스트</p><div class="portable-metric-badges"><span class="portable-metric-badge"><span>환경 설정 대기 skip</span> <strong><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-3"><span class="portable-source-value-text">1</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-3" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 1</span><strong>Source: Backend 최종 품질 게이트</strong><span class="portable-source-meta">Tables: tests, src/reminiscence, openapi.json</span></span></span></strong></span></div><div class="portable-inline-source portable-source-summary" data-source-id="backend_quality"><div class="portable-inline-source-content portable-source-summary-content"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for Backend 테스트 통과</span><span class="portable-source-context">2026년 8월 13일 최종 로컬 pytest 실행에서 통과한 테스트</span><strong>Source: Backend 최종 품질 게이트</strong><span class="portable-source-meta">Tables: tests, src/reminiscence, openapi.json</span><p class="portable-source-description-data">Backend 전체 테스트, lint, typecheck와 OpenAPI 계약 재실행</p></div></div></article><article class="portable-metric-card" data-artifact-id="metric:headline_metrics:frontend_test_card" data-artifact-kind="card" data-card-id="frontend_test_card"><p class="portable-metric-label">Frontend 테스트 통과</p><p class="portable-metric-value"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-4"><span class="portable-source-value-text">79</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-4" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 79</span><strong>Source: Frontend 최종 품질 게이트</strong><span class="portable-source-meta">Tables: src, e2e, package.json</span></span></span></p><p class="portable-card-description">React unit/component 테스트의 최종 통과 수</p><div class="portable-inline-source portable-source-summary" data-source-id="frontend_quality"><div class="portable-inline-source-content portable-source-summary-content"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for Frontend 테스트 통과</span><span class="portable-source-context">React unit/component 테스트의 최종 통과 수</span><strong>Source: Frontend 최종 품질 게이트</strong><span class="portable-source-meta">Tables: src, e2e, package.json</span><p class="portable-source-description-data">Frontend unit, lint, type, contract, build와 browser E2E 재실행</p></div></div></article><article class="portable-metric-card" data-artifact-id="metric:headline_metrics:e2e_test_card" data-artifact-kind="card" data-card-id="e2e_test_card"><p class="portable-metric-label">Browser E2E 통과</p><p class="portable-metric-value"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-5"><span class="portable-source-value-text">8</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-5" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 8</span><strong>Source: Frontend 최종 품질 게이트</strong><span class="portable-source-meta">Tables: src, e2e, package.json</span></span></span></p><p class="portable-card-description">Tablet·Guardian 핵심 흐름을 Chromium tablet viewport에서 검증한 시나리오</p><div class="portable-inline-source portable-source-summary" data-source-id="frontend_quality"><div class="portable-inline-source-content portable-source-summary-content"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for Browser E2E 통과</span><span class="portable-source-context">Tablet·Guardian 핵심 흐름을 Chromium tablet viewport에서 검증한 시나리오</span><strong>Source: Frontend 최종 품질 게이트</strong><span class="portable-source-meta">Tables: src, e2e, package.json</span><p class="portable-source-description-data">Frontend unit, lint, type, contract, build와 browser E2E 재실행</p></div></div></article></section></div>
@@ -459,7 +459,7 @@ html:not([data-portable-source-tooltips-ready]) .portable-chart-summary>.portabl
 <div class="portable-block portable-layout-full" data-artifact-block-id="change_results_block" data-artifact-block-type="table" data-layout="full"><section class="portable-content-card portable-table-card" data-artifact-id="change_table" data-artifact-kind="table" data-table-id="change_table" data-portable-visual-title="최초 감사 대비 제품 상태"><header class="portable-visual-header"><h2>최초 감사 대비 제품 상태</h2></header><div class="portable-inline-source portable-source-summary" data-source-id="implementation_verification"><div class="portable-inline-source-content portable-source-summary-content"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 최초 감사 대비 제품 상태</span><strong>Source: 두 저장소 구현 및 단계별 review 근거</strong><span class="portable-source-meta">Tables: Reminiscence-BE/src, Reminiscence-BE/tests, Reminiscence-FE/src, Reminiscence-FE/e2e</span><p class="portable-source-description-data">두 저장소의 단계별 구현 diff와 독립 review 판정을 대조</p></div></div><div class="portable-table-source-region"><div class="portable-table-scroll"><table><caption>최초 감사 대비 제품 상태</caption><thead><tr><th scope="col" class="portable-table-number">#</th><th scope="col">영역</th><th scope="col">최초 상태</th><th scope="col">완성 상태</th></tr></thead><tbody><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-14"><span class="portable-source-value-text">1</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-14" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 1</span><strong>Source: 두 저장소 구현 및 단계별 review 근거</strong><span class="portable-source-meta">Tables: Reminiscence-BE/src, Reminiscence-BE/tests, Reminiscence-FE/src, Reminiscence-FE/e2e</span></span></span></td><td>Anomaly</td><td>2개 aggregate feature와 polling 재평가 중심</td><td>기획안 v1.4 관측·기준선·지속성·근거 JSON 구현</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-15"><span class="portable-source-value-text">2</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-15" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 2</span><strong>Source: 두 저장소 구현 및 단계별 review 근거</strong><span class="portable-source-meta">Tables: Reminiscence-BE/src, Reminiscence-BE/tests, Reminiscence-FE/src, Reminiscence-FE/e2e</span></span></span></td><td>Tablet journey</td><td>routine 화면과 conversation이 분리되고 홈 권유 누락</td><td>routine &gt; scheduled &gt; photo·voluntary &gt; stale 우선순위 통합</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-16"><span class="portable-source-value-text">3</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-16" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 3</span><strong>Source: 두 저장소 구현 및 단계별 review 근거</strong><span class="portable-source-meta">Tables: Reminiscence-BE/src, Reminiscence-BE/tests, Reminiscence-FE/src, Reminiscence-FE/e2e</span></span></span></td><td>Conversation</td><td>upload 중 complete 경쟁과 active session 복구 불가</td><td>turn ID·complete 멱등성, active 1개, reload 복구</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-17"><span class="portable-source-value-text">4</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-17" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 4</span><strong>Source: 두 저장소 구현 및 단계별 review 근거</strong><span class="portable-source-meta">Tables: Reminiscence-BE/src, Reminiscence-BE/tests, Reminiscence-FE/src, Reminiscence-FE/e2e</span></span></span></td><td>Security</td><td>사용자·보호자 인증과 API 역할 경계 없음</td><td>JSON server session, strict cookie, role·Origin·rate limit</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-18"><span class="portable-source-value-text">5</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-18" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 5</span><strong>Source: 두 저장소 구현 및 단계별 review 근거</strong><span class="portable-source-meta">Tables: Reminiscence-BE/src, Reminiscence-BE/tests, Reminiscence-FE/src, Reminiscence-FE/e2e</span></span></span></td><td>Persistence</td><td>도메인별 JSON은 있으나 schema·원자 복구 경계 부족</td><td>versioned strict JSON, fsync·replace, flock, snapshot·migration</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-19"><span class="portable-source-value-text">6</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-19" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 6</span><strong>Source: 두 저장소 구현 및 단계별 review 근거</strong><span class="portable-source-meta">Tables: Reminiscence-BE/src, Reminiscence-BE/tests, Reminiscence-FE/src, Reminiscence-FE/e2e</span></span></span></td><td>Release</td><td>API-only 배포와 FE production 재현 경로 부재</td><td>same-origin FE+API digest release와 fail-closed rollback</td></tr></tbody></table></div></div></section></div>
 <div class="portable-block portable-layout-full" data-artifact-block-id="quality_findings" data-artifact-block-type="markdown" data-layout="full"><section class="portable-markdown"><h2>자동 검증은 release 후보의 핵심 계약을 함께 묶습니다</h2>
 <p>FE exact commit을 현재 BE OpenAPI로 다시 생성·typecheck·build한 뒤 동일 commit의 image digest만 선택합니다. 배포 후보도 runtime OpenAPI hash를 다시 비교하고, legacy migration 실패 시 traffic 공개 전 snapshot을 복구합니다. <strong>이 연결 덕분에 old FE와 new API가 우연히 함께 배포되는 문제를 CI/CD 단계에서 차단합니다.</strong></p></section></div>
-<div class="portable-block portable-layout-full" data-artifact-block-id="quality_results_block" data-artifact-block-type="table" data-layout="full"><section class="portable-content-card portable-table-card" data-artifact-id="quality_table" data-artifact-kind="table" data-table-id="quality_table" data-portable-visual-title="최종 품질 게이트"><header class="portable-visual-header"><h2>최종 품질 게이트</h2></header><div class="portable-inline-source portable-source-summary" data-source-id="combined_quality"><div class="portable-inline-source-content portable-source-summary-content"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 최종 품질 게이트</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span><p class="portable-source-description-data">BE·FE 최종 품질 게이트와 운영 release review 결과를 결합</p></div></div><div class="portable-table-source-region"><div class="portable-table-scroll"><table><caption>최종 품질 게이트</caption><thead><tr><th scope="col" class="portable-table-number">#</th><th scope="col">대상</th><th scope="col">게이트</th><th scope="col">결과</th><th scope="col">비고</th></tr></thead><tbody><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-20"><span class="portable-source-value-text">1</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-20" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 1</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span></span></span></td><td>Backend</td><td>pytest</td><td>439 passed, 1 skipped</td><td>skip은 production Supertonic runtime 설정 대기</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-21"><span class="portable-source-value-text">2</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-21" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 2</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span></span></span></td><td>Backend</td><td>Ruff · mypy · OpenAPI</td><td>통과</td><td>mypy 64 source files, contract diff 0</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-22"><span class="portable-source-value-text">3</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-22" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 3</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span></span></span></td><td>Frontend</td><td>Vitest · ESLint · TypeScript</td><td>79 passed · clean</td><td>22 test files</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-23"><span class="portable-source-value-text">4</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-23" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 4</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span></span></span></td><td>Frontend</td><td>production · demo build</td><td>통과</td><td>OpenAPI generated type check 포함</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-24"><span class="portable-source-value-text">5</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-24" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 5</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span></span></span></td><td>Browser</td><td>Playwright Tablet E2E</td><td>8 passed</td><td>routine·대화·offline·Guardian session</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-25"><span class="portable-source-value-text">6</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-25" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 6</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span></span></span></td><td>Container · Ops</td><td>FE/API ARM64-compatible image · deploy review</td><td>build 및 P0/P1 review 통과</td><td>runtime UID 1000, non-root, exact digest contract</td></tr></tbody></table></div></div></section></div>
+<div class="portable-block portable-layout-full" data-artifact-block-id="quality_results_block" data-artifact-block-type="table" data-layout="full"><section class="portable-content-card portable-table-card" data-artifact-id="quality_table" data-artifact-kind="table" data-table-id="quality_table" data-portable-visual-title="최종 품질 게이트"><header class="portable-visual-header"><h2>최종 품질 게이트</h2></header><div class="portable-inline-source portable-source-summary" data-source-id="combined_quality"><div class="portable-inline-source-content portable-source-summary-content"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 최종 품질 게이트</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span><p class="portable-source-description-data">BE·FE 최종 품질 게이트와 운영 release review 결과를 결합</p></div></div><div class="portable-table-source-region"><div class="portable-table-scroll"><table><caption>최종 품질 게이트</caption><thead><tr><th scope="col" class="portable-table-number">#</th><th scope="col">대상</th><th scope="col">게이트</th><th scope="col">결과</th><th scope="col">비고</th></tr></thead><tbody><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-20"><span class="portable-source-value-text">1</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-20" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 1</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span></span></span></td><td>Backend</td><td>pytest</td><td>439 passed, 1 skipped</td><td>skip은 production Supertonic runtime 설정 대기</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-21"><span class="portable-source-value-text">2</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-21" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 2</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span></span></span></td><td>Backend</td><td>Ruff · mypy · OpenAPI</td><td>통과</td><td>mypy 64 source files, contract diff 0</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-22"><span class="portable-source-value-text">3</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-22" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 3</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span></span></span></td><td>Frontend</td><td>Vitest · ESLint · TypeScript</td><td>79 passed · clean</td><td>22 test files</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-23"><span class="portable-source-value-text">4</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-23" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 4</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span></span></span></td><td>Frontend</td><td>production · demo build</td><td>통과</td><td>OpenAPI generated type check 포함</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-24"><span class="portable-source-value-text">5</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-24" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 5</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span></span></span></td><td>Browser</td><td>Playwright Tablet E2E</td><td>8 passed</td><td>routine·대화·offline·Guardian session</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-25"><span class="portable-source-value-text">6</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-25" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 6</span><strong>Source: 두 저장소 최종 검증 결과</strong><span class="portable-source-meta">Tables: Reminiscence-BE, Reminiscence-FE</span></span></span></td><td>Container · Ops</td><td>FE/API ARM64-compatible image · deploy review</td><td>GitHub publish 및 P0/P1 review 통과</td><td>API·Web ARM64 release image, runtime UID 1000, exact digest contract</td></tr></tbody></table></div></div></section></div>
 <div class="portable-block portable-layout-full" data-artifact-block-id="history_findings" data-artifact-block-type="markdown" data-layout="full"><section class="portable-markdown"><h2>프로젝트 기간과 후속 완성 작업은 실제 이력대로 분리했습니다</h2>
 <p>요청된 2026년 6월 24일~7월 28일 구간에는 실제 Git으로 확인되는 활동만 집계했습니다. 후속 완성 작업은 8월 13일의 실제 author date로 기록했으며, 과거 여러 작업자가 참여한 것처럼 저자나 시각을 재작성하지 않았습니다.</p></section></div>
 <div class="portable-block portable-layout-full" data-artifact-block-id="history_results_block" data-artifact-block-type="table" data-layout="full"><section class="portable-content-card portable-table-card" data-artifact-id="history_table" data-artifact-kind="table" data-table-id="history_table" data-portable-visual-title="Git 이력의 사실 기반 기간 구분"><header class="portable-visual-header"><h2>Git 이력의 사실 기반 기간 구분</h2></header><div class="portable-inline-source portable-source-summary" data-source-id="git_history"><div class="portable-inline-source-content portable-source-summary-content"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for Git 이력의 사실 기반 기간 구분</span><strong>Source: BE·FE Git author-date 이력</strong><span class="portable-source-meta">Tables: Reminiscence-BE/.git, Reminiscence-FE/.git</span><p class="portable-source-description-data">2026-06-24~2026-07-28 실제 author-date commit 수와 첫·마지막 날짜 확인</p></div></div><div class="portable-table-source-region"><div class="portable-table-scroll"><table><caption>Git 이력의 사실 기반 기간 구분</caption><thead><tr><th scope="col" class="portable-table-number">#</th><th scope="col">구분</th><th scope="col">기준 기간</th><th scope="col">확인된 이력</th></tr></thead><tbody><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-26"><span class="portable-source-value-text">1</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-26" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 1</span><strong>Source: BE·FE Git author-date 이력</strong><span class="portable-source-meta">Tables: Reminiscence-BE/.git, Reminiscence-FE/.git</span></span></span></td><td>프로젝트 수행 기간</td><td>2026-06-24 ~ 2026-07-28</td><td>BE 102 commits(7/20~7/28), FE 9 commits(7/27)</td></tr><tr><td class="portable-table-source-cell portable-table-number"><span class="portable-source-tooltip portable-source-value" data-portable-source-host="true" tabindex="0" aria-describedby="portable-source-tooltip-27"><span class="portable-source-value-text">2</span><span class="portable-source-tooltip-content" id="portable-source-tooltip-27" role="tooltip"><span class="portable-source-tooltip-heading" aria-hidden="true">Source for 2</span><strong>Source: BE·FE Git author-date 이력</strong><span class="portable-source-meta">Tables: Reminiscence-BE/.git, Reminiscence-FE/.git</span></span></span></td><td>후속 완성 작업</td><td>2026-08-13 이후</td><td>현재 구현·review commit을 실제 author date로 기록</td></tr></tbody></table></div></div></section></div>
@@ -468,7 +468,7 @@ html:not([data-portable-source-tooltips-ready]) .portable-chart-summary>.portabl
 <div class="portable-block portable-layout-full" data-artifact-block-id="further_questions" data-artifact-block-type="markdown" data-layout="full"><section class="portable-markdown"><h2>운영값 세 가지가 확정되면 최종 인수를 끝낼 수 있습니다</h2>
 <ul><li>실제 Guardian password와 Tablet pairing code를 host에 직접 배치했는가?</li><li>현재 5개 가족사진과 3개 routine을 그대로 쓸지, 최종 자료와 일정으로 교체할 것인가?</li><li>SMTP 발신·수신 계정과 실제 발송 허용이 준비됐는가?</li></ul></section></div>
 <div class="portable-block portable-layout-full" data-artifact-block-id="caveats" data-artifact-block-type="markdown" data-layout="full"><section class="portable-markdown"><h2>Caveats and Assumptions</h2>
-<ul><li>현재 rpi5-server의 legacy 서비스는 변경하지 않았습니다. 새 secret과 설정 없이 CI/CD를 시작하면 production deploy가 fail-closed 되므로 의도적으로 push·전환을 보류했습니다.</li><li>Supertonic을 포함한 API image build는 통과했지만, real model smoke 1건은 production configuration이 없어 skip 상태입니다. 배포 script가 candidate traffic 공개 전에 이를 필수 실행합니다.</li><li>실제 SMTP 발송, Cloudflare 경유 HTTPS, Tablet microphone과 장시간 JSON 운영 안정성은 로컬 mock·browser E2E가 대체할 수 없는 실환경 인수 항목입니다.</li><li>host 점검 과정에서 legacy secret이 존재한 흔적을 확인했습니다. 값은 보고서에 포함하지 않았으며 production 전환 시 기존 API key와 tunnel credential 회전을 권장합니다.</li><li>이 보고서는 정확한 단계·상태 확인이 목적이므로 비교를 왜곡할 수 있는 장식적 chart 대신 source-backed audit table을 사용했습니다.</li></ul></section></div></div><section class="portable-sources" aria-labelledby="portable-sources-heading"><h2 id="portable-sources-heading">Sources</h2><ol><li><strong>개발 완성 계획</strong><span class="portable-source-meta">docs/completion-plan.md · filesystem · 2026-08-12T20:30:15Z</span><p>확정 요구사항, 7단계 범위, 품질 게이트와 외부 입력을 검토</p></li><li><strong>Reminiscence 프로젝트 확정 기획안</strong><span class="portable-source-meta">output/doc/Reminiscence_프로젝트_확정_기획안.pdf · filesystem</span><p>이상 탐지와 제품 흐름의 확정 기준 문서를 검토</p></li><li><strong>두 저장소 구현 및 단계별 review 근거</strong><span class="portable-source-meta">docs/report/report-data.sql · filesystem+git · 2026-08-12T20:30:15Z</span><p>두 저장소의 단계별 구현 diff와 독립 review 판정을 대조</p></li><li><strong>Backend 최종 품질 게이트</strong><span class="portable-source-meta">docs/report/report-data.sql · shell · 2026-08-12T20:28:00Z</span><p>Backend 전체 테스트, lint, typecheck와 OpenAPI 계약 재실행</p></li><li><strong>Frontend 최종 품질 게이트</strong><span class="portable-source-meta">docs/report/report-data.sql · shell · 2026-08-12T20:29:00Z</span><p>Frontend unit, lint, type, contract, build와 browser E2E 재실행</p></li><li><strong>두 저장소 최종 검증 결과</strong><span class="portable-source-meta">docs/report/report-data.sql · shell+review · 2026-08-12T20:30:15Z</span><p>BE·FE 최종 품질 게이트와 운영 release review 결과를 결합</p></li><li><strong>BE·FE Git author-date 이력</strong><span class="portable-source-meta">docs/report/report-data.sql · git · 2026-08-12T20:30:15Z</span><p>2026-06-24~2026-07-28 실제 author-date commit 수와 첫·마지막 날짜 확인</p></li><li><strong>배포·backup·복구 runbook</strong><span class="portable-source-meta">docs/operations.md · filesystem · 2026-08-12T20:30:15Z</span><p>secret bootstrap, digest release, backup·restore와 live acceptance 순서 검토</p></li><li><strong>rpi5-server 배포 준비도 read-only 점검</strong><span class="portable-source-meta">docs/report/verification-summary.md · ssh-read-only · 2026-08-12T20:00:00Z</span><p>rpi5-server의 기존 배포와 새 release prerequisites를 읽기 전용으로 점검</p></li></ol></section></main>
+<ul><li>코드와 API·Web ARM64 release image는 게시했습니다. 현재 rpi5-server의 legacy 서비스는 변경하지 않았고, production gate를 비활성 상태로 유지해 deploy job이 의도대로 skip됐습니다.</li><li>Supertonic을 포함한 API image build는 통과했지만, real model smoke 1건은 production configuration이 없어 skip 상태입니다. 배포 script가 candidate traffic 공개 전에 이를 필수 실행합니다.</li><li>실제 SMTP 발송, Cloudflare 경유 HTTPS, Tablet microphone과 장시간 JSON 운영 안정성은 로컬 mock·browser E2E가 대체할 수 없는 실환경 인수 항목입니다.</li><li>host 점검 과정에서 legacy secret이 존재한 흔적을 확인했습니다. 값은 보고서에 포함하지 않았으며 production 전환 시 기존 API key와 tunnel credential 회전을 권장합니다.</li><li>이 보고서는 정확한 단계·상태 확인이 목적이므로 비교를 왜곡할 수 있는 장식적 chart 대신 source-backed audit table을 사용했습니다.</li></ul></section></div></div><section class="portable-sources" aria-labelledby="portable-sources-heading"><h2 id="portable-sources-heading">Sources</h2><ol><li><strong>개발 완성 계획</strong><span class="portable-source-meta">docs/completion-plan.md · filesystem · 2026-08-12T21:03:25Z</span><p>확정 요구사항, 7단계 범위, 품질 게이트와 외부 입력을 검토</p></li><li><strong>Reminiscence 프로젝트 확정 기획안</strong><span class="portable-source-meta">output/doc/Reminiscence_프로젝트_확정_기획안.pdf · filesystem</span><p>이상 탐지와 제품 흐름의 확정 기준 문서를 검토</p></li><li><strong>두 저장소 구현 및 단계별 review 근거</strong><span class="portable-source-meta">docs/report/report-data.sql · filesystem+git · 2026-08-12T20:30:15Z</span><p>두 저장소의 단계별 구현 diff와 독립 review 판정을 대조</p></li><li><strong>Backend 최종 품질 게이트</strong><span class="portable-source-meta">docs/report/report-data.sql · shell · 2026-08-12T20:28:00Z</span><p>Backend 전체 테스트, lint, typecheck와 OpenAPI 계약 재실행</p></li><li><strong>Frontend 최종 품질 게이트</strong><span class="portable-source-meta">docs/report/report-data.sql · shell · 2026-08-12T20:29:00Z</span><p>Frontend unit, lint, type, contract, build와 browser E2E 재실행</p></li><li><strong>두 저장소 최종 검증 결과</strong><span class="portable-source-meta">docs/report/report-data.sql · shell+review · 2026-08-12T21:03:25Z</span><p>BE·FE 최종 품질 게이트와 운영 release review 결과를 결합</p></li><li><strong>BE·FE Git author-date 이력</strong><span class="portable-source-meta">docs/report/report-data.sql · git · 2026-08-12T20:30:15Z</span><p>2026-06-24~2026-07-28 실제 author-date commit 수와 첫·마지막 날짜 확인</p></li><li><strong>배포·backup·복구 runbook</strong><span class="portable-source-meta">docs/operations.md · filesystem · 2026-08-12T20:30:15Z</span><p>secret bootstrap, digest release, backup·restore와 live acceptance 순서 검토</p></li><li><strong>rpi5-server 배포 준비도 read-only 점검</strong><span class="portable-source-meta">docs/report/verification-summary.md · ssh-read-only · 2026-08-12T20:00:00Z</span><p>rpi5-server의 기존 배포와 새 release prerequisites를 읽기 전용으로 점검</p></li></ol></section></main>
 <script data-data-analytics-portable-source-tooltips="true">(() => {
   const RUNTIME_FLAG = "__dataAnalyticsPortableSourceTooltipsInitialized";
   const READY_ATTRIBUTE = "data-portable-source-tooltips-ready";
@@ -809,132 +809,133 @@ html:not([data-portable-source-tooltips-ready]) .portable-chart-summary>.portabl
 })();</script>
 <div id="data-analytics-portable-reader" aria-hidden="true" inert></div>
 <template id="data-analytics-portable-artifact-payload-source" data-compression="gzip-base64">
-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
+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
+TnXk3V98ESzGwv+vxf/1WnzxPyryWqbRUwAA
 </template>
 <template id="data-analytics-portable-reader-runtime-source" data-compression="gzip-base64">
 H4sIAAAAAAACE+y9a3fjNrYg+v38CilTV0MeQ4pk15MyyqfiR6e665VyVdLVjseESUhCTIEKCNnl

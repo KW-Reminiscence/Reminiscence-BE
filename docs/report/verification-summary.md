@@ -1,6 +1,6 @@
 # Reminiscence completion verification summary
 
-- 검증 시각: 2026-08-13 05:30 KST
+- 검증 시각: 2026-08-13 06:03 KST
 - 대상: `Reminiscence-BE`, `Reminiscence-FE`
 - 기준: `docs/completion-plan.md`, 확정 기획안 v1.4
 
@@ -59,6 +59,9 @@ pnpm test:e2e
 - API image build 및 non-root UID 1000 runtime 확인
 - Compose, Nginx, GitHub Actions workflow, backup·restore와 deploy rollback 정적·단위 검증 통과
 - Stage 7 최종 독립 review: P0/P1 없음
+- FE GitHub Actions run `31639425831`: 전체 gate와 ARM64 image publish 성공
+- BE GitHub Actions run `31640306307`: Backend gate, exact FE 전체 gate, API·Web ARM64 release image publish 성공
+- production deploy: repository variable `ENABLE_PRODUCTION_DEPLOY` 미설정으로 의도대로 skip
 
 ## Git 기간 근거
 
