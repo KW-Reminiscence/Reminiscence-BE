@@ -101,24 +101,39 @@ class CodexLbFollowUpQuestionProvider:
         photo: PhotoMemory,
         transcript: str,
         turn_count: int,
+        session_context: tuple[str, ...] = (),
     ) -> SpeechText:
-        """Generate one follow-up from the current answer and photo context."""
+        """Generate one follow-up from the answer and transient session context."""
 
         normalized_transcript = transcript.strip()
+        previous_context = self._session_context(session_context)
         if not normalized_transcript:
             prompt = (
                 "사용자가 이번에는 답하지 않았습니다. 부담을 주지 않는 다른 질문을 "
                 "하나 만드세요.\n"
-                f"{self._photo_context(photo)}"
+                f"{self._photo_context(photo)}\n"
+                f"{previous_context}"
             )
         else:
             prompt = (
                 f"현재 대화는 사용자 응답 {turn_count}번째입니다. 다음 사진 정보와 "
-                "방금 답변을 자연스럽게 이어가는 질문을 하나 만드세요.\n"
+                "현재 세션의 이전 응답, 방금 답변을 자연스럽게 이어가는 질문을 하나 "
+                "만드세요.\n"
                 f"{self._photo_context(photo)}\n"
+                f"{previous_context}\n"
                 f"방금 사용자 답변: {normalized_transcript}"
             )
         return self._generate(photo, prompt)
+
+    @staticmethod
+    def _session_context(session_context: tuple[str, ...]) -> str:
+        if not session_context:
+            return "현재 세션의 이전 사용자 응답: 없음"
+        turns = "\n".join(
+            f"{index}. {transcript}"
+            for index, transcript in enumerate(session_context, start=1)
+        )
+        return f"현재 세션의 이전 사용자 응답:\n{turns}"
 
     @staticmethod
     def _photo_context(photo: PhotoMemory) -> str:

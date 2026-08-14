@@ -29,8 +29,9 @@ class QuestionProvider(Protocol):
         photo: PhotoMemory,
         transcript: str,
         turn_count: int,
+        session_context: tuple[str, ...] = (),
     ) -> SpeechText:
-        """Return a follow-up using the current transcript transiently."""
+        """Return a follow-up using transient current-session context."""
 
         ...
 
@@ -43,8 +44,9 @@ class FollowUpQuestionProvider(Protocol):
         photo: PhotoMemory,
         transcript: str,
         turn_count: int,
+        session_context: tuple[str, ...] = (),
     ) -> SpeechText:
-        """Return a follow-up using the current transcript transiently."""
+        """Return a follow-up using transient current-session context."""
 
         ...
 
@@ -67,6 +69,7 @@ class SafeTemplateQuestionProvider:
         photo: PhotoMemory,
         transcript: str,
         turn_count: int,
+        session_context: tuple[str, ...] = (),
     ) -> SpeechText:
         index = max(0, turn_count - 1) % len(self._FOLLOW_UPS)
         text = self._FOLLOW_UPS[index]
@@ -94,9 +97,11 @@ class TemplateOpeningQuestionProvider:
         photo: PhotoMemory,
         transcript: str,
         turn_count: int,
+        session_context: tuple[str, ...] = (),
     ) -> SpeechText:
         return self._follow_up_provider.follow_up_question(
             photo,
             transcript,
             turn_count,
+            session_context,
         )

@@ -127,28 +127,37 @@ def test_follow_up_sends_photo_and_family_context() -> None:
     assert "2022년 봄 가족여행" in content[0]["text"]
 
 
-def test_follow_up_uses_current_transcript_without_retaining_history() -> None:
+def test_follow_up_uses_current_transcript_and_session_context() -> None:
     http = FakeHttp(success_response("그때 누구와 가장 많이 웃으셨나요?"))
 
     result = provider(http).follow_up_question(
         photo(),
         "민준이가 장난을 쳐서 많이 웃었어요.",
         2,
+        ("영희와 성산일출봉에 갔어요.",),
     )
 
     assert result.display_text == "그때 누구와 가장 많이 웃으셨나요?"
     prompt = request_payload(http)["input"][0]["content"][0]["text"]
     assert "사용자 응답 2번째" in prompt
+    assert "현재 세션의 이전 사용자 응답" in prompt
+    assert "1. 영희와 성산일출봉에 갔어요." in prompt
     assert "민준이가 장난을 쳐서 많이 웃었어요." in prompt
 
 
 def test_no_response_requests_a_low_pressure_question() -> None:
     http = FakeHttp(success_response())
 
-    provider(http).follow_up_question(photo(), " \n", 1)
+    provider(http).follow_up_question(
+        photo(),
+        " \n",
+        2,
+        ("앞서 가족여행에 관해 이야기했어요.",),
+    )
 
     prompt = request_payload(http)["input"][0]["content"][0]["text"]
     assert "답하지 않았습니다" in prompt
+    assert "앞서 가족여행에 관해 이야기했어요." in prompt
 
 
 @pytest.mark.parametrize(

@@ -24,6 +24,7 @@ from reminiscence.auth.dependencies import (
     TabletSessionDependency,
 )
 from reminiscence.auth.secrets import load_auth_secrets
+from reminiscence.conversation.context import TransientConversationContextStore
 from reminiscence.conversation.llm_questions import (
     CodexLbFollowUpQuestionProvider,
     CodexLbQuestionConfig,
@@ -164,6 +165,13 @@ def get_conversation_service() -> ConversationService:
             )
         )
     )
+
+
+@lru_cache(maxsize=1)
+def get_conversation_context_store() -> TransientConversationContextStore:
+    """Build process-local session context that is never written to storage."""
+
+    return TransientConversationContextStore()
 
 
 @lru_cache(maxsize=1)
@@ -335,6 +343,10 @@ QuestionProviderDependency = Annotated[
     QuestionProvider,
     Depends(get_question_provider),
 ]
+ConversationContextDependency = Annotated[
+    TransientConversationContextStore,
+    Depends(get_conversation_context_store),
+]
 CurrentTimeDependency = Annotated[datetime, Depends(get_current_time)]
 AudioBody = Annotated[bytes, Body(media_type="audio/wav")]
 TurnDuration = Annotated[float, Query(ge=0, le=300)]
@@ -433,6 +445,7 @@ async def record_conversation_turn(
     service: ConversationServiceDependency,
     recognizer: RecognizerDependency,
     questions: QuestionProviderDependency,
+    context: ConversationContextDependency,
     now: CurrentTimeDependency,
 ) -> TurnMetricResponse:
     """Use ASR transiently, then persist metrics without text or audio."""
@@ -470,11 +483,13 @@ async def record_conversation_turn(
             audio,
             content_type,
         )
+        transcript = recognition.transcript if has_speech else ""
         next_question = await run_in_threadpool(
             questions.follow_up_question,
             photo,
-            recognition.transcript if has_speech else "",
+            transcript,
             active_session.summary.user_turn_count + 1,
+            context.history(session_id),
         )
         metric: ConversationTurnMetric = service.record_turn(
             session_id,
@@ -484,6 +499,7 @@ async def record_conversation_turn(
             turn_id,
             has_speech,
         )
+        context.remember(session_id, transcript)
     except ConversationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ConversationStateError as exc:
@@ -532,6 +548,7 @@ async def complete_conversation(
     _: TabletSessionDependency,
     __: SameOriginDependency,
     service: ConversationServiceDependency,
+    context: ConversationContextDependency,
     now: CurrentTimeDependency,
     payload: CompleteConversationRequest | None = None,
 ) -> ConversationSummaryResponse:
@@ -543,7 +560,9 @@ async def complete_conversation(
             if payload is not None
             else ConversationCompletionReason.USER_FINISHED
         )
-        return _summary_response(service.complete_session(session_id, now, reason))
+        summary = service.complete_session(session_id, now, reason)
+        context.clear(session_id)
+        return _summary_response(summary)
     except ConversationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ConversationStateError as exc:

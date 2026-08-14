@@ -16,11 +16,13 @@ from reminiscence.asr import CodexLbRecognizer, RecognitionResult
 from reminiscence.asr.models import MAX_AUDIO_BYTES
 from reminiscence.conversation import ConversationService, JsonConversationStore
 from reminiscence.conversation.api import (
+    get_conversation_context_store,
     get_conversation_service,
     get_current_time,
     get_question_provider,
     get_speech_recognizer,
 )
+from reminiscence.conversation.context import TransientConversationContextStore
 from reminiscence.conversation.llm_questions import (
     QuestionGenerationUnavailableError,
 )
@@ -57,7 +59,7 @@ class FakeQuestionProvider:
     def __init__(self, error: Exception | None = None) -> None:
         self.error = error
         self.initial_photos: list[PhotoMemory] = []
-        self.follow_ups: list[tuple[PhotoMemory, str, int]] = []
+        self.follow_ups: list[tuple[PhotoMemory, str, int, tuple[str, ...]]] = []
 
     def initial_question(self, photo: PhotoMemory) -> SpeechText:
         self.initial_photos.append(photo)
@@ -73,8 +75,9 @@ class FakeQuestionProvider:
         photo: PhotoMemory,
         transcript: str,
         turn_count: int,
+        session_context: tuple[str, ...] = (),
     ) -> SpeechText:
-        self.follow_ups.append((photo, transcript, turn_count))
+        self.follow_ups.append((photo, transcript, turn_count, session_context))
         if self.error is not None:
             raise self.error
         return SpeechText(
@@ -91,6 +94,7 @@ def client_with(
     tmp_path: Path,
     recognizer: FakeRecognizer | None = None,
     questions: FakeQuestionProvider | None = None,
+    context: TransientConversationContextStore | None = None,
 ) -> tuple[TestClient, Path, FakeRecognizer]:
     activity_path = tmp_path / "activity_metrics.json"
     configuration_path = tmp_path / "configuration.json"
@@ -124,11 +128,13 @@ def client_with(
         id_factory=iter(["session-1", "turn-1", "turn-2"]).__next__,
     )
     fake_recognizer = recognizer or FakeRecognizer()
+    fake_context = context or TransientConversationContextStore()
     app.dependency_overrides[get_conversation_service] = lambda: service
     app.dependency_overrides[get_speech_recognizer] = lambda: fake_recognizer
     app.dependency_overrides[get_question_provider] = lambda: (
         questions or FakeQuestionProvider()
     )
+    app.dependency_overrides[get_conversation_context_store] = lambda: fake_context
     app.dependency_overrides[get_current_time] = lambda: at()
     os.environ["REMINISCENCE_DATA_DIR"] = str(tmp_path)
     client = TestClient(app)
@@ -338,10 +344,57 @@ def test_turn_reduces_audio_to_metrics_without_returning_or_storing_text(
     assert "wav-audio" not in persisted
     assert recognizer.calls == [(b"wav-audio", "audio/wav")]
     assert len(questions.follow_ups) == 1
-    photo, transcript, turn_count = questions.follow_ups[0]
+    photo, transcript, turn_count, session_context = questions.follow_ups[0]
     assert photo.photo_id == "family-1"
     assert transcript == "비밀 가족 이야기"
     assert turn_count == 1
+    assert session_context == ()
+
+
+def test_turn_passes_prior_answers_as_transient_session_context(
+    tmp_path: Path,
+) -> None:
+    recognizer = FakeRecognizer("첫 번째 가족 이야기")
+    questions = FakeQuestionProvider()
+    context = TransientConversationContextStore()
+    client, activity_path, _ = client_with(
+        tmp_path,
+        recognizer,
+        questions,
+        context,
+    )
+    session_id = start_session(client)
+
+    first = client.post(
+        f"/api/v1/conversations/sessions/{session_id}/turns",
+        params={"turn_duration_seconds": 4, "has_speech": True},
+        content=b"first-wav",
+        headers=TURN_HEADERS,
+    )
+    recognizer.transcript = "두 번째 가족 이야기"
+    second = client.post(
+        f"/api/v1/conversations/sessions/{session_id}/turns",
+        params={"turn_duration_seconds": 5, "has_speech": True},
+        content=b"second-wav",
+        headers={"content-type": "audio/wav", "X-Turn-ID": "client-turn-2"},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert questions.follow_ups[0][3] == ()
+    assert questions.follow_ups[1][3] == ("첫 번째 가족 이야기",)
+    assert context.history(session_id) == (
+        "첫 번째 가족 이야기",
+        "두 번째 가족 이야기",
+    )
+    persisted = activity_path.read_text(encoding="utf-8")
+    assert "첫 번째 가족 이야기" not in persisted
+    assert "두 번째 가족 이야기" not in persisted
+
+    completed = client.post(f"/api/v1/conversations/sessions/{session_id}/complete")
+
+    assert completed.status_code == 200
+    assert context.history(session_id) == ()
 
 
 def test_duplicate_turn_id_skips_providers_and_metrics(tmp_path: Path) -> None:
@@ -376,7 +429,8 @@ def test_question_failure_does_not_persist_turn(tmp_path: Path) -> None:
     questions = FakeQuestionProvider(
         QuestionGenerationUnavailableError("provider unavailable")
     )
-    client, activity_path, _ = client_with(tmp_path)
+    context = TransientConversationContextStore()
+    client, activity_path, _ = client_with(tmp_path, context=context)
     session_id = start_session(client)
     app.dependency_overrides[get_question_provider] = lambda: questions
 
@@ -390,6 +444,7 @@ def test_question_failure_does_not_persist_turn(tmp_path: Path) -> None:
     assert response.status_code == 503
     persisted = json.loads(activity_path.read_text(encoding="utf-8"))
     assert persisted["conversation_sessions"][0]["turns"] == []
+    assert context.history(session_id) == ()
 
 
 def test_question_failure_does_not_create_session(tmp_path: Path) -> None:

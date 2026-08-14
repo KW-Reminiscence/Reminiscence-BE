@@ -13,15 +13,16 @@ from reminiscence.conversation.questions import (
 
 class RecordingFollowUpProvider:
     def __init__(self) -> None:
-        self.calls: list[tuple[PhotoMemory, str, int]] = []
+        self.calls: list[tuple[PhotoMemory, str, int, tuple[str, ...]]] = []
 
     def follow_up_question(
         self,
         photo: PhotoMemory,
         transcript: str,
         turn_count: int,
+        session_context: tuple[str, ...] = (),
     ) -> SpeechText:
-        self.calls.append((photo, transcript, turn_count))
+        self.calls.append((photo, transcript, turn_count, session_context))
         return SpeechText(
             display_text="그때 어떤 기분이 드셨나요?",
             spoken_text="그때 어떤 기분이 드셨나요?",
@@ -62,6 +63,7 @@ def test_follow_up_question_is_delegated_to_llm() -> None:
         configured_photo,
         "바람이 많이 불었지만 즐거웠어요.",
         1,
+        ("딸과 제주도에 갔어요.",),
     )
 
     assert question.display_text == "그때 어떤 기분이 드셨나요?"
@@ -70,5 +72,6 @@ def test_follow_up_question_is_delegated_to_llm() -> None:
             configured_photo,
             "바람이 많이 불었지만 즐거웠어요.",
             1,
+            ("딸과 제주도에 갔어요.",),
         )
     ]
