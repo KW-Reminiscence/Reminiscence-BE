@@ -34,6 +34,22 @@ snapshot에 넣지 않습니다. `configuration.json`의 사진·이름·일정�
 사용자용 값으로 바꾸고 `runtime.public_origin`은 production URL과 정확히
 일치시킵니다.
 
+완성한 JSON 전체는 BE repository의 Actions secret
+`APPLICATION_SECRETS_JSON`에도 등록합니다. 값이 shell history나 process
+argument에 남지 않도록 신뢰할 수 있는 관리자 환경에서 표준 입력으로 전달합니다.
+
+```bash
+gh secret set APPLICATION_SECRETS_JSON \
+  --repo KW-Reminiscence/Reminiscence-BE \
+  < /secure/path/application-secrets.json
+```
+
+production deploy job은 이 secret을 로그에 출력하지 않고 rpi5-server의
+`/home/ubuntu/apps/reminiscence/production/application-secrets.json`에 mode
+`0600`으로 원자 교체합니다. secret이 없거나 필수 JSON field 검증에 실패하면
+container와 기존 서비스를 변경하기 전에 종료합니다. Credential을 회전할 때는
+Actions secret을 갱신한 뒤 workflow를 다시 실행합니다.
+
 배포 전 권한을 확인합니다.
 
 ```bash
