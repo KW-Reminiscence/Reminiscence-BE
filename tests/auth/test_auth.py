@@ -32,7 +32,9 @@ from reminiscence.main import create_app
 from reminiscence.storage import JsonObjectStore
 
 SEOUL = ZoneInfo("Asia/Seoul")
-NOW = datetime(2026, 8, 13, 12, 0, tzinfo=SEOUL)
+# TestClient's cookie jar validates Expires against the real wall clock even though
+# the application clock is injected. Keep issued cookies future-valid on every run.
+NOW = datetime.now(SEOUL).replace(microsecond=0)
 ORIGIN = "https://reminiscence.leehyowon14.dev"
 PASSWORD = "guardian-password"
 PAIRING_CODE = "tablet-pairing-code"
