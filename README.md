@@ -71,7 +71,7 @@ model `gpt-4o-transcribe`를 전송합니다. `runtime.codex_lb.base_url`은 `/v
 URL입니다.
 
 회상 질문은 같은 codex-lb의 `POST /v1/responses`를 사용합니다. 기본
-`gpt-5.6-sol` 모델은 `runtime.codex_lb.response_model`로 바꿀 수 있습니다. 서버는
+`gpt-5.6-luna` 모델은 `runtime.codex_lb.response_model`로 바꿀 수 있습니다. 서버는
 초기에는 고정형 열린 질문을 반환합니다. 사용자 답변 이후에는 base64 사진을
 `input_image` data URL로, 위치·인물·사건·설명과 현재 답변을 텍스트로 전달해
 LLM 후속 질문을 생성합니다. 요청에는 `store: false`를 사용하며 provider 응답

@@ -14,7 +14,7 @@ from reminiscence.conversation.photos import PhotoMemory
 from reminiscence.conversation.questions import SpeechText
 
 DEFAULT_BASE_URL = "http://127.0.0.1:2455/v1"
-DEFAULT_RESPONSE_MODEL = "gpt-5.6-sol"
+DEFAULT_RESPONSE_MODEL = "gpt-5.6-luna"
 MAX_QUESTION_CHARS = 300
 
 SYSTEM_INSTRUCTIONS = """\

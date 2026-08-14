@@ -355,7 +355,7 @@ APPLIANCE_RUNTIME_DEFAULTS: dict[str, Any] = {
         "connect_timeout_seconds": 10,
         "transcription_read_timeout_seconds": 150,
         "response_read_timeout_seconds": 60,
-        "response_model": "gpt-5.6-sol",
+        "response_model": "gpt-5.6-luna",
     },
     "supertonic": {
         "model_dir": "/models/supertonic-3",

@@ -26,7 +26,7 @@ class CodexLbSettings:
     connect_timeout_seconds: float = 10.0
     transcription_read_timeout_seconds: float = 150.0
     response_read_timeout_seconds: float = 60.0
-    response_model: str = "gpt-5.6-sol"
+    response_model: str = "gpt-5.6-luna"
 
 
 @dataclass(frozen=True, slots=True)
