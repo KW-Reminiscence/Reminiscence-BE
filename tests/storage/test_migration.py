@@ -8,8 +8,10 @@ from pathlib import Path
 
 import pytest
 
+from reminiscence.runtime_config import parse_runtime_settings
 from reminiscence.storage import migration
 from reminiscence.storage import snapshot as snapshot_module
+from reminiscence.storage.documents import APPLIANCE_RUNTIME_DEFAULTS
 from reminiscence.storage.migration import (
     CURRENT_SCHEMA_VERSION,
     JsonMigrationError,
@@ -60,9 +62,15 @@ def test_apply_versions_existing_and_creates_all_known_documents(
     for path in tmp_path.glob("*.json"):
         root = json.loads(path.read_text(encoding="utf-8"))
         assert root["schema_version"] == CURRENT_SCHEMA_VERSION
-    assert json.loads(configuration_path.read_text(encoding="utf-8"))[
-        "conversation"
-    ] == {"suggestion_time": "14:00"}
+    migrated_configuration = json.loads(
+        configuration_path.read_text(encoding="utf-8")
+    )
+    assert migrated_configuration["conversation"] == {"suggestion_time": "14:00"}
+    assert migrated_configuration["runtime"] == APPLIANCE_RUNTIME_DEFAULTS
+    assert parse_runtime_settings(
+        migrated_configuration,
+        require_explicit=True,
+    ).public_origin == "https://reminiscence.leehyowon14.dev"
 
 
 def test_apply_corrects_existing_data_directory_mode(tmp_path: Path) -> None:

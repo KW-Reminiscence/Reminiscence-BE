@@ -344,10 +344,42 @@ def _validate_auth_attempts(root: dict[str, Any]) -> None:
         _parse_attempt(value)
 
 
+APPLIANCE_RUNTIME_DEFAULTS: dict[str, Any] = {
+    "timezone": "Asia/Seoul",
+    "public_origin": "https://reminiscence.leehyowon14.dev",
+    "cors_origins": [],
+    "routine_tick_seconds": 5,
+    "evaluation_seconds": 60,
+    "codex_lb": {
+        "base_url": "https://codex-api.leehyowon14.dev/v1",
+        "connect_timeout_seconds": 10,
+        "transcription_read_timeout_seconds": 150,
+        "response_read_timeout_seconds": 60,
+        "response_model": "gpt-5.6-sol",
+    },
+    "supertonic": {
+        "model_dir": "/models/supertonic-3",
+        "auto_download": False,
+        "voice": "F1",
+        "language": "ko",
+        "total_steps": 8,
+        "speed": 0.9,
+        "max_text_chars": 500,
+        "intra_op_num_threads": 4,
+        "inter_op_num_threads": 1,
+    },
+}
+
+
 DOCUMENT_SPECS = (
     DocumentSpec(
         "configuration.json",
-        {"routines": [], "photos": [], "conversation": {}},
+        {
+            "routines": [],
+            "photos": [],
+            "conversation": {},
+            "runtime": APPLIANCE_RUNTIME_DEFAULTS,
+        },
         _validate_configuration,
     ),
     DocumentSpec(

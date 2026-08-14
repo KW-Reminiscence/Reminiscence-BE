@@ -9,6 +9,7 @@ from reminiscence.conversation.photos import parse_photos
 from reminiscence.routine.storage import JsonRoutineStore
 from reminiscence.runtime_config import parse_runtime_settings
 from reminiscence.storage import JsonObjectStore
+from reminiscence.storage.documents import APPLIANCE_RUNTIME_DEFAULTS
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -27,6 +28,7 @@ def test_runtime_configuration_example_covers_validated_settings() -> None:
     assert settings.public_origin == "https://reminiscence.leehyowon14.dev"
     assert settings.codex_lb.base_url == "https://codex-api.leehyowon14.dev/v1"
     assert settings.supertonic.model_dir == Path("/models/supertonic-3")
+    assert root["runtime"] == APPLIANCE_RUNTIME_DEFAULTS
     assert not (PROJECT_ROOT / "deploy/runtime.env.example").exists()
 
 
