@@ -22,14 +22,15 @@ def test_ci_cd_runs_for_main_and_explicit_manual_release() -> None:
     assert "uv run python scripts/export_openapi.py --check" in workflow
 
 
-def test_production_deploy_requires_gate_or_manual_dispatch() -> None:
+def test_production_deploys_every_main_push_and_manual_dispatch() -> None:
     workflow = (
         PROJECT_ROOT / ".github/workflows/ci-cd.yml"
     ).read_text(encoding="utf-8")
 
-    assert "vars.ENABLE_PRODUCTION_DEPLOY == 'true'" in workflow
-    assert "github.event_name == 'workflow_dispatch'" in workflow
-    assert "github.event_name != 'pull_request' && github.ref == 'refs/heads/main'" in workflow
+    assert "vars.ENABLE_PRODUCTION_DEPLOY" not in workflow
+    assert workflow.count(
+        "github.event_name != 'pull_request' && github.ref == 'refs/heads/main'"
+    ) == 2
     assert workflow.count("github.ref == 'refs/heads/main'") == 2
     assert "inputs.apply_json_migrations" in workflow
     assert "APPLY_JSON_MIGRATIONS:" in workflow

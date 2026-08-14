@@ -176,10 +176,7 @@ jobs:
 
   deploy:
     name: Deploy
-    if: >-
-      github.ref == 'refs/heads/main' &&
-      (github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' && vars.ENABLE_PRODUCTION_DEPLOY == 'true'))
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: [self-hosted, Linux, ARM64, reminiscence]
     concurrency:
