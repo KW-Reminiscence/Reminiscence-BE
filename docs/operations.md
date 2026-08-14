@@ -93,6 +93,23 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
+Nginx worker가 mode `0750` production directory 안의 maintenance flag 존재 여부만
+확인할 수 있도록 모든 사용자에게 home traverse를 열지 않고 `www-data` 전용 ACL을
+적용합니다.
+
+```bash
+sudo apt-get install -y acl
+sudo setfacl -m u:www-data:--x \
+  /home/ubuntu \
+  /home/ubuntu/apps \
+  /home/ubuntu/apps/reminiscence
+sudo setfacl -m u:www-data:r-x \
+  /home/ubuntu/apps/reminiscence/production
+```
+
+Secret과 data file mode는 바꾸지 않습니다. maintenance 중 public `/`가 `503`,
+flag 제거 후 `200`인지 확인합니다.
+
 기존 Nginx 파일에 같은 `server_name`이 있다면 먼저 백업하고 해당 server block을
 제거합니다. `sudo nginx -T` 결과에서
 `reminiscence.leehyowon14.dev` server가 정확히 하나인지 확인합니다. API와 web
@@ -109,9 +126,9 @@ FE `main` workflow가 먼저 성공해 자체 ARM64 image와 품질 게이트를
 그 뒤 BE `main` workflow가 검증한 exact FE source를
 `ghcr.io/kw-reminiscence/reminiscence-web-release`로 다시 build해 release digest를
 소유합니다. 이 경계는 private GHCR package의 cross-repository token 권한에
-의존하지 않습니다. `ENABLE_PRODUCTION_DEPLOY` repository
-variable이 `true`가 되기 전까지 push는 검증과 image 게시까지만 수행하며 production
-deploy는 시작하지 않습니다.
+의존하지 않습니다. BE `main` push는 GitHub-hosted 검증과 image 게시가 성공하면
+self-hosted production deploy까지 자동 실행합니다. PR과 non-main ref는
+self-hosted runner에 접근하지 않습니다.
 
 1. GitHub-hosted runner에서 pytest, Ruff, mypy와 OpenAPI 검증
 2. API ARM64 image build·SBOM·provenance 게시
@@ -120,10 +137,10 @@ deploy는 시작하지 않습니다.
 5. rpi5의 `reminiscence` label runner에서 두 digest 통합 배포
 
 최초 legacy 전환은 BE image가 게시된 뒤 Actions의 `CI/CD`에서 **Run workflow**를
-선택하고 `apply_json_migrations`를 켜서 한 번만 실행합니다. 실제 HTTPS 인수가
-끝난 뒤 repository variable `ENABLE_PRODUCTION_DEPLOY=true`를 설정하면 이후 BE
-`main` push부터 자동 production deploy가 활성화됩니다. 이 순서를 뒤집어 최초
-push가 legacy data에 일반 배포를 시도하게 해서는 안 됩니다.
+선택하고 `apply_json_migrations`를 켜서 한 번만 실행합니다. 전환이 끝난 이후에는
+별도 repository variable 없이 BE `main` push가 자동 production deploy를
+실행합니다. 신규 appliance는 최초 push 전에 legacy migration을 먼저 완료해야
+합니다.
 
 rpi5 runner는 image pull, snapshot, migration, Compose와 smoke만 수행합니다.
 runner 상태는 다음처럼 확인합니다.
