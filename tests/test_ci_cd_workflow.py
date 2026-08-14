@@ -69,3 +69,25 @@ def test_workflow_deploys_api_and_web_by_immutable_digest() -> None:
     )
     assert "org.opencontainers.image.revision=${{ steps.web-source.outputs.commit }}" in workflow
     assert "sha256sum openapi.json" in workflow
+
+
+def test_deploy_installs_validated_repository_secret_before_release() -> None:
+    workflow = (
+        PROJECT_ROOT / ".github/workflows/ci-cd.yml"
+    ).read_text(encoding="utf-8")
+
+    install_secret = workflow.index("- name: Install application secrets")
+    deploy = workflow.index("- name: Deploy with Docker Compose")
+
+    assert install_secret < deploy
+    assert "APPLICATION_SECRETS_JSON: ${{ secrets.APPLICATION_SECRETS_JSON }}" in workflow
+    assert "Missing required repository secret: APPLICATION_SECRETS_JSON" in workflow
+    assert "application-secrets.json" in workflow
+    assert "umask 077" in workflow
+    assert "mktemp" in workflow
+    assert "printf '%s' \"${APPLICATION_SECRETS_JSON}\"" in workflow
+    assert "chmod 0600" in workflow
+    assert "jq -e" in workflow
+    assert ".schema_version == 1" in workflow
+    assert "mv -f \"${temporary}\" \"${destination}\"" in workflow
+    assert 'echo "${APPLICATION_SECRETS_JSON}"' not in workflow

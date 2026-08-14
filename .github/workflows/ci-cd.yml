@@ -202,6 +202,42 @@ jobs:
       - name: Check out deployment configuration
         uses: actions/checkout@v4
 
+      - name: Install application secrets
+        env:
+          APPLICATION_SECRETS_JSON: ${{ secrets.APPLICATION_SECRETS_JSON }}
+        run: |
+          set -Eeuo pipefail
+          destination=/home/ubuntu/apps/reminiscence/production/application-secrets.json
+          if [[ -z "${APPLICATION_SECRETS_JSON:-}" ]]; then
+            echo "Missing required repository secret: APPLICATION_SECRETS_JSON" >&2
+            exit 78
+          fi
+          install -d -m 0750 "$(dirname "${destination}")"
+          umask 077
+          temporary="$(mktemp "${destination}.XXXXXX")"
+          cleanup() {
+            rm -f "${temporary}"
+          }
+          trap cleanup EXIT
+          printf '%s' "${APPLICATION_SECRETS_JSON}" >"${temporary}"
+          chmod 0600 "${temporary}"
+          jq -e '
+            type == "object"
+            and .schema_version == 1
+            and (.guardian_password | type == "string" and length >= 8)
+            and (.tablet_pairing_code | type == "string" and length >= 6)
+            and (.codex_lb_api_key | type == "string" and length >= 8)
+            and (.care_recipient.name | type == "string" and length > 0)
+            and (.guardian.email | type == "string" and length > 0)
+            and (.smtp.host | type == "string" and length > 0)
+            and (.smtp.port | type == "number" and . >= 1 and . <= 65535)
+            and (.smtp.username | type == "string" and length > 0)
+            and (.smtp.app_password | type == "string" and length > 0)
+            and (.smtp.from_name | type == "string" and length > 0)
+          ' "${temporary}" >/dev/null
+          mv -f "${temporary}" "${destination}"
+          trap - EXIT
+
       - name: Log in to GHCR
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
