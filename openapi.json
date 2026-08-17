@@ -1417,6 +1417,195 @@
         ]
       }
     },
+    "/api/v1/demo/conversations/sessions": {
+      "post": {
+        "description": "Start a scheduled or voluntary session with a synthesizable question.",
+        "operationId": "start_conversation_api_v1_demo_conversations_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartConversationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start a public demo reminiscence conversation",
+        "tags": [
+          "demo-conversations"
+        ]
+      }
+    },
+    "/api/v1/demo/conversations/sessions/{session_id}/complete": {
+      "post": {
+        "description": "Finalize a session and return its metrics-only summary.",
+        "operationId": "complete_conversation_api_v1_demo_conversations_sessions__session_id__complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/CompleteConversationRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationSummaryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Complete a public demo conversation session",
+        "tags": [
+          "demo-conversations"
+        ]
+      }
+    },
+    "/api/v1/demo/conversations/sessions/{session_id}/turns": {
+      "post": {
+        "description": "Use ASR transiently, then persist metrics without text or audio.",
+        "operationId": "record_conversation_turn_api_v1_demo_conversations_sessions__session_id__turns_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "turn_duration_seconds",
+            "required": true,
+            "schema": {
+              "maximum": 300,
+              "minimum": 0,
+              "title": "Turn Duration Seconds",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "has_speech",
+            "required": true,
+            "schema": {
+              "title": "Has Speech",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Turn-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "title": "X-Turn-Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "audio/wav": {
+              "schema": {
+                "contentMediaType": "application/octet-stream",
+                "title": "Audio",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TurnMetricResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recognize and reduce one public demo turn",
+        "tags": [
+          "demo-conversations"
+        ]
+      }
+    },
     "/api/v1/routines/current": {
       "get": {
         "description": "Advance due transitions and return prompts the tablet should display.",
@@ -1552,7 +1741,7 @@
     },
     "/api/v1/tts/demo-speech": {
       "post": {
-        "description": "Use the production voice engine without exposing arbitrary public TTS.",
+        "description": "Use the production voice engine for dynamic demo conversation questions.",
         "operationId": "synthesize_demo_speech_api_v1_tts_demo_speech_post",
         "requestBody": {
           "content": {
@@ -1569,7 +1758,7 @@
             "content": {
               "audio/wav": {}
             },
-            "description": "Supertonic 3 PCM WAV audio for an allowlisted demo prompt"
+            "description": "Supertonic 3 PCM WAV audio for the public demo"
           },
           "422": {
             "content": {
@@ -1582,7 +1771,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Synthesize an allowlisted public demo prompt",
+        "summary": "Synthesize public demo speech",
         "tags": [
           "tts"
         ]

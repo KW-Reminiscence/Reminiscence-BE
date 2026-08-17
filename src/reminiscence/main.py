@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from reminiscence.anomaly.api import router as anomaly_router
 from reminiscence.asr.models import MAX_AUDIO_BYTES
 from reminiscence.auth.api import router as auth_router
+from reminiscence.conversation.api import demo_router as demo_conversation_router
 from reminiscence.conversation.api import router as conversation_router
 from reminiscence.health import router as health_router
 from reminiscence.notification.api import (
@@ -134,6 +135,7 @@ def create_app(cors_origins: tuple[str, ...] | None = None) -> FastAPI:
     application.include_router(tablet_router)
     application.include_router(routine_router)
     application.include_router(conversation_router)
+    application.include_router(demo_conversation_router)
     application.include_router(anomaly_router)
     application.include_router(notification_router)
     application.include_router(tts_router)

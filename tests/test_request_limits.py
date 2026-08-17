@@ -5,12 +5,20 @@ from __future__ import annotations
 import asyncio
 from typing import cast
 
+import pytest
 from starlette.types import Message, Receive, Scope, Send
 
 from reminiscence.request_limits import ConversationAudioLimitMiddleware
 
 
-def test_chunked_audio_stops_at_limit_before_reaching_endpoint() -> None:
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/v1/conversations/sessions/session-1/turns",
+        "/api/v1/demo/conversations/sessions/session-1/turns",
+    ],
+)
+def test_chunked_audio_stops_at_limit_before_reaching_endpoint(path: str) -> None:
     endpoint_reached = False
     incoming: asyncio.Queue[Message] = asyncio.Queue()
     outgoing: list[Message] = []
@@ -53,7 +61,7 @@ def test_chunked_audio_stops_at_limit_before_reaching_endpoint() -> None:
         {
             "type": "http",
             "method": "POST",
-            "path": "/api/v1/conversations/sessions/session-1/turns",
+            "path": path,
             "headers": [(b"transfer-encoding", b"chunked")],
         },
     )
