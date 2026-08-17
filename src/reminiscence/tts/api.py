@@ -36,6 +36,21 @@ SpeechText = Annotated[
     ),
 ]
 
+DEMO_SPEECH_TEXTS = frozenset(
+    {
+        "가족사진을 보니 어떤 날이 떠오르세요?",
+        "그날 가장 기억에 남는 이야기를 들려주세요.",
+        "어르신~ 아침 드실 시간이예요~, 아침 꼭 챙겨드시고 여기 버튼 눌러주세요",
+        "어르신~ 이따가 아침약 드실 시간에 다시 알려드릴게요~",
+        "어르신~ 아침약 드실 시간이예요~, 귀찮으시더라도 꼭 챙겨 드시고 버튼을 눌러주세요!",
+        "어르신~ 이따가 점심 드실 시간에 다시 알려드릴게요~",
+        "어르신~ 점심 드실 시간이예요~, 점심 꼭 챙겨드시고 여기 버튼 눌러주세요",
+        "어르신~ 이따가 점심약 드실 시간에 다시 알려드릴게요~",
+        "어르신~ 점심약 드실 시간이예요~, 귀찮으시더라도 꼭 챙겨 드시고 버튼을 눌러주세요!",
+        "어르신~ 이따가 저녁 드실 시간에 다시 알려드릴게요~",
+    }
+)
+
 
 class SpeechSynthesisRequest(BaseModel):
     """Visible spoken_text to synthesize with the configured local voice."""
@@ -84,25 +99,10 @@ SynthesizerDependency = Annotated[
 ]
 
 
-@router.post(
-    "/speech",
-    response_class=Response,
-    responses={
-        status.HTTP_200_OK: {
-            "content": {"audio/wav": {}},
-            "description": "Supertonic 3 PCM WAV audio",
-        }
-    },
-    summary="Synthesize Korean speech with local Supertonic 3",
-)
-async def synthesize_speech(
+async def _synthesize_response(
     payload: SpeechSynthesisRequest,
-    _: TabletSessionDependency,
-    __: SameOriginDependency,
-    synthesizer: SynthesizerDependency,
+    synthesizer: SpeechSynthesizer,
 ) -> Response:
-    """Return a non-persisted WAV that the tablet can play immediately."""
-
     try:
         result = await run_in_threadpool(
             synthesizer.synthesize,
@@ -129,3 +129,51 @@ async def synthesize_speech(
             "X-TTS-Engine": result.engine,
         },
     )
+
+
+@router.post(
+    "/speech",
+    response_class=Response,
+    responses={
+        status.HTTP_200_OK: {
+            "content": {"audio/wav": {}},
+            "description": "Supertonic 3 PCM WAV audio",
+        }
+    },
+    summary="Synthesize Korean speech with local Supertonic 3",
+)
+async def synthesize_speech(
+    payload: SpeechSynthesisRequest,
+    _: TabletSessionDependency,
+    __: SameOriginDependency,
+    synthesizer: SynthesizerDependency,
+) -> Response:
+    """Return a non-persisted WAV that the tablet can play immediately."""
+
+    return await _synthesize_response(payload, synthesizer)
+
+
+@router.post(
+    "/demo-speech",
+    response_class=Response,
+    responses={
+        status.HTTP_200_OK: {
+            "content": {"audio/wav": {}},
+            "description": "Supertonic 3 PCM WAV audio for an allowlisted demo prompt",
+        }
+    },
+    summary="Synthesize an allowlisted public demo prompt",
+)
+async def synthesize_demo_speech(
+    payload: SpeechSynthesisRequest,
+    _: SameOriginDependency,
+    synthesizer: SynthesizerDependency,
+) -> Response:
+    """Use the production voice engine without exposing arbitrary public TTS."""
+
+    if payload.text not in DEMO_SPEECH_TEXTS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="speech text is not available in the public demo",
+        )
+    return await _synthesize_response(payload, synthesizer)

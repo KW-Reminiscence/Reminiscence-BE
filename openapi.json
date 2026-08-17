@@ -1550,6 +1550,44 @@
         ]
       }
     },
+    "/api/v1/tts/demo-speech": {
+      "post": {
+        "description": "Use the production voice engine without exposing arbitrary public TTS.",
+        "operationId": "synthesize_demo_speech_api_v1_tts_demo_speech_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpeechSynthesisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "audio/wav": {}
+            },
+            "description": "Supertonic 3 PCM WAV audio for an allowlisted demo prompt"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Synthesize an allowlisted public demo prompt",
+        "tags": [
+          "tts"
+        ]
+      }
+    },
     "/api/v1/tts/speech": {
       "post": {
         "description": "Return a non-persisted WAV that the tablet can play immediately.",

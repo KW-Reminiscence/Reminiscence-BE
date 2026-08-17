@@ -37,6 +37,7 @@ DEFAULT_RATE_LIMIT_RULES = (
     ),
     RateLimitRule(_CONVERSATION_TURN_PATH, 30, 60),
     RateLimitRule(re.compile(r"^/api/v1/tts/speech$"), 60, 60),
+    RateLimitRule(re.compile(r"^/api/v1/tts/demo-speech$"), 20, 60),
 )
 DEFAULT_RATE_LIMIT_MAXIMUM_KEYS = 10_000
 
