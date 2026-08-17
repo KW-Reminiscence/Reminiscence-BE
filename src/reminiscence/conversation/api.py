@@ -20,9 +20,8 @@ from reminiscence.asr import (
 )
 from reminiscence.auth.dependencies import (
     GuardianSessionDependency,
+    SameOriginDependency,
     TabletSessionDependency,
-    require_same_origin,
-    require_tablet_session,
 )
 from reminiscence.auth.secrets import load_auth_secrets
 from reminiscence.conversation.context import TransientConversationContextStore
@@ -66,10 +65,6 @@ from reminiscence.runtime_config import load_runtime_settings, server_timezone
 from reminiscence.storage import JsonStorageError, open_versioned_store
 
 router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])
-demo_router = APIRouter(
-    prefix="/api/v1/demo/conversations",
-    tags=["demo-conversations"],
-)
 
 
 class StartConversationRequest(BaseModel):
@@ -393,17 +388,11 @@ async def get_conversation_suggestion(
     response_model=StartConversationResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Start a reminiscence conversation",
-    dependencies=[Depends(require_tablet_session), Depends(require_same_origin)],
-)
-@demo_router.post(
-    "/sessions",
-    response_model=StartConversationResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Start a public demo reminiscence conversation",
-    dependencies=[Depends(require_same_origin)],
 )
 async def start_conversation(
     payload: StartConversationRequest,
+    _: TabletSessionDependency,
+    __: SameOriginDependency,
     service: ConversationServiceDependency,
     questions: QuestionProviderDependency,
     now: CurrentTimeDependency,
@@ -443,13 +432,6 @@ async def start_conversation(
     "/sessions/{session_id}/turns",
     response_model=TurnMetricResponse,
     summary="Recognize and reduce one user turn",
-    dependencies=[Depends(require_tablet_session), Depends(require_same_origin)],
-)
-@demo_router.post(
-    "/sessions/{session_id}/turns",
-    response_model=TurnMetricResponse,
-    summary="Recognize and reduce one public demo turn",
-    dependencies=[Depends(require_same_origin)],
 )
 async def record_conversation_turn(
     session_id: str,
@@ -458,6 +440,8 @@ async def record_conversation_turn(
     turn_duration_seconds: TurnDuration,
     has_speech: HasSpeech,
     turn_id: ClientTurnId,
+    _: TabletSessionDependency,
+    __: SameOriginDependency,
     service: ConversationServiceDependency,
     recognizer: RecognizerDependency,
     questions: QuestionProviderDependency,
@@ -558,16 +542,11 @@ async def record_conversation_turn(
     "/sessions/{session_id}/complete",
     response_model=ConversationSummaryResponse,
     summary="Complete a conversation session",
-    dependencies=[Depends(require_tablet_session), Depends(require_same_origin)],
-)
-@demo_router.post(
-    "/sessions/{session_id}/complete",
-    response_model=ConversationSummaryResponse,
-    summary="Complete a public demo conversation session",
-    dependencies=[Depends(require_same_origin)],
 )
 async def complete_conversation(
     session_id: str,
+    _: TabletSessionDependency,
+    __: SameOriginDependency,
     service: ConversationServiceDependency,
     context: ConversationContextDependency,
     now: CurrentTimeDependency,

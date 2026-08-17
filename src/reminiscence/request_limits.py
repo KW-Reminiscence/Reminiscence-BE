@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 _CONVERSATION_TURN_PATH = re.compile(
-    r"^/api/v1/(?:demo/)?conversations/sessions/[^/]+/turns$"
+    r"^/api/v1/conversations/sessions/[^/]+/turns$"
 )
 
 
@@ -36,12 +36,6 @@ DEFAULT_RATE_LIMIT_RULES = (
         60,
     ),
     RateLimitRule(_CONVERSATION_TURN_PATH, 30, 60),
-    RateLimitRule(re.compile(r"^/api/v1/demo/conversations/sessions$"), 10, 60),
-    RateLimitRule(
-        re.compile(r"^/api/v1/demo/conversations/sessions/[^/]+/complete$"),
-        30,
-        60,
-    ),
     RateLimitRule(re.compile(r"^/api/v1/tts/speech$"), 60, 60),
     RateLimitRule(re.compile(r"^/api/v1/tts/demo-speech$"), 20, 60),
 )

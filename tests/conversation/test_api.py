@@ -14,7 +14,6 @@ from fastapi.testclient import TestClient
 
 from reminiscence.asr import CodexLbRecognizer, RecognitionResult
 from reminiscence.asr.models import MAX_AUDIO_BYTES
-from reminiscence.auth.dependencies import require_same_origin, require_tablet_session
 from reminiscence.conversation import ConversationService, JsonConversationStore
 from reminiscence.conversation.api import (
     get_conversation_context_store,
@@ -252,62 +251,6 @@ def test_start_returns_photo_and_synthesizable_question(tmp_path: Path) -> None:
     }
     assert payload["question"]["display_text"]
     assert payload["question"]["spoken_text"] == payload["question"]["display_text"]
-
-
-def test_public_demo_runs_the_same_stt_llm_and_completion_pipeline(
-    tmp_path: Path,
-) -> None:
-    questions = FakeQuestionProvider()
-    client, activity_path, recognizer = client_with(tmp_path, questions=questions)
-    app.dependency_overrides.pop(require_tablet_session, None)
-
-    protected = client.post(
-        "/api/v1/conversations/sessions",
-        json={"source": "VOLUNTARY"},
-    )
-    started = client.post(
-        "/api/v1/demo/conversations/sessions",
-        json={"source": "VOLUNTARY"},
-    )
-
-    assert protected.status_code == 401
-    assert started.status_code == 201
-    session_id = started.json()["session_id"]
-
-    turn = client.post(
-        f"/api/v1/demo/conversations/sessions/{session_id}/turns",
-        params={"turn_duration_seconds": 4.2, "has_speech": True},
-        content=b"demo-wav-audio",
-        headers=TURN_HEADERS,
-    )
-    completed = client.post(
-        f"/api/v1/demo/conversations/sessions/{session_id}/complete",
-        json={"reason": "USER_FINISHED"},
-    )
-
-    assert turn.status_code == 200
-    assert turn.json()["next_question"]["display_text"] == (
-        "그때 함께 웃었던 일도 들려주시겠어요?"
-    )
-    assert completed.status_code == 200
-    assert completed.json()["user_turn_count"] == 1
-    assert recognizer.calls == [(b"demo-wav-audio", "audio/wav")]
-    assert questions.follow_ups[0][1] == "비밀 가족 이야기"
-    persisted = activity_path.read_text(encoding="utf-8")
-    assert "demo-wav-audio" not in persisted
-    assert "비밀 가족 이야기" not in persisted
-
-
-def test_public_demo_conversation_requires_same_origin(tmp_path: Path) -> None:
-    client, _, _ = client_with(tmp_path)
-    app.dependency_overrides.pop(require_same_origin, None)
-
-    response = client.post(
-        "/api/v1/demo/conversations/sessions",
-        json={"source": "VOLUNTARY"},
-    )
-
-    assert response.status_code == 403
 
 
 def test_start_passes_photo_context_to_question_provider(tmp_path: Path) -> None:

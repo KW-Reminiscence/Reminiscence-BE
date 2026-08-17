@@ -93,7 +93,7 @@ def test_speech_endpoint_maps_model_failure_to_503() -> None:
     }
 
 
-def test_demo_speech_endpoint_uses_production_engine() -> None:
+def test_demo_speech_endpoint_uses_production_engine_for_allowlisted_prompt() -> None:
     app = create_app()
     synthesizer = FakeSynthesizer()
     app.dependency_overrides[get_speech_synthesizer] = lambda: synthesizer
@@ -110,7 +110,7 @@ def test_demo_speech_endpoint_uses_production_engine() -> None:
     assert synthesizer.texts == ["가족사진을 보니 어떤 날이 떠오르세요?"]
 
 
-def test_demo_speech_endpoint_accepts_dynamic_llm_question() -> None:
+def test_demo_speech_endpoint_rejects_arbitrary_public_text() -> None:
     app = create_app()
     synthesizer = FakeSynthesizer()
     app.dependency_overrides[get_speech_synthesizer] = lambda: synthesizer
@@ -118,12 +118,14 @@ def test_demo_speech_endpoint_accepts_dynamic_llm_question() -> None:
 
     response = TestClient(app).post(
         "/api/v1/tts/demo-speech",
-        json={"text": "그날 함께 계셨던 분은 누구였나요?"},
+        json={"text": "임의로 합성할 문장"},
     )
 
-    assert response.status_code == 200
-    assert response.headers["x-tts-engine"] == "supertonic-3"
-    assert synthesizer.texts == ["그날 함께 계셨던 분은 누구였나요?"]
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "speech text is not available in the public demo"
+    }
+    assert synthesizer.texts == []
 
 
 def test_demo_speech_endpoint_requires_same_origin() -> None:
